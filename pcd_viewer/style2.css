@@ -1,0 +1,44 @@
+:root {
+  --bg: #0f1117;
+  --panel: #161a23;
+  --text: #e6e8ef;
+  --muted: #aab2c5;
+  --border: #232635;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+
+header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+header .left, header .right { display: flex; gap: 10px; align-items: center; }
+h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .2px; }
+label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+select, input[type="range"], button {
+  background: #111420; border: 1px solid var(--border); color: var(--text);
+  padding: 6px 8px; border-radius: 8px; cursor: pointer;
+}
+input[type="range"] { cursor: ew-resize; }
+label.file { padding: 6px 10px; background: #111420; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+label.file input { display: none; }
+
+main { display: grid; grid-template-columns: 1fr 200px; height: calc(100vh - 96px); }
+#stage3d { position: relative; width: 100%; height: 100%; }
+#stage3d canvas { display: block; width: 100%; height: 100%; }
+
+#legend {
+  background: var(--panel); border-left: 1px solid var(--border);
+  padding: 10px; display: grid; grid-template-rows: auto auto auto 1fr; gap: 6px;
+}
+#legendTitle { color: var(--muted); font-weight: 600; }
+#legendCanvas { width: 20px; height: 160px; border-radius: 8px; border: 1px solid var(--border); background: #0b0d13; }
+.range { display: flex; justify-content: space-between; color: var(--muted); }
+.note { color: var(--muted); font-size: 12px; opacity: .9; }
+
+footer {
+  padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
+  color: var(--muted);
+}

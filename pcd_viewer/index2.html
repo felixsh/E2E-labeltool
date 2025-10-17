@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>KITTI PCD — 3D Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style2.css" />
+</head>
+<body>
+  <header>
+    <div class="left">
+      <h1>KITTI PCD — 3D</h1>
+      <label class="file">
+        <input id="fileInput" type="file" accept=".pcd" />
+        Load .pcd
+      </label>
+      <button id="fitBtn" disabled>Auto-fit</button>
+      <button id="viewTopBtn" disabled>Top</button>
+      <button id="viewIsoBtn" disabled>Iso</button>
+    </div>
+    <div class="right">
+      <label>
+        Color
+        <select id="colorMode">
+          <option value="height">Height (z)</option>
+          <option value="intensity">Intensity</option>
+          <option value="distance">Range</option>
+          <option value="solid">Solid</option>
+        </select>
+      </label>
+      <label>Point Size:
+        <input id="ptSize" type="range" min="0.01" max="0.5" step="0.01" value="0.08">
+        <span id="ptSizeVal">0.08</span> m
+      </label>
+      <label>
+        Max points
+        <input id="maxPts" type="range" min="20000" max="800000" step="20000" value="200000" />
+        <span id="maxPtsVal">200k</span>
+      </label>
+      <label>
+        Exposure
+        <input id="exposure" type="range" min="0.5" max="1.8" step="0.01" value="1.0" />
+        <span id="exposureVal">1.00</span>
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <div id="stage3d"></div>
+    <aside id="legend">
+      <div id="legendTitle">Height (m)</div>
+      <canvas id="legendCanvas" width="10" height="160"></canvas>
+      <div class="range"><span id="legendMin"></span><span id="legendMax"></span></div>
+      <div class="note">KITTI axes: X fwd, Y left, Z up.</div>
+    </aside>
+  </main>
+
+  <footer>
+    <div id="status">Load a .pcd file to start.</div>
+  </footer>
+
+  <!-- three.js (module) -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js"></script>
+
+  <!-- app -->
+  <script src="config2.js"></script>
+  
+  <!-- Map the bare specifier "three" to the CDN ESM build -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  
+  <script type="module" src="app2.js"></script>
+
+</body>
+</html>
