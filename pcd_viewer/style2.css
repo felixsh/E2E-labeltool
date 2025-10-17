@@ -6,16 +6,47 @@
   --border: #232635;
 }
 
+/* Layout */
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
-
-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  display: flex;
+  flex-direction: column;
 }
-header .left, header .right { display: flex; gap: 10px; align-items: center; }
-h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .2px; }
+
+header, footer {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+footer {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--muted);
+}
+
+main {
+  display: block !important;          /* kill the 2-column grid */
+  height: calc(100vh - 96px);
+}
+#stage3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #0b0d13;
+}
+/* Only the THREE.js canvas should fill the stage */
+#stage3d > canvas.threejs { display: block; width: 100%; height: 100%; }
+
+/* Other canvases inside #stage3d (like the legend) keep their own size */
+#stage3d canvas { display: block; }
+
+/* Toolbar */
+.toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
 select, input[type="range"], button {
   background: #111420; border: 1px solid var(--border); color: var(--text);
@@ -25,20 +56,60 @@ input[type="range"] { cursor: ew-resize; }
 label.file { padding: 6px 10px; background: #111420; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
 label.file input { display: none; }
 
-main { display: grid; grid-template-columns: 1fr 200px; height: calc(100vh - 96px); }
-#stage3d { position: relative; width: 100%; height: 100%; }
-#stage3d canvas { display: block; width: 100%; height: 100%; }
+/* Legend: vertical, bottom-right, NO panel box */
+#legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  /* remove panel look */
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+
+  color: #e6e8ef;
+  font: 12px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  pointer-events: none;
+}
+
+#legendCanvas {
+  width: 20px;
+  height: 160px;
+  border: none;                 /* no border line */
+  border-radius: 4px;           /* optional small rounding */
+  background: #0b0d13;
+}
+
+/* Legend labels */
+#legendTitle { color: var(--muted); font-weight: 600; }
+.labels { row-gap: 4px; }
+.ticks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 160px;
+  color: var(--muted);
+}
 
 #legend {
-  background: var(--panel); border-left: 1px solid var(--border);
-  padding: 10px; display: grid; grid-template-rows: auto auto auto 1fr; gap: 6px;
+  max-height: 180px;
+  max-width: 80px;
 }
-#legendTitle { color: var(--muted); font-weight: 600; }
-#legendCanvas { width: 20px; height: 160px; border-radius: 8px; border: 1px solid var(--border); background: #0b0d13; }
-.range { display: flex; justify-content: space-between; color: var(--muted); }
-.note { color: var(--muted); font-size: 12px; opacity: .9; }
 
-footer {
-  padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
-  color: var(--muted);
+/* Remove any old layout box on the right */
+aside, .right-panel {
+  display: none !important;
+  width: 0 !important;
+  border: none !important;
+}
+
+/* Make sure the legend canvas never stretches */
+#legendCanvas {
+  width: 20px !important;
+  height: 160px !important;
+  flex: 0 0 auto;        /* don't grow/shrink in flex */
+  box-sizing: content-box;
 }

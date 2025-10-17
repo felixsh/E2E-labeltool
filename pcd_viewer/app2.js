@@ -10,17 +10,12 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   const container = document.getElementById("stage3d");
   const fileInput = document.getElementById("fileInput");
   const statusEl  = document.getElementById("status");
-  const fitBtn    = document.getElementById("fitBtn");
   const viewTopBtn= document.getElementById("viewTopBtn");
   const viewIsoBtn= document.getElementById("viewIsoBtn");
 
   const colorModeSel = document.getElementById("colorMode");
   const ptSizeInput  = document.getElementById("ptSize");
   const ptSizeVal    = document.getElementById("ptSizeVal");
-  const maxPtsInput  = document.getElementById("maxPts");
-  const maxPtsVal    = document.getElementById("maxPtsVal");
-  const exposureIn   = document.getElementById("exposure");
-  const exposureVal  = document.getElementById("exposureVal");
 
   const legendCanvas = document.getElementById("legendCanvas");
   const legendTitle  = document.getElementById("legendTitle");
@@ -33,6 +28,7 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   renderer.setSize(container.clientWidth || 640, container.clientHeight || 480);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
+  renderer.domElement.classList.add("threejs");
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b0d13);
@@ -67,15 +63,13 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   // ===== State =====
   let colorMode = colorModeSel?.value ?? "height";    // "height" | "intensity" | "distance" | "solid"
   let ptSize    = +(ptSizeInput?.value ?? 2);
-  let maxPoints = +(maxPtsInput?.value ?? 200000);
-  let exposure  = +(exposureIn?.value ?? 1.0);
+  let maxPoints = (window.PCD_CONFIG?.maxPoints ?? 500000) | 0; // fixed cap
+  let exposure  = 1.0; // fixed global exposure
+  renderer.toneMappingExposure = exposure;
 
   // Apply config defaults (AFTER the lets above)
   if (CFG.pointSize) { ptSize = CFG.pointSize; if (ptSizeInput) ptSizeInput.value = CFG.pointSize; if (ptSizeVal) ptSizeVal.textContent = String(CFG.pointSize); }
   if (CFG.colorMode) { colorMode = CFG.colorMode; if (colorModeSel) colorModeSel.value = CFG.colorMode; }
-  if (CFG.maxPoints) { maxPoints = CFG.maxPoints; if (maxPtsInput){ maxPtsInput.value = CFG.maxPoints; } if (maxPtsVal){ maxPtsVal.textContent = formatK(CFG.maxPoints); } }
-  if (CFG.exposure)  { exposure = CFG.exposure; if (exposureIn){ exposureIn.value = CFG.exposure; } if (exposureVal){ exposureVal.textContent = CFG.exposure.toFixed(2); } }
-  renderer.toneMappingExposure = exposure;
 
   if (ptSizeVal) ptSizeVal.textContent = ptSize.toFixed(2) + " m";
 
@@ -349,12 +343,12 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
     } else {
       legendTitle && (legendTitle.textContent = "Color"); min="—"; max="—";
     }
-    ctxL.clearRect(0,0,w,h);
-    for (let i=0;i<h;i++){
-      const t = i/(h-1);
+    ctxL.clearRect(0, 0, w, h);
+    for (let y = 0; y < h; y++) {
+      const t = y / (h - 1);
       const c = rampColor(stops, flip ? (1 - t) : t);
       ctxL.fillStyle = `rgb(${(c.r*255)|0},${(c.g*255)|0},${(c.b*255)|0})`;
-      ctxL.fillRect(0, i, w, 1);
+      ctxL.fillRect(0, y, w, 1);
     }
     if (legendMin) legendMin.textContent = (typeof min === "number") ? min.toFixed(2) : String(min);
     if (legendMax) legendMax.textContent = (typeof max === "number") ? max.toFixed(2) : String(max);
@@ -388,7 +382,6 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
       raw = parsePCD(buf);
       bounds = computeBounds(raw.points, raw.xyzIdx);
       status(`Loaded ${file.name} — ${raw.count.toLocaleString()} points, fields: ${raw.fields.join(", ")}`);
-      fitBtn && (fitBtn.disabled = false);
       viewTopBtn && (viewTopBtn.disabled = false);
       viewIsoBtn && (viewIsoBtn.disabled = false);
       updateCenterAndRadius();
@@ -401,7 +394,6 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
     }
   });
 
-  fitBtn?.addEventListener("click", () => { autoFit(); });
   viewTopBtn?.addEventListener("click", () => { setTopView(); });
   viewIsoBtn?.addEventListener("click", () => { setIsoView(); });
 
@@ -420,19 +412,6 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
     }
   });
 
-  maxPtsInput?.addEventListener("input", () => {
-    maxPoints = +maxPtsInput.value;
-    maxPtsVal && (maxPtsVal.textContent = formatK(maxPoints));
-    buildCloud();
-  });
-
-  exposureIn?.addEventListener("input", () => {
-    exposure = +exposureIn.value;
-    exposureVal && (exposureVal.textContent = exposure.toFixed(2));
-    renderer.toneMappingExposure = exposure;
-    renderOnce();
-  });
-
   // ===== Init legend once =====
   updateLegend();
 
@@ -446,7 +425,6 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
       raw = parsePCD(buf);
       bounds = computeBounds(raw.points, raw.xyzIdx);
       status(`Loaded default PCD — ${DEFAULT_PCD_PATH}`);
-      fitBtn && (fitBtn.disabled = false);
       viewTopBtn && (viewTopBtn.disabled = false);
       viewIsoBtn && (viewIsoBtn.disabled = false);
       updateCenterAndRadius();
