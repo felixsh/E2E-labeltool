@@ -22,30 +22,60 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   const legendMin    = document.getElementById("legendMin");
   const legendMax    = document.getElementById("legendMax");
 
+  const modeBadge = document.getElementById("modeBadge");
+  function setBadge(mode){ // "2D" or "3D"
+    if (!modeBadge) return;
+    modeBadge.textContent = mode;
+    modeBadge.classList.remove("two","three");
+    modeBadge.classList.add("badge", mode === "2D" ? "two" : "three");
+  }
+
   // ===== THREE setup =====
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth || 640, container.clientHeight || 480);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
-  renderer.domElement.classList.add("threejs");
-
+  renderer.domElement.classList.add("threejs"); // ensure only this canvas is full-size
+  
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b0d13);
-
-  const camera = new THREE.PerspectiveCamera(
-    60,
-    Math.max(1e-6, (container.clientWidth || 640) / (container.clientHeight || 480)),
-    0.1,
-    2000
-  );
-  camera.position.set(30, 30, 30);
-  camera.up.set(0, 0, 1);   // ← Z-up, so left–right rotates around Z
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.minDistance = 1;
-  controls.maxDistance = 2000;
+  
+  // ---- Cameras & Controls (2D/3D toggle) ----
+  let camera;            // current active camera
+  let controls;          // current active controls
+  let is2D = false;      // spacebar toggles this
+  let radius = 10;       // you already update this from bounds
+  const center = new THREE.Vector3(); // you already have a center in your code
+  
+  function makePerspectiveCamera() {
+    const w = container.clientWidth || 640, h = container.clientHeight || 480;
+    const cam = new THREE.PerspectiveCamera(60, Math.max(1e-6, w/h), 0.1, 2000);
+    cam.up.set(0, 0, 1); // Z-up so azimuth is around Z
+    return cam;
+  }
+  
+  function makeOrthoCamera() {
+    const w = container.clientWidth || 640, h = container.clientHeight || 480;
+    const aspect = Math.max(1e-6, w/h);
+    const r = Math.max(1, radius); // view half-extent in meters
+    // Frustum sized to data extents; X spans ±r*aspect, Y spans ±r
+    const cam = new THREE.OrthographicCamera(-r*aspect, r*aspect, r, -r, -2000, 2000);
+    cam.up.set(0, 0, 1);
+    return cam;
+  }
+  
+  function makeControls(cam) {
+    const c = new OrbitControls(cam, renderer.domElement);
+    c.enableDamping = true;
+    c.minDistance = 0.1;
+    c.maxDistance = 5000;
+    return c;
+  }
+  
+  // Initial: start in 3D
+  camera = makePerspectiveCamera();
+  controls = makeControls(camera);
 
   // Lights (soft)
   const hemi = new THREE.HemisphereLight(0xffffff, 0x222233, 0.4);
@@ -76,8 +106,23 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   let cloud = null;                // THREE.Points
   let raw = null;                  // {points: Float32Array, fields, xyzIdx, count}
   let bounds = null;               // {xmin,xmax,ymin,ymax,zmin,zmax}
-  let center = new THREE.Vector3(); // data center
-  let radius = 10;
+
+  let basePtSize = ptSize; // meters (slider/config value)
+  
+  function appliedPtSize() {
+    // In 3D (perspective): use base size in meters
+    // In 2D (ortho): compensate for zoom so on-screen size feels similar
+    return is2D ? basePtSize * Math.max(1e-6, camera.zoom) : basePtSize;
+  }
+  function syncPointSize() {
+    if (cloud) {
+      const s = appliedPtSize();
+      if (cloud.material.size !== s) {
+        cloud.material.size = s;
+        renderOnce();
+      }
+    }
+  }
 
   // ===== Utils =====
   function status(msg){ if (statusEl) statusEl.textContent = msg; }
@@ -171,7 +216,7 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
     geo.computeBoundingSphere();
 
     const mat = new THREE.PointsMaterial({
-      size: ptSize,
+      size: appliedPtSize(),
       sizeAttenuation: true,
       vertexColors: true,
       transparent: false
@@ -210,6 +255,64 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
     radius = Math.max(dx, dy, dz) * 0.5 || 10;
   }
 
+  function enter3D() {
+    syncPointSize();
+    // swap camera to perspective
+    const oldControls = controls; oldControls?.dispose();
+    camera = makePerspectiveCamera();
+    controls = makeControls(camera);
+  
+    // rotation ON, right mouse pan
+    controls.enableRotate = true;
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN
+    };
+  
+    // place camera to iso view around current center/radius
+    camera.position.copy(center).add(new THREE.Vector3(radius*1.2, radius*1.2, radius*1.0));
+    camera.lookAt(center);
+    controls.target.copy(center);
+    controls.update();
+    renderer.render(scene, camera);
+
+    setBadge("3D");
+  }
+  
+  function enter2D() {
+    syncPointSize();
+    // swap camera to orthographic
+    const oldControls = controls; oldControls?.dispose();
+    camera = makeOrthoCamera();
+    controls = makeControls(camera);
+
+    // update size when zoom changes
+    controls.addEventListener("change", syncPointSize);
+  
+    // 2D: disable rotation; pan with RIGHT; wheel zoom ok
+    controls.enableRotate = false;
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.NONE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN
+    };
+  
+    // top-down: camera above looking straight down Z
+    camera.position.set(center.x, center.y, center.z + radius*2.0);
+    camera.lookAt(center);
+    controls.target.copy(center);
+    controls.update();
+    renderer.render(scene, camera);
+
+    setBadge("2D");
+  }
+  
+  function toggle2D() {
+    is2D = !is2D;
+    if (is2D) enter2D(); else enter3D();
+  }
+
   function autoFit() {
     if (!bounds) return;
     updateCenterAndRadius();
@@ -233,6 +336,29 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   }
 
   function setIsoView() { autoFit(); }
+
+  function setTopPerspective3D(){
+    // stay in 3D (perspective), just move camera above
+    if (!camera.isPerspectiveCamera) enter3D(); // ensure perspective
+    const oldControls = controls; oldControls?.dispose();
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enableRotate = true;              // rotation stays enabled in 3D
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN
+    };
+    // place camera straight above center with some distance
+    const d = Math.max(1, radius*2.0);
+    camera.up.set(0,0,1);
+    camera.position.set(center.x, center.y, center.z + d);
+    camera.lookAt(center);
+    controls.target.copy(center);
+    controls.update();
+    setBadge("3D"); // still 3D
+    renderOnce();
+  }
 
   // ===== PCD parsing (ASCII + binary) =====
   async function readFileAsArrayBuffer(file) { return await file.arrayBuffer(); }
@@ -367,10 +493,21 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   // ===== Events =====
   new ResizeObserver(() => {
     const w = container.clientWidth || 640, h = container.clientHeight || 480;
-    camera.aspect = Math.max(1e-6, w/h);
-    camera.updateProjectionMatrix();
+    if (camera.isPerspectiveCamera) {
+      camera.aspect = Math.max(1e-6, w/h);
+      camera.updateProjectionMatrix();
+    } else if (camera.isOrthographicCamera) {
+      const aspect = Math.max(1e-6, w/h);
+      const r = Math.max(1, radius);
+      camera.left   = -r * aspect;
+      camera.right  =  r * aspect;
+      camera.top    =  r;
+      camera.bottom = -r;
+      camera.updateProjectionMatrix();
+    }
     renderer.setSize(w, h);
-    renderOnce();
+    renderer.render(scene, camera);
+    syncPointSize();
   }).observe(container);
 
   fileInput?.addEventListener("change", async (e) => {
@@ -380,6 +517,7 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
     try {
       const buf = await readFileAsArrayBuffer(file);
       raw = parsePCD(buf);
+      setBadge(is2D ? "2D" : "3D");
       bounds = computeBounds(raw.points, raw.xyzIdx);
       status(`Loaded ${file.name} — ${raw.count.toLocaleString()} points, fields: ${raw.fields.join(", ")}`);
       viewTopBtn && (viewTopBtn.disabled = false);
@@ -387,15 +525,24 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
       updateCenterAndRadius();
       updateLegend();
       buildCloud();
-      setIsoView();
+      if (is2D) enter2D(); else enter3D();
     } catch (err) {
       console.error(err);
       status(`Failed: ${err.message || err}`);
     }
   });
 
-  viewTopBtn?.addEventListener("click", () => { setTopView(); });
-  viewIsoBtn?.addEventListener("click", () => { setIsoView(); });
+  viewTopBtn?.addEventListener("click", () => {
+    if (is2D) {
+      enter2D();              // stay in 2D, keep ortho top-down
+    } else {
+      setTopPerspective3D();  // 3D top view (perspective)
+    }
+  });
+  viewIsoBtn?.addEventListener("click", () => {
+    is2D = false;
+    enter3D();                // iso perspective
+  });
 
   colorModeSel?.addEventListener("change", () => {
     colorMode = colorModeSel.value;
@@ -404,12 +551,9 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
   });
 
   ptSizeInput?.addEventListener("input", () => {
-    ptSize = +ptSizeInput.value;
-    if (ptSizeVal) ptSizeVal.textContent = ptSize.toFixed(2) + " m";  // ← show units in meters
-    if (cloud) {
-      cloud.material.size = ptSize;
-      renderOnce();
-    }
+    basePtSize = +ptSizeInput.value;
+    if (ptSizeVal) ptSizeVal.textContent = basePtSize.toFixed(2) + " m";
+    syncPointSize();
   });
 
   // ===== Init legend once =====
@@ -423,6 +567,7 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
       if (!resp.ok) { status("Default PCD not found. Use Load .pcd."); return; }
       const buf = await resp.arrayBuffer();
       raw = parsePCD(buf);
+      setBadge(is2D ? "2D" : "3D");
       bounds = computeBounds(raw.points, raw.xyzIdx);
       status(`Loaded default PCD — ${DEFAULT_PCD_PATH}`);
       viewTopBtn && (viewTopBtn.disabled = false);
@@ -437,4 +582,16 @@ import { OrbitControls } from "https://esm.sh/three@0.160.0/examples/jsm/control
       status("Default PCD not available. Use Load .pcd.");
     }
   })();
+
+  // ===== Keyboard shortcuts =====
+  window.addEventListener("keydown", (e) => {
+    // ignore if typing in a form field
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+  
+    if (e.code === "Space") {
+      e.preventDefault();
+      toggle2D(); // toggle between 2D/3D
+    }
+  });
+
 })();

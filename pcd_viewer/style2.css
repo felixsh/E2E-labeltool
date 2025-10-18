@@ -113,3 +113,13 @@ aside, .right-panel {
   flex: 0 0 auto;        /* don't grow/shrink in flex */
   box-sizing: content-box;
 }
+
+/* Mode badge (top-left) */
+#modeBadge.badge{
+  position:absolute; left:12px; top:12px;
+  padding:4px 8px; border-radius:999px;
+  font:12px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color:#0b0d13; background:#9fb3ff; letter-spacing:.3px; pointer-events:none;
+}
+#modeBadge.badge.two{ background:#ffd166; color:#0b0d13; }  /* 2D look */
+#modeBadge.badge.three{ background:#9fb3ff; color:#0b0d13; } /* 3D look */
