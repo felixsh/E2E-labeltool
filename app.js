@@ -3,13 +3,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 
-import { parsePCD } from "./src/pcdParser.js";
+import { parsePointCloud } from "./src/pcdParser.js";
 import { makeCharts } from "./src/charts.js";
 import { makeSplineSystem } from "./src/splineCore.js";
 
 // ---------- CONFIG ----------
 const CFG = window.MERGED_CONFIG || {};
-const DEFAULT_PCD = CFG.defaultPCD || "assets/demo.pcd"; // fails silently if not found
+const DEFAULT_PCD = CFG.defaultPCD;
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 
@@ -508,16 +508,26 @@ fileInput.addEventListener("change", async (e) => {
   status(`Reading ${file.name}…`);
   try {
     const buf = await file.arrayBuffer();
-    raw = parsePCD(buf);
+    raw = parsePointCloud(buf, file.name);               // <— unified
     bounds = computeBounds(raw.points, raw.xyzIdx);
     status(`Loaded ${file.name} — ${raw.count.toLocaleString()} points, fields: ${raw.fields.join(", ")}`);
+
     updateCenterAndRadius();
     updateLegend();
     buildCloud();
+
+    // keep your view logic; this sets a good 3D view
     setIsoView3D();
-    viewTopBtn.disabled = false; viewIsoBtn.disabled = false;
+
+    // enable view buttons
+    viewTopBtn.disabled = false; 
+    viewIsoBtn.disabled = false;
+
+    // notify spline so it can position/scale if needed
     spline.onCloudLoaded(center, radius);
+
     renderOnce();
+
     currentPCDName = file.name || "pointcloud.pcd";
   } catch (err) {
     console.error(err);
@@ -525,23 +535,31 @@ fileInput.addEventListener("change", async (e) => {
   }
 });
 
-// ---------- Auto-load default PCD (fail silently) ----------
+// ---------- Auto-load default point cloud (fail silently) ----------
 (async () => {
   if (!DEFAULT_PCD) return;
   try {
     const resp = await fetch(DEFAULT_PCD);
-    if (!resp.ok) return;
+    if (!resp.ok) return; // silent fail
     const buf = await resp.arrayBuffer();
-    raw = parsePCD(buf);
+
+    raw = parsePointCloud(buf, DEFAULT_PCD);            // <— unified
     bounds = computeBounds(raw.points, raw.xyzIdx);
-    status(`Loaded default PCD — ${DEFAULT_PCD}`);
+    status(`Loaded default point cloud — ${DEFAULT_PCD}`);
+
     updateCenterAndRadius();
     updateLegend();
     buildCloud();
+
     setIsoView3D();
-    viewTopBtn.disabled = false; viewIsoBtn.disabled = false;
+
+    viewTopBtn.disabled = false; 
+    viewIsoBtn.disabled = false;
+
     spline.onCloudLoaded(center, radius);
+
     renderOnce();
+
     currentPCDName = (DEFAULT_PCD.split("/").pop()) || "pointcloud.pcd";
   } catch (_err) {
     // silent

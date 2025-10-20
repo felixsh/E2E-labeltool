@@ -1,6 +1,6 @@
 window.MERGED_CONFIG = {
   /* ---------- PCD viewer ---------- */
-  defaultPCD: "assets/demo.pcd",  // path relative to index.html; use HTTP server
+  defaultPCD: "assets/demo.bin",  // path relative to index.html; use HTTP server
   maxPoints: 500000,              // hard cap
 
   /* Point rendering */
