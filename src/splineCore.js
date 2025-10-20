@@ -73,6 +73,11 @@ export function makeSplineSystem({
   const smplMat    = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR });
   const smplMatSel = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR_SEL });
 
+  ctrlMat.depthTest = ctrlMatSel.depthTest = false;
+  ctrlMat.depthWrite = ctrlMatSel.depthWrite = false;
+  smplMat.depthTest = smplMatSel.depthTest = false;
+  smplMat.depthWrite = smplMatSel.depthWrite = false;
+
   // ===== d3 curve path context -> dense polyline =====
   function samplingPathContext({ curveSubdivisions = 18 } = {}) {
     let pts = []; let cx = 0, cy = 0;
@@ -165,30 +170,93 @@ export function makeSplineSystem({
     return (bestI + bestU) / (densePts.length - 1);
   }
 
-  // ===== Spline object: TUBE in both 2D & 3D (for matching look) =====
-  function rebuildCurveObject() {
-    if (curveObject) { scene.remove(curveObject); curveObject.geometry.dispose(); curveObject.material.dispose(); curveObject = null; }
+  function rebuildCurveObject(force2D = is2D()) {
+    if (curveObject) {
+      scene.remove(curveObject);
+      curveObject.geometry.dispose();
+      curveObject.material.dispose();
+      curveObject = null;
+    }
     if (densePts.length < 2) return;
-
-    // 3D/2D: Tube for matching look
+  
+    // Common color (from CSS var)
+    const material = new THREE.MeshBasicMaterial({ color: SPLINE_COLOR });
+  
+    if (force2D) {
+      // ---- 2D: build a flat ribbon in XY with world thickness = 2*TUBE_RADIUS ----
+      const w = Math.max(1e-6, 2 * TUBE_RADIUS);
+      const half = w * 0.5;
+  
+      const n = densePts.length;
+      const positions = new Float32Array(n * 2 * 3); // two vertices per point
+      const indices   = new Uint32Array((n - 1) * 2 * 3); // two triangles per segment
+  
+      // helper to write a vertex
+      function setV(i, side, v) {
+        // side 0 = left, 1 = right
+        const base = (i * 2 + side) * 3;
+        positions[base + 0] = v.x;
+        positions[base + 1] = v.y;
+        positions[base + 2] = 0;
+      }
+  
+      // build normals per point (XY plane)
+      for (let i = 0; i < n; i++) {
+        const p  = densePts[i];
+        const p0 = densePts[Math.max(0, i - 1)];
+        const p1 = densePts[Math.min(n - 1, i + 1)];
+        const tx = p1.x - p0.x;
+        const ty = p1.y - p0.y;
+        const len = Math.hypot(tx, ty) || 1e-9;
+        // 2D normal (perpendicular): (-ty, tx)
+        const nx = -ty / len;
+        const ny =  tx / len;
+  
+        // left/right vertices
+        setV(i, 0, new THREE.Vector3(p.x + nx * half, p.y + ny * half, 0)); // left
+        setV(i, 1, new THREE.Vector3(p.x - nx * half, p.y - ny * half, 0)); // right
+      }
+  
+      // indices for triangle strip (two tris per segment)
+      let k = 0;
+      for (let i = 0; i < n - 1; i++) {
+        const a = i * 2,     b = a + 1;
+        const c = (i + 1) * 2, d = c + 1;
+        // tri1: a, c, b
+        indices[k++] = a; indices[k++] = c; indices[k++] = b;
+        // tri2: b, c, d
+        indices[k++] = b; indices[k++] = c; indices[k++] = d;
+      }
+  
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geo.setIndex(new THREE.Uint32BufferAttribute(indices, 1));
+      geo.computeVertexNormals(); // mostly flat, fine
+  
+      curveObject = new THREE.Mesh(geo, material);
+      curveObject.renderOrder = 5;
+      curveObject.material.depthTest  = false;
+      curveObject.material.depthWrite = false;
+      curveObject.material.side = THREE.DoubleSide;
+      scene.add(curveObject);
+      return;
+    }
+  
+    // ---- 3D: tube (unchanged) ----
     class ParamCurve extends THREE.Curve {
-      constructor(fn){ super(); this._fn = fn; }
-      getPoint(t, target = new THREE.Vector3()){
+      constructor(fn) { super(); this._fn = fn; }
+      getPoint(t, target = new THREE.Vector3()) {
         const p = this._fn(t); return target.set(p.x, p.y, p.z);
       }
-      getTangent(t, target = new THREE.Vector3()){
+      getTangent(t, target = new THREE.Vector3()) {
         const eps = 1e-3, t1 = Math.max(0, t - eps), t2 = Math.min(1, t + eps);
         const p1 = this._fn(t1), p2 = this._fn(t2);
         return target.set(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z).normalize();
       }
     }
     const path = new ParamCurve(paramToPoint);
-    const geo  = new THREE.TubeGeometry(path, 240, TUBE_RADIUS, 16, false);
-    
-    // ✅ Unlit material: always shows CSS color
-    const mat  = new THREE.MeshBasicMaterial({ color: SPLINE_COLOR });
-    
-    curveObject = new THREE.Mesh(geo, mat);
+    const geo3d = new THREE.TubeGeometry(path, 240, TUBE_RADIUS, 16, false);
+    curveObject = new THREE.Mesh(geo3d, material);
     scene.add(curveObject);
   }
 
@@ -232,6 +300,9 @@ export function makeSplineSystem({
         depthTest: true,
         transparent: true
       }));
+      sprite.renderOrder = 30;           // topmost
+      sprite.material.depthTest  = false;
+      sprite.material.depthWrite = false;
       sprite.scale.set(0.35, 0.35, 1);
       scene.add(sprite);
       sampleLabels.push(sprite);
@@ -248,6 +319,11 @@ export function makeSplineSystem({
   function ensureCtrlMeshes() {
     while (ctrlSpheres.length < points.length) {
       const m = new THREE.Mesh(ctrlGeom, ctrlMat);
+      // controls above spline, below samples
+      m.renderOrder = 10;
+      // draw above via depth (no z-fighting/occlusion issues)
+      m.material.depthTest  = false;
+      m.material.depthWrite = false;
       m.userData.kind = "ctrl"; m.userData.i = ctrlSpheres.length;
       scene.add(m); ctrlSpheres.push(m);
     }
@@ -268,6 +344,10 @@ export function makeSplineSystem({
     // spheres
     while (sampleSpheres.length < samples.length) {
       const m = new THREE.Mesh(smplGeom, smplMat);
+      // samples above everything else
+      m.renderOrder = 20;
+      m.material.depthTest  = false;
+      m.material.depthWrite = false;
       m.userData.kind = "sample"; m.userData.i = sampleSpheres.length;
       scene.add(m); sampleSpheres.push(m);
     }
@@ -432,7 +512,7 @@ export function makeSplineSystem({
   }
   function rebuildEverything() {
     rebuildDensePolyline();
-    rebuildCurveObject();      // tube in both modes
+    rebuildCurveObject(is2D());
     syncCtrlMeshes();
     updateSamplesAndCharts();
   }
@@ -580,7 +660,7 @@ export function makeSplineSystem({
     getOptimizerWeights,              // <-- add
     optimizeTs,
     onCloudLoaded: () => {},
-    rebuildCurveObject: () => rebuildCurveObject(),
+    rebuildCurveObject: (force2d) => rebuildCurveObject(force2d ?? is2D()),
     addAfterSelected,
     deleteSelectedCtrl
   };
