@@ -1,0 +1,76 @@
+// src/charts.js
+export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chartsDiv, chartLimits, dt, d3 }) {
+  const CLIM = Object.assign({ velocityKmh:null, accelMS2:null }, chartLimits||{});
+
+  function computeKinematics(samplePts){
+    const N=samplePts.length;
+    const pos=samplePts.map(p=>[p.x,p.y]);
+    const v_ms = d3.range(N-1).map(i => {
+      const dx=(pos[i+1][0]-pos[i][0])/dt, dy=(pos[i+1][1]-pos[i][1])/dt; return Math.hypot(dx,dy);
+    });
+    const v_kmh = v_ms.map(v=>v*3.6);
+    const iVel  = d3.range(N-1).map(i => i+0.5);
+    const a = d3.range(N-2).map(i => {
+      const ax=(pos[i+2][0]-2*pos[i+1][0]+pos[i][0])/(dt*dt);
+      const ay=(pos[i+2][1]-2*pos[i+1][1]+pos[i][1])/(dt*dt);
+      return [ax,ay];
+    });
+    const tHat = d3.range(N-2).map(i => {
+      const tx=pos[i+2][0]-pos[i][0], ty=pos[i+2][1]-pos[i][1]; const n=Math.hypot(tx,ty)||1; return [tx/n,ty/n];
+    });
+    const aLong = a.map(([ax,ay],i)=> ax*tHat[i][0] + ay*tHat[i][1]);
+    const aLat  = a.map(([ax,ay],i)=> {
+      const along=aLong[i]; const axp=ax-along*tHat[i][0], ayp=ay-along*tHat[i][1];
+      const mag=Math.hypot(axp,ayp); const sign=Math.sign(tHat[i][0]*ay - tHat[i][1]*ax)||1; return sign*mag;
+    });
+    const iAcc = d3.range(N-2).map(i => i+1);
+    return { iVel, v_kmh, iAcc, aLong, aLat };
+  }
+
+  function drawMiniChart(svgSel, X, Y, title, opts={absMax:false, units:"", yLimit:null}){
+    const node = svgSel.node();
+    const w = node.clientWidth||220, h=node.clientHeight||100;
+    svgSel.attr("viewBox",`0 0 ${w} ${h}`); svgSel.selectAll("*").remove();
+    svgSel.append("text").attr("x",8).attr("y",14).text(title).attr("fill","#cfd3dc").attr("font-size",12);
+    if (X.length<2) return;
+    const xy=X.map((x,i)=>[x,Y[i]]).filter(d=>Number.isFinite(d[1]));
+    if (xy.length<2) return;
+    const xMin=d3.min(xy,d=>d[0]), xMax=d3.max(xy,d=>d[0]);
+    let yMin=d3.min(xy,d=>d[1]), yMax=d3.max(xy,d=>d[1]);
+    if (opts.yLimit && Number.isFinite(opts.yLimit)){
+      if (title.startsWith("velocity")){ yMin=0; yMax=opts.yLimit; }
+      else { yMin=-opts.yLimit; yMax=opts.yLimit; }
+    } else { const pad=(yMax-yMin)*0.15||1; yMin-=pad; yMax+=pad; }
+    const x=d3.scaleLinear().domain([xMin,xMax]).range([8,w-8]);
+    const y=d3.scaleLinear().domain([yMin,yMax]).range([h-18,8]);
+    if (y.domain()[0] < 0 && y.domain()[1] > 0){
+      svgSel.append("line").attr("x1",x(xMin)).attr("x2",x(xMax)).attr("y1",y(0)).attr("y2",y(0))
+        .attr("stroke","#3b4153").attr("stroke-width",1);
+    }
+    svgSel.append("path").attr("d", d3.line().x(d=>x(d[0])).y(d=>y(d[1]))(xy))
+      .attr("fill","none").attr("stroke","#9fb3ff").attr("stroke-width",1.5);
+    const iStart=Math.ceil(xMin-1e-9), iEnd=Math.floor(xMax+1e-9);
+    for (let i=iStart;i<=iEnd;i++){
+      const xi=x(i);
+      svgSel.append("line").attr("x1",xi).attr("x2",xi).attr("y1",h-18).attr("y2",h-14).attr("stroke","#3b4153");
+      svgSel.append("text").attr("x",xi).attr("y",h-2).attr("text-anchor","middle").attr("fill","#cfd3dc").attr("font-size",10).text(i);
+    }
+    const vals=xy.map(d=>opts.absMax?Math.abs(d[1]):d[1]); let k=0,v=-Infinity;
+    for (let i=0;i<vals.length;i++) if (vals[i]>v){ v=vals[i]; k=i; }
+    const xmax=xy[k][0], ymaxv=xy[k][1];
+    svgSel.append("circle").attr("cx",x(xmax)).attr("cy",y(ymaxv)).attr("r",3).attr("fill","#cfd3dc");
+    svgSel.append("text").attr("x",w-8).attr("y",14).attr("text-anchor","end").attr("fill","#cfd3dc").attr("font-size",12)
+      .text(`max ${(opts.absMax?Math.abs(ymaxv):ymaxv).toFixed(2)}${opts.units?` ${opts.units}`:""}`);
+  }
+
+  function render(samples){
+    if (!samples || !samples.length){ chartsDiv.style.display = "none"; return; }
+    chartsDiv.style.display = "";
+    const { iVel, v_kmh, iAcc, aLong, aLat } = computeKinematics(samples);
+    drawMiniChart(velChartSel,     iVel, v_kmh, "velocity (km/h)",      {absMax:false, units:"km/h", yLimit:CLIM.velocityKmh});
+    drawMiniChart(accLongChartSel, iAcc, aLong, "longitudinal a (m/s²)", {absMax:true,  units:"m/s²", yLimit:CLIM.accelMS2});
+    drawMiniChart(accLatChartSel,  iAcc, aLat,  "lateral a (m/s²)",      {absMax:true,  units:"m/s²", yLimit:CLIM.accelMS2});
+  }
+
+  return { render };
+}

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PCD Viewer + Spline Editor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="toolbar">
+      <!-- LEFT: PCD controls -->
+      <div class="left">
+        <label class="file">
+          <input id="fileInput" type="file" accept=".pcd" />
+          Load .pcd
+        </label>
+
+        <label>
+          Point size
+          <input id="ptSize" type="range" min="0.01" max="0.50" step="0.01" value="0.08" />
+          <span id="ptSizeVal">0.08 m</span>
+        </label>
+
+        <label>
+          Color
+          <select id="colorMode">
+            <option value="height" selected>Height</option>
+            <option value="intensity">Intensity</option>
+            <option value="distance">Distance</option>
+            <option value="solid">Solid</option>
+          </select>
+        </label>
+
+        <button id="viewTopBtn" disabled>Top</button>
+        <button id="viewIsoBtn" disabled>Iso</button>
+      </div>
+
+      <!-- RIGHT: Spline controls -->
+      <div class="right">
+        <label>
+          Curve
+          <select id="curveType">
+            <option value="basis" selected>Basis</option>
+            <option value="natural">Natural</option>
+            <option value="catmullrom">CatmullRom</option>
+          </select>
+        </label>
+
+        <span id="alphaWrap">
+          <label>
+            α
+            <input id="alpha" type="range" min="0.0" max="1.0" step="0.01" value="0.50" />
+            <span id="alphaVal">0.50</span>
+          </label>
+        </span>
+
+        <label class="checkbox">
+          <input id="showSamplesChk" type="checkbox" checked />
+          <span>Samples</span>
+        </label>
+
+        <button id="optimizeBtn" title="Optimize sampling (jerk/limits)">Optimize</button>
+        <button id="exportSamplesBtn" title="Export JSON">Export</button>
+
+        <button id="helpBtn" title="Keyboard shortcuts">Help</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="stage3d">
+      <!-- Mode badge -->
+      <div id="modeBadge" class="badge three">3D</div>
+
+      <!-- Charts (top-right) -->
+      <div id="charts">
+        <svg id="velChart"></svg>
+        <svg id="accLongChart"></svg>
+        <svg id="accLatChart"></svg>
+      </div>
+
+      <!-- Legend (bottom-right, vertical) -->
+      <div id="legend">
+        <canvas id="legendCanvas" width="16" height="160"></canvas>
+        <div class="labels">
+          <div id="legendTitle">Height (m)</div>
+          <div class="ticks">
+            <span id="legendMax"></span>
+            <span id="legendMin"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div id="status">Load a .pcd file to start. Press <kbd>Space</kbd> to toggle 2D/3D.</div>
+  </footer>
+
+  <!-- Help dialog -->
+  <dialog id="helpDlg">
+    <div class="dialog-body">
+      <h3>Help</h3>
+      <ul>
+        <li><kbd>Space</kbd> — Toggle 2D/3D view</li>
+        <li><kbd>Top</kbd>/<kbd>Iso</kbd> — Camera presets (3D only)</li>
+        <li><kbd>A</kbd> — Add control point (after selected)</li>
+        <li><kbd>Delete</kbd>/<kbd>Backspace</kbd> — Delete selected control point</li>
+        <li><kbd>S</kbd> — Toggle Samples on/off</li>
+        <li><kbd>E</kbd> — Export samples (Nx2 JSON, meters)</li>
+        <li>Drag control/sample points on the ground plane (z=0)</li>
+        <li>Right mouse: pan • Wheel: zoom</li>
+      </ul>
+      <div class="actions">
+        <button id="helpClose">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- Config BEFORE app -->
+  <script src="config.js"></script>
+  <!-- App (entry) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

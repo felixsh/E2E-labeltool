@@ -1,0 +1,113 @@
+:root{
+  --bg: #0f1117;
+  --panel: #161a23;
+  --text: #e6e8ef;
+  --muted: #aab2c5;
+  --border: #232635;
+
+  /* --- spline visuals --- */
+  --spline-color: #ffd480;      /* warm yellow for spline */
+  --spline-width: 0.2;         /* tube radius in meters */
+
+  /* --- control points --- */
+  --ctrl-color: #66ccff;
+  --ctrl-selected-color: #ff6699;
+  --ctrl-size: 0.8;            /* sphere radius (m) */
+
+  /* --- sample points --- */
+  --sample-color: #ffffff;
+  --sample-selected-color: #ffcc00;
+  --sample-size: 0.5;          /* sphere radius (m) */
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+
+header {
+  display: flex; align-items: center;
+  padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.toolbar { display: flex; width: 100%; justify-content: space-between; gap: 10px; align-items: center; }
+.toolbar .left, .toolbar .right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+label.checkbox { gap: 8px; }
+label.file { padding: 6px 10px; background: #111420; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text); }
+label.file input { display: none; }
+
+select, input[type="range"], button {
+  background: #111420; border: 1px solid var(--border); color: var(--text);
+  padding: 6px 8px; border-radius: 8px; cursor: pointer;
+}
+input[type="range"] { cursor: ew-resize; }
+
+main { height: calc(100vh - 96px); }
+#stage3d { position: relative; width: 100%; height: 100%; background: #0b0d13; }
+#stage3d canvas.threejs { width: 100%; height: 100%; display: block; }
+
+footer {
+  padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* Mode badge (inside stage) */
+.badge {
+  position: absolute; left: 12px; top: 12px;
+  padding: 4px 8px; border-radius: 8px; font-weight: 600; font-size: 12px;
+  background: rgba(0,0,0,0.8); border: 1px solid var(--border); color: var(--text);
+  pointer-events: none;
+}
+.badge.two { background: rgba(0, 90, 255, 0.8); }
+.badge.three { background: rgba(0, 180, 120, 0.8); }
+
+/* Charts (top-right) */
+#charts{
+  position: absolute; right: 12px; top: 12px;
+  width: min(22vw, 320px);
+  display: grid; gap: 8px;
+  pointer-events: none; /* keep interactions on canvas */
+}
+#charts svg{
+  width: 100%;
+  height: 18vh;          /* short and wide */
+  min-height: 80px;      /* guard for small screens */
+  background: rgba(0,0,0,0.8);
+  border: 1px solid #2a2f40; border-radius: 8px;
+}
+
+/* Legend (bottom-right, vertical) */
+#legend{
+  position: absolute; right: 12px; bottom: 12px;
+  display: flex; align-items: flex-end; gap: 8px;
+  background: rgba(0,0,0,0.8); padding: 6px 8px; border-radius: 8px;
+  color: #e6e8ef; font: 12px/1.2 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  pointer-events: none;
+}
+#legendCanvas{
+  width: 20px; height: 160px;
+  border: 1px solid var(--border); border-radius: 6px; background:#0b0d13;
+}
+#legend .labels{ display: grid; row-gap: 4px; }
+#legend .ticks{ display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
+
+/* Help dialog */
+dialog#helpDlg {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #111420;
+  color: var(--text);
+  max-width: 520px;
+  width: calc(100% - 32px);
+}
+.dialog-body { padding: 16px; }
+.dialog-body h3 { margin: 0 0 8px; }
+.dialog-body ul { margin: 8px 0 16px 18px; color: var(--muted); }
+.dialog-body .actions { display: flex; justify-content: flex-end; }
+dialog::backdrop{ background: rgba(0,0,0,0.4); }
+
+/* KBD styling in footer */
+kbd {
+  background: #151a25; border: 1px solid var(--border); border-bottom-color: #141722;
+  padding: 1px 5px; border-radius: 5px; font-size: 12px; color: var(--text);
+}
