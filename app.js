@@ -328,8 +328,14 @@ function buildCloud() {
 
     let c;
     if (colorMode === "height") {
-      const t = (z - zmin) / zspan;
-      c = rampColor(turboStops, 1 - t);
+      // Map z ∈ [-1, 5] to turbo t ∈ [0.40, 1.00]
+      //  - z = -1  → t = 0.40 (light blue: ~0x2ab7ff in our stops)
+      //  - z = 5   → t = 1.00 (red)
+      //  - clamp outside that range
+      const zMinFixed = -3, zMaxFixed = 3;
+      const u = Math.min(1, Math.max(0, (z - zMinFixed) / (zMaxFixed - zMinFixed)));
+      const t = 0.50 + 0.50 * u;
+      c = rampColor(turboStops, t);
     } else if (colorMode === "intensity" && hasI) {
       const v = raw.points[k+3];
       let t;
@@ -371,8 +377,22 @@ function updateLegend() {
   let min=0, max=1, stops = turboStops, flip = true;
   if (colorMode === "height") {
     legendTitle.textContent = "Height (m)";
-    if (bounds) { min = bounds.zmin; max = bounds.zmax; }
-    stops = turboStops; flip = true;
+    const zMinFixed = -3, zMaxFixed = 3;
+    let min = zMinFixed, max = zMaxFixed;
+    const stops = turboStops;
+  
+    ctxL.clearRect(0, 0, w, h);
+    for (let y = 0; y < h; y++) {
+      // y=0 is top → z near max (red), y=h-1 bottom → z near min (light blue)
+      const u = 1 - (y / (h - 1));        // 1 at top, 0 at bottom
+      const t = 0.50 + 0.50 * u;          // match the point color mapping
+      const c = rampColor(stops, t);
+      ctxL.fillStyle = `rgb(${(c.r * 255) | 0},${(c.g * 255) | 0},${(c.b * 255) | 0})`;
+      ctxL.fillRect(0, y, w, 1);
+    }
+    legendMin.textContent = min.toFixed(2);
+    legendMax.textContent = max.toFixed(2);
+    return;
   } else if (colorMode === "intensity") {
     legendTitle.textContent = "Intensity";
     min = 0; max = 1; stops = viridisStops; flip = false;
