@@ -148,7 +148,7 @@ function setIsoView3D() {
 function setTopView3D() {
   if (!bounds) return;
   updateCenterAndRadius();
-  perspCam.up.set(0,1,0);
+  perspCam.up.set(0,0,1); // Z up
   perspCam.position.set(center.x, center.y, center.z + (radius || 10)*2.0);
   perspCam.lookAt(center);
   controls.target.copy(center);
