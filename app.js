@@ -471,9 +471,9 @@ function rebuildTrajectoryObject(force2D = is2D) {
   const trajColor = cssColor("--trajectory-color", "#ff4d8d");
   const pointRadius = Math.max(1e-3, cssNumber("--trajectory-point-size", 0.2));
   const tubeRadius = Math.max(1e-3, cssNumber("--trajectory-tube-radius", pointRadius * 0.6));
-  const zOffset = force2D ? 0 : pointRadius;
+  const zOffset = 0;
 
-  const pathPoints = trajectoryPoints.map(p => new THREE.Vector3(p.x, p.y, zOffset));
+  const pathPoints = trajectoryPoints.map(p => new THREE.Vector3(p.x, p.y, 0));
   const curve = new THREE.CatmullRomCurve3(pathPoints, false, "catmullrom", 0.1);
   const tubularSegments = Math.max(32, trajectoryPoints.length * 8);
   const radialSegments = 16;
@@ -483,14 +483,14 @@ function rebuildTrajectoryObject(force2D = is2D) {
   material.depthTest = false;
   material.depthWrite = false;
   trajectoryLine = new THREE.Mesh(tubeGeometry, material);
-  trajectoryLine.renderOrder = force2D ? 24 : 6;
+  trajectoryLine.renderOrder = force2D ? 2400 : 6;
   scene.add(trajectoryLine);
 
   ensureTrajectorySphereResources(pointRadius, trajColor);
 
   while (trajectorySpheres.length < trajectoryPoints.length) {
     const mesh = new THREE.Mesh(trajectorySphereGeom, trajectorySphereMat);
-    mesh.renderOrder = force2D ? 26 : 8;
+    mesh.renderOrder = force2D ? 2402 : 8;
     scene.add(mesh);
     trajectorySpheres.push(mesh);
   }
@@ -506,7 +506,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
     mesh.visible = true;
     mesh.geometry = trajectorySphereGeom;
     mesh.material = trajectorySphereMat;
-    mesh.renderOrder = force2D ? 26 : 8;
+    mesh.renderOrder = force2D ? 2402 : 8;
   }
 }
 
