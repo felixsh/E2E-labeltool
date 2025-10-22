@@ -684,6 +684,9 @@ function exportAll() {
   const samplesOptimized = spline.getSamplesOptimized ? spline.getSamplesOptimized() : false;
   const pointCloudName = currentPCDName || null;
   const trajectoryName = currentTrajectoryName || null;
+  const curveType = spline.getCurveType ? spline.getCurveType() : null;
+  const deltaT = spline.getDeltaT ? spline.getDeltaT() : null;
+  const alpha = spline.getAlpha ? spline.getAlpha() : null;
 
   const payload = {
     control_points: controlPts,
@@ -691,8 +694,14 @@ function exportAll() {
     optimizer:      weights,
     samples_optimized: samplesOptimized,
     pointcloud_file: pointCloudName,
-    trajectory_file: trajectoryName
+    trajectory_file: trajectoryName,
+    curve_type: curveType,
+    delta_t: deltaT
   };
+
+  if (curveType === "catmullrom" && alpha != null) {
+    payload.alpha = alpha;
+  }
 
   const base = (currentPCDName || "spline").replace(/\.[^.]+$/,"");
   const fname = `${base}.json`;
