@@ -49,8 +49,8 @@ export function makeSplineSystem({
     ? window.CONFIG.initCtrl.map(([x, y]) => new THREE.Vector3(x, y, 0))
     : [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 4, 0)];  // only two initial points
 
-  const N = Math.max(4, (N_SAMPLES | 0));
-  let Ts = d3.range(N).map(i => i / (N - 1));
+  const SAMPLE_COUNT = Math.max(4, (N_SAMPLES | 0));
+  let Ts = d3.range(SAMPLE_COUNT + 1).map(i => i / SAMPLE_COUNT);
   let selectedCtrl = points.length - 1; // select last control point by default
   let selectedSample = null;
   let showSamples = true;
@@ -390,7 +390,14 @@ export function makeSplineSystem({
       m.visible = true;
     });
   }
-  function getSamples() { return Ts.map((t, i) => { const p = paramToPoint(t); return { i, x: p.x, y: p.y }; }); }
+  function getSamples() {
+    const samples = [];
+    for (let tsIndex = 1; tsIndex < Ts.length; tsIndex++) {
+      const p = paramToPoint(Ts[tsIndex]);
+      samples.push({ idx: tsIndex, tsIndex, i: tsIndex, x: p.x, y: p.y });
+    }
+    return samples;
+  }
   function syncSampleMeshes(samples) {
     // spheres
     while (sampleSpheres.length < samples.length) {
@@ -414,10 +421,11 @@ export function makeSplineSystem({
       m.position.set(s.x, s.y, 0);
       m.material = (i === selectedSample) ? smplMatSel : smplMat;
       m.userData.i = i;
+      m.userData.tsIndex = s.tsIndex ?? (i + 1);
       m.visible = !!showSamples;
 
       const lab = sampleLabels[i];
-      lab.material.map = getLabelTexture(String(i));
+      lab.material.map = getLabelTexture(String(s.idx));
       lab.material.needsUpdate = true;
       lab.visible = !!showSamples;
       lab.position.set(s.x + 0.16, s.y + 0.16, 0.02);
@@ -437,7 +445,7 @@ export function makeSplineSystem({
     d3,
     getDt: () => dt,
     getConfig: () => OPT,
-    getSampleCount: () => N,
+    getSampleCount: () => Ts.length,
     getParamPoint: paramToPoint,
     getTs: () => Ts,
     setTs: (nextTs) => { Ts = nextTs; },
@@ -521,8 +529,9 @@ export function makeSplineSystem({
       syncCtrlMeshes(); requestRender();
       samplesOptimized = false;
     } else if (hitSample >= 0) {
+      const sample = samples[hitSample];
       selectedSample = hitSample; selectedCtrl = null;
-      dragging = { kind: "sample", i: hitSample };
+      dragging = { kind: "sample", i: hitSample, tsIndex: sample.tsIndex };
       dragUndoCaptured = false;
       setControlsEnabled(false);
       setCursor("grabbing");
@@ -556,15 +565,17 @@ export function makeSplineSystem({
       rebuildEverything();
       samplesOptimized = false;
     } else {
+      const tsIndex = dragging.tsIndex;
+      if (tsIndex == null) return;
       if (!dragUndoCaptured) {
         pushUndoState();
         dragUndoCaptured = true;
       }
-      const i = dragging.i, eps = OPT.monotonicEps ?? 1e-4;
-      const left = i > 0 ? Ts[i - 1] + eps : 0;
-      const right = i < N - 1 ? Ts[i + 1] - eps : 1;
-      Ts[i] = Math.min(right, Math.max(left, projectPointToParam(p)));
-      selectedSample = i;
+      const eps = OPT.monotonicEps ?? 1e-4;
+      const left = tsIndex > 0 ? Ts[tsIndex - 1] + eps : 0;
+      const right = tsIndex < Ts.length - 1 ? Ts[tsIndex + 1] - eps : 1;
+      Ts[tsIndex] = Math.min(right, Math.max(left, projectPointToParam(p)));
+      selectedSample = dragging.i;
       updateSamplesAndCharts();
       samplesOptimized = false;
     }
