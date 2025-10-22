@@ -54,6 +54,7 @@ export function makeSplineSystem({
   let selectedCtrl = points.length - 1; // select last control point by default
   let selectedSample = null;
   let showSamples = true;
+  let samplesOptimized = false;
 
   let dragging = null; // {kind:"ctrl"|"sample", i}
   let dragUndoCaptured = false;
@@ -66,23 +67,27 @@ export function makeSplineSystem({
       points: points.map(p => p.clone()),
       Ts: Ts.slice(),
       selectedCtrl,
-      selectedSample
+      selectedSample,
+      samplesOptimized
     };
   }
-  function pushUndoState() {
+  function pushUndoState(actionTag) {
     undoStack.push(snapshotState());
     redoStack.length = 0;
+    if (actionTag !== "optimize") samplesOptimized = false;
   }
   function restoreState(state) {
     points = state.points.map(p => p.clone());
     Ts = state.Ts.slice();
     selectedCtrl = state.selectedCtrl;
     selectedSample = state.selectedSample;
+    samplesOptimized = !!state.samplesOptimized;
     rebuildEverything();
     dragging = null;
     dragUndoCaptured = false;
     setControlsEnabled(true);
     setCursor(null);
+    samplesOptimized = false;
   }
   function undoLastAction() {
     if (undoStack.length === 0) return false;
@@ -437,8 +442,11 @@ export function makeSplineSystem({
     getTs: () => Ts,
     setTs: (nextTs) => { Ts = nextTs; },
     getDensePointCount: () => densePts.length,
-    pushUndoState,
-    onOptimized: () => updateSamplesAndCharts()
+    pushUndoState: () => pushUndoState("optimize"),
+    onOptimized: () => {
+      samplesOptimized = true;
+      updateSamplesAndCharts();
+    }
   });
 
   // ===== Redraw plumbing =====
@@ -511,6 +519,7 @@ export function makeSplineSystem({
       setControlsEnabled(false);
       setCursor("grabbing");
       syncCtrlMeshes(); requestRender();
+      samplesOptimized = false;
     } else if (hitSample >= 0) {
       selectedSample = hitSample; selectedCtrl = null;
       dragging = { kind: "sample", i: hitSample };
@@ -518,6 +527,7 @@ export function makeSplineSystem({
       setControlsEnabled(false);
       setCursor("grabbing");
       syncSampleMeshes(samples); requestRender();
+      samplesOptimized = false;
     } else {
       // 2D left click adds a control point
       if (is2D() && e.button === 0) {
@@ -527,6 +537,7 @@ export function makeSplineSystem({
         else { points.push(v); selectedCtrl = points.length - 1; }
         rebuildEverything();
         setCursor(null);
+        samplesOptimized = false;
       }
       dragging = null;
     }
@@ -536,20 +547,26 @@ export function makeSplineSystem({
   window.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     const p = screenToGround(e.clientX, e.clientY);
-    if (!dragUndoCaptured) {
-      pushUndoState();
-      dragUndoCaptured = true;
-    }
     if (dragging.kind === "ctrl") {
+      if (!dragUndoCaptured) {
+        pushUndoState();
+        dragUndoCaptured = true;
+      }
       points[dragging.i].set(p.x, p.y, 0);
       rebuildEverything();
+      samplesOptimized = false;
     } else {
+      if (!dragUndoCaptured) {
+        pushUndoState();
+        dragUndoCaptured = true;
+      }
       const i = dragging.i, eps = OPT.monotonicEps ?? 1e-4;
       const left = i > 0 ? Ts[i - 1] + eps : 0;
       const right = i < N - 1 ? Ts[i + 1] - eps : 1;
       Ts[i] = Math.min(right, Math.max(left, projectPointToParam(p)));
       selectedSample = i;
       updateSamplesAndCharts();
+      samplesOptimized = false;
     }
   });
 
@@ -572,6 +589,7 @@ export function makeSplineSystem({
     points.splice(i + 1, 0, p);
     selectedCtrl = i + 1;
     rebuildEverything();
+    samplesOptimized = false;
   }
   function deleteSelectedCtrl() {
     if (selectedCtrl == null) return;
@@ -580,6 +598,7 @@ export function makeSplineSystem({
     points.splice(selectedCtrl, 1);
     if (selectedCtrl >= points.length) selectedCtrl = points.length - 1;
     rebuildEverything();
+    samplesOptimized = false;
   }
 
   // ===== Init =====
@@ -603,8 +622,10 @@ export function makeSplineSystem({
     setAlpha: (a) => { alpha = a; if (curveType === "catmullrom") rebuildEverything(); },
     setShowSamples: (v) => { showSamples = v; updateSamplesAndCharts(); },
     getSamples: () => getSamples(),
-    getControlPoints,                 // <-- add
-    getOptimizerWeights,              // <-- add
+    getControlPoints,
+    getOptimizerWeights,
+    getSamplesOptimized: () => samplesOptimized,
+    markSamplesOptimized: (flag) => { samplesOptimized = !!flag; },
     optimizeTs,
     onCloudLoaded: () => {},
     rebuildCurveObject: (force2d) => rebuildCurveObject(force2d ?? is2D()),

@@ -540,6 +540,7 @@ function applyPointCloud(rawData, name) {
   const pointsMsg = raw.count != null ? `${raw.count.toLocaleString()} points` : "points";
   const fieldsMsg = fieldList ? `, fields: ${fieldList}` : "";
   status(`Loaded ${name} — ${pointsMsg}${fieldsMsg}`);
+  spline.markSamplesOptimized?.(false);
 }
 
 function applyTrajectoryPoints(pointPairs, sourceName) {
@@ -567,6 +568,7 @@ function applyTrajectoryPoints(pointPairs, sourceName) {
   renderOnce();
   const name = sourceName || "trajectory";
   status(`Loaded ${name} — ${trajectoryPoints.length.toLocaleString()} trajectory points`);
+  spline.markSamplesOptimized?.(false);
 }
 
 // ---------- Legend ----------
@@ -676,11 +678,13 @@ function exportAll() {
   const controlPts = spline.getControlPoints();                  // [[x,y], ...]
   const samplePts  = spline.getSamples().map(s => [s.x, s.y]);   // [[x,y], ...]
   const weights    = spline.getOptimizerWeights();
+  const samplesOptimized = spline.getSamplesOptimized ? spline.getSamplesOptimized() : false;
 
   const payload = {
     control_points: controlPts,
     sample_points:  samplePts,
-    optimizer:      weights
+    optimizer:      weights,
+    samples_optimized: samplesOptimized
   };
 
   const base = (currentPCDName || "spline").replace(/\.[^.]+$/,"");
