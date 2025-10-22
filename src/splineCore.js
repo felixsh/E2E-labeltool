@@ -394,7 +394,7 @@ export function makeSplineSystem({
     const samples = [];
     for (let tsIndex = 1; tsIndex < Ts.length; tsIndex++) {
       const p = paramToPoint(Ts[tsIndex]);
-      samples.push({ idx: tsIndex, tsIndex, i: tsIndex, x: p.x, y: p.y });
+      samples.push({ idx: tsIndex, tsIndex, i: tsIndex, t: Ts[tsIndex], x: p.x, y: p.y });
     }
     return samples;
   }

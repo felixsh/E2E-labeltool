@@ -707,7 +707,7 @@ function exportAll() {
   }
   // Nx2 in meters
   const controlPts = spline?.getControlPoints ? spline.getControlPoints() : [];
-  const samplePts  = spline?.getSamples ? spline.getSamples().map(s => [s.x, s.y]) : [];
+  const samplePts  = spline?.getSamples ? spline.getSamples().map(s => [s.t ?? 0, s.x, s.y]) : [];
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
   const pointCloudName = currentPCDName || null;
