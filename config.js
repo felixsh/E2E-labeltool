@@ -1,6 +1,8 @@
 window.MERGED_CONFIG = {
   /* ---------- PCD viewer ---------- */
-  defaultPCD: "assets/demo.bin",  // path relative to index.html; use HTTP server
+  defaultPCD: null,
+  demoPCD: "demo/pointcloud.bin",       // used by Demo button
+  demoTrajectory: "demo/trajectory.npy",
   maxPoints: 500000,              // hard cap
 
   /* Point rendering */
