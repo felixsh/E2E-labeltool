@@ -12,8 +12,8 @@
       <!-- LEFT: PCD controls -->
       <div class="left">
         <label class="file">
-          <input id="fileInput" type="file" accept=".pcd,.bin" />
-          Load .pcd
+          <input id="fileInput" type="file" accept=".pcd,.bin,.npy" />
+          Load .pcd/.npy
         </label>
 
         <label>
@@ -95,7 +95,7 @@
   </main>
 
   <footer>
-    <div id="status">Load a .pcd file to start. Press <kbd>Space</kbd> to toggle 2D/3D.</div>
+    <div id="status">Load a .pcd or .npy file to start. Press <kbd>Space</kbd> to toggle 2D/3D.</div>
   </footer>
 
   <!-- Help dialog -->
@@ -123,7 +123,8 @@
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+      "npyjs": "https://cdn.jsdelivr.net/npm/npyjs@1.0.4/dist/index.js"
     }
   }
   </script>

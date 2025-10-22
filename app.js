@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import { load as loadNpy } from "npyjs";
 
 import { parsePointCloud } from "./src/pcdParser.js";
 import { makeCharts } from "./src/charts.js";
@@ -193,6 +194,7 @@ function enter2D(state = lastState2D) {
 
   // spline appears as 2D line in 2D mode
   spline?.rebuildCurveObject(true);
+  rebuildTrajectoryObject(true);
   renderOnce();
 }
 
@@ -228,6 +230,7 @@ function enter3D(state = lastState3D) {
 
   // spline appears as tube in 3D mode
   spline?.rebuildCurveObject(false);
+  rebuildTrajectoryObject(false);
   renderOnce();
 }
 
@@ -243,8 +246,34 @@ let center = new THREE.Vector3();
 let radius = 10;
 let currentPCDName = ""; // used for export filename
 
+let trajectoryPoints = null;
+let trajectoryLine = null;
+let cloudBoundsCache = null;
+const trajectorySpheres = [];
+let trajectorySphereGeom = null;
+let trajectorySphereRadius = 0;
+let trajectorySphereMat = null;
+
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
+
+function cssVar(name) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name);
+  return v ? v.trim() : "";
+}
+function cssNumber(name, fallback) {
+  const raw = cssVar(name);
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+function cssColor(name, fallback = "#ffffff") {
+  const raw = cssVar(name) || fallback;
+  try {
+    return new THREE.Color(raw);
+  } catch {
+    return new THREE.Color(fallback);
+  }
+}
 
 // ---------- Color ramps ----------
 const turboStops = [
@@ -368,6 +397,167 @@ function buildCloud() {
   scene.add(cloud);
   syncPointSize();
   renderOnce();
+}
+
+function computeTrajectoryBounds(points) {
+  if (!points || points.length === 0) return null;
+  let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+  for (const p of points) {
+    if (p.x < xmin) xmin = p.x;
+    if (p.x > xmax) xmax = p.x;
+    if (p.y < ymin) ymin = p.y;
+    if (p.y > ymax) ymax = p.y;
+  }
+  return { xmin, xmax, ymin, ymax, zmin: 0, zmax: 0 };
+}
+
+function mergeBounds(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return {
+    xmin: Math.min(a.xmin, b.xmin),
+    xmax: Math.max(a.xmax, b.xmax),
+    ymin: Math.min(a.ymin, b.ymin),
+    ymax: Math.max(a.ymax, b.ymax),
+    zmin: Math.min(a.zmin, b.zmin),
+    zmax: Math.max(a.zmax, b.zmax)
+  };
+}
+
+function disposeTrajectoryLine() {
+  if (!trajectoryLine) return;
+  scene.remove(trajectoryLine);
+  trajectoryLine.geometry.dispose();
+  trajectoryLine.material.dispose();
+  trajectoryLine = null;
+}
+
+function clearTrajectorySpheres() {
+  while (trajectorySpheres.length) {
+    const mesh = trajectorySpheres.pop();
+    scene.remove(mesh);
+  }
+}
+
+function ensureTrajectorySphereResources(radius, color) {
+  const r = Math.max(1e-3, radius);
+  if (!trajectorySphereGeom || Math.abs(trajectorySphereRadius - r) > 1e-6) {
+    trajectorySphereGeom?.dispose();
+    trajectorySphereGeom = new THREE.SphereGeometry(r, 20, 16);
+    trajectorySphereRadius = r;
+    trajectorySpheres.forEach(mesh => { mesh.geometry = trajectorySphereGeom; });
+  }
+
+  if (!trajectorySphereMat) {
+    trajectorySphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), depthTest: false, depthWrite: false });
+  } else {
+    trajectorySphereMat.color.copy(color);
+  }
+}
+
+function rebuildTrajectoryObject(force2D = is2D) {
+  disposeTrajectoryLine();
+
+  const hasPoints = Array.isArray(trajectoryPoints) && trajectoryPoints.length >= 2;
+  if (!hasPoints) {
+    clearTrajectorySpheres();
+    return;
+  }
+
+  const trajColor = cssColor("--trajectory-color", "#ff4d8d");
+  const pointRadius = Math.max(1e-3, cssNumber("--trajectory-point-size", 0.2));
+  const tubeRadius = Math.max(1e-3, cssNumber("--trajectory-tube-radius", pointRadius * 0.6));
+  const zOffset = force2D ? 0 : pointRadius;
+
+  const pathPoints = trajectoryPoints.map(p => new THREE.Vector3(p.x, p.y, zOffset));
+  const curve = new THREE.CatmullRomCurve3(pathPoints, false, "catmullrom", 0.1);
+  const tubularSegments = Math.max(32, trajectoryPoints.length * 8);
+  const radialSegments = 16;
+  const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
+
+  const material = new THREE.MeshBasicMaterial({ color: trajColor.clone(), transparent: true, opacity: 0.96 });
+  material.depthTest = false;
+  material.depthWrite = false;
+  trajectoryLine = new THREE.Mesh(tubeGeometry, material);
+  trajectoryLine.renderOrder = force2D ? 24 : 6;
+  scene.add(trajectoryLine);
+
+  ensureTrajectorySphereResources(pointRadius, trajColor);
+
+  while (trajectorySpheres.length < trajectoryPoints.length) {
+    const mesh = new THREE.Mesh(trajectorySphereGeom, trajectorySphereMat);
+    mesh.renderOrder = force2D ? 26 : 8;
+    scene.add(mesh);
+    trajectorySpheres.push(mesh);
+  }
+  while (trajectorySpheres.length > trajectoryPoints.length) {
+    const mesh = trajectorySpheres.pop();
+    scene.remove(mesh);
+  }
+
+  for (let i = 0; i < trajectoryPoints.length; i++) {
+    const mesh = trajectorySpheres[i];
+    const p = trajectoryPoints[i];
+    mesh.position.set(p.x, p.y, zOffset);
+    mesh.visible = true;
+    mesh.geometry = trajectorySphereGeom;
+    mesh.material = trajectorySphereMat;
+    mesh.renderOrder = force2D ? 26 : 8;
+  }
+}
+
+async function loadTrajectoryFile(file) {
+  status(`Reading ${file.name}…`);
+  try {
+    const url = URL.createObjectURL(file);
+    let parsed;
+    try {
+      parsed = await loadNpy(url);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    const shape = parsed?.shape || [];
+    if (shape.length !== 2 || shape[1] < 2) throw new Error("expected an array shaped (N, 2)");
+
+    const stride = shape[1];
+    const { data } = parsed;
+    const pts = [];
+    for (let i = 0; i < shape[0]; i++) {
+      const x = data[i * stride + 0];
+      const y = data[i * stride + 1];
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      pts.push(new THREE.Vector3(x, y, 0));
+    }
+    if (pts.length < 2) throw new Error("trajectory requires at least two finite points");
+
+    trajectoryPoints = pts;
+    currentPCDName = file.name;
+
+    const trajBounds = computeTrajectoryBounds(pts);
+    const cloudBounds = cloudBoundsCache;
+    bounds = mergeBounds(cloudBounds, trajBounds);
+    updateCenterAndRadius();
+
+    viewTopBtn.disabled = false;
+    viewIsoBtn.disabled = false;
+
+    if (is2D) {
+      controls.target.copy(center);
+      camera.position.set(center.x, center.y, camera.position.z);
+      controls.update();
+      syncPointSize();
+      rebuildTrajectoryObject(true);
+    } else {
+      setIsoView3D();
+      rebuildTrajectoryObject(false);
+    }
+
+    renderOnce();
+    status(`Loaded ${file.name} — ${pts.length.toLocaleString()} trajectory points`);
+  } catch (err) {
+    console.error("[trajectory] Failed to load", err);
+    status(`Failed to load ${file.name}: ${err.message || err}`);
+  }
 }
 
 // ---------- Legend ----------
@@ -536,11 +726,22 @@ window.addEventListener("keydown", (e) => {
 fileInput.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
+  const lower = (file.name || "").toLowerCase();
+
+  if (lower.endsWith(".npy")) {
+    await loadTrajectoryFile(file);
+    e.target.value = "";
+    return;
+  }
+
   status(`Reading ${file.name}…`);
   try {
     const buf = await file.arrayBuffer();
     raw = parsePointCloud(buf, file.name);               // <— unified
-    bounds = computeBounds(raw.points, raw.xyzIdx);
+    cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
+    const cloudBounds = cloudBoundsCache;
+    const trajBounds = trajectoryPoints ? computeTrajectoryBounds(trajectoryPoints) : null;
+    bounds = mergeBounds(cloudBounds, trajBounds);
     status(`Loaded ${file.name} — ${raw.count.toLocaleString()} points, fields: ${raw.fields.join(", ")}`);
 
     updateCenterAndRadius();
@@ -556,6 +757,7 @@ fileInput.addEventListener("change", async (e) => {
 
     // notify spline so it can position/scale if needed
     spline.onCloudLoaded(center, radius);
+    rebuildTrajectoryObject(is2D);
 
     renderOnce();
 
@@ -563,6 +765,8 @@ fileInput.addEventListener("change", async (e) => {
   } catch (err) {
     console.error(err);
     status(`Failed: ${err.message || err}`);
+  } finally {
+    e.target.value = "";
   }
 });
 
@@ -575,7 +779,12 @@ fileInput.addEventListener("change", async (e) => {
     const buf = await resp.arrayBuffer();
 
     raw = parsePointCloud(buf, DEFAULT_PCD);            // <— unified
-    bounds = computeBounds(raw.points, raw.xyzIdx);
+    cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
+    bounds = cloudBoundsCache;
+    if (trajectoryPoints) {
+      const trajBounds = computeTrajectoryBounds(trajectoryPoints);
+      bounds = mergeBounds(bounds, trajBounds);
+    }
     status(`Loaded default point cloud — ${DEFAULT_PCD}`);
 
     updateCenterAndRadius();
@@ -588,6 +797,7 @@ fileInput.addEventListener("change", async (e) => {
     viewIsoBtn.disabled = false;
 
     spline.onCloudLoaded(center, radius);
+    rebuildTrajectoryObject(is2D);
 
     renderOnce();
 

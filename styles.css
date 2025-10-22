@@ -7,17 +7,22 @@
 
   /* --- spline visuals --- */
   --spline-color: #ffd480;      /* warm yellow for spline */
-  --spline-width: 0.1;         /* tube radius in meters */
+  --spline-width: 0.1;          /* tube radius in meters */
 
   /* --- control points --- */
   --ctrl-color: #66ccff;
   --ctrl-selected-color: #ff6699;
-  --ctrl-size: 0.4            /* sphere radius (m) */
+  --ctrl-size: 0.4;             /* sphere radius (m) */
 
   /* --- sample points --- */
   --sample-color: #ffffff;
   --sample-selected-color: #ffcc00;
   --sample-size: 0.25;          /* sphere radius (m) */
+
+  /* --- trajectory overlay --- */
+  --trajectory-color: #ff4d8d;
+  --trajectory-point-size: 0.18;   /* sphere radius (m) */
+  --trajectory-tube-radius: 0.07;  /* tube radius (m) */
 }
 
 * { box-sizing: border-box; }
