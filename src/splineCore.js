@@ -552,7 +552,7 @@ export function makeSplineSystem({
   function updateSamplesAndCharts() {
     const samples = getSamples();
     syncSampleMeshes(samples);
-    onSamplesChanged(samples);
+    onSamplesChanged(showSamples ? samples : []);
     requestRender();
   }
   function rebuildEverything() {

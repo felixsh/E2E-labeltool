@@ -441,6 +441,15 @@ const spline = makeSplineSystem({
   setControlsEnabled: (v) => { if (controls) controls.enabled = v; }
 });
 
+let samplesVisible = showSamplesChk ? !!showSamplesChk.checked : true;
+function setSamplesVisible(v) {
+  const next = !!v;
+  samplesVisible = next;
+  if (showSamplesChk) showSamplesChk.checked = next;
+  spline.setShowSamples(next);
+}
+setSamplesVisible(samplesVisible);
+
 // ---------- UI wiring (spline controls) ----------
 function syncAlphaVisibility() {
   if (!alphaWrap) return;
@@ -459,7 +468,7 @@ alphaInput?.addEventListener("input", e => {
   spline.setAlpha(a);
 });
 showSamplesChk?.addEventListener("change", e => {
-  spline.setShowSamples(!!e.target.checked);
+  setSamplesVisible(!!e.target.checked);
 });
 optimizeBtn?.addEventListener("click", () => spline.optimizeTs());
 
@@ -518,6 +527,7 @@ window.addEventListener("keydown", (e) => {
   if (k === " ") { e.preventDefault(); toggle2D3D(); return; } // space toggles 2D/3D
   if (k === "z") { e.preventDefault(); spline.undoLastAction(); return; }
   if (k === "y") { e.preventDefault(); spline.redoLastAction(); return; }
+  if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "delete" || k === "backspace") { e.preventDefault(); spline.deleteSelectedCtrl(); return; }
   if (k === "e") { e.preventDefault(); exportSamples(); return; }
 });
