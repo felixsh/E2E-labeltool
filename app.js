@@ -2,9 +2,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
-import { load as loadNpy } from "npyjs";
-
-import { parsePointCloud } from "./src/pcdParser.js";
+import {
+  loadPointCloudFromFile,
+  loadTrajectoryFromFile,
+  loadDemoDataset
+} from "./src/dataLoader.js";
 import { makeCharts } from "./src/charts.js";
 import { makeSplineSystem } from "./src/splineCore.js";
 
@@ -426,12 +428,6 @@ function mergeBounds(a, b) {
   };
 }
 
-function displayNameFromPath(path) {
-  if (!path) return "";
-  const parts = path.split("/").filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : path;
-}
-
 function disposeTrajectoryLine() {
   if (!trajectoryLine) return;
   scene.remove(trajectoryLine);
@@ -514,9 +510,8 @@ function rebuildTrajectoryObject(force2D = is2D) {
   }
 }
 
-async function loadPointCloudFromBuffer(buffer, sourceName) {
-  const name = sourceName || "pointcloud.pcd";
-  raw = parsePointCloud(buffer, name);
+function applyPointCloud(rawData, name) {
+  raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
   const cloudBounds = cloudBoundsCache;
   const trajBounds = trajectoryPoints ? computeTrajectoryBounds(trajectoryPoints) : null;
@@ -547,43 +542,10 @@ async function loadPointCloudFromBuffer(buffer, sourceName) {
   status(`Loaded ${name} — ${pointsMsg}${fieldsMsg}`);
 }
 
-async function loadPointCloudFromFile(file) {
-  status(`Reading ${file.name}…`);
-  const buffer = await file.arrayBuffer();
-  await loadPointCloudFromBuffer(buffer, file.name);
-}
+function applyTrajectoryPoints(pointPairs, sourceName) {
+  trajectoryPoints = pointPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
 
-async function loadPointCloudFromUrl(url) {
-  status(`Loading ${url}…`);
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-  const buffer = await resp.arrayBuffer();
-  const name = displayNameFromPath(url) || url;
-  await loadPointCloudFromBuffer(buffer, name);
-}
-
-function parseTrajectoryData(parsed) {
-  const shape = parsed?.shape || [];
-  if (shape.length !== 2 || shape[1] < 2) throw new Error("expected an array shaped (N, 2)");
-
-  const stride = shape[1];
-  const { data } = parsed;
-  const pts = [];
-  for (let i = 0; i < shape[0]; i++) {
-    const x = data[i * stride + 0];
-    const y = data[i * stride + 1];
-    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-    pts.push(new THREE.Vector3(x, y, 0));
-  }
-  if (pts.length < 2) throw new Error("trajectory requires at least two finite points");
-  return pts;
-}
-
-function applyTrajectoryPoints(points, sourceName) {
-  trajectoryPoints = points;
-  if (sourceName) currentPCDName = sourceName;
-
-  const trajBounds = computeTrajectoryBounds(points);
+  const trajBounds = computeTrajectoryBounds(trajectoryPoints);
   const cloudBounds = cloudBoundsCache;
   bounds = mergeBounds(cloudBounds, trajBounds);
   updateCenterAndRadius();
@@ -604,42 +566,7 @@ function applyTrajectoryPoints(points, sourceName) {
 
   renderOnce();
   const name = sourceName || "trajectory";
-  status(`Loaded ${name} — ${points.length.toLocaleString()} trajectory points`);
-}
-
-async function loadTrajectoryFromFile(file) {
-  status(`Reading ${file.name}…`);
-  const url = URL.createObjectURL(file);
-  try {
-    const parsed = await loadNpy(url);
-    const pts = parseTrajectoryData(parsed);
-    applyTrajectoryPoints(pts, file.name);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-async function loadTrajectoryFromUrl(url, displayName) {
-  const name = displayName || displayNameFromPath(url) || url;
-  status(`Loading ${name}…`);
-  const parsed = await loadNpy(url);
-  const pts = parseTrajectoryData(parsed);
-  applyTrajectoryPoints(pts, name);
-}
-
-async function loadDemoDataset() {
-  const demoPCD = DEMO_PCD;
-  const demoTraj = DEMO_TRAJECTORY;
-  if (!demoPCD && !demoTraj) {
-    throw new Error("demo paths are not configured");
-  }
-  if (demoPCD) {
-    await loadPointCloudFromUrl(demoPCD);
-  }
-  if (demoTraj) {
-    const name = displayNameFromPath(demoTraj) || demoTraj;
-    await loadTrajectoryFromUrl(demoTraj, name);
-  }
+  status(`Loaded ${name} — ${trajectoryPoints.length.toLocaleString()} trajectory points`);
 }
 
 // ---------- Legend ----------
@@ -810,10 +737,13 @@ fileInput.addEventListener("change", async (e) => {
   if (!file) return;
   try {
     const lower = (file.name || "").toLowerCase();
+    status(`Reading ${file.name}…`);
     if (lower.endsWith(".npy")) {
-      await loadTrajectoryFromFile(file);
+      const { points, name } = await loadTrajectoryFromFile(file);
+      applyTrajectoryPoints(points, name);
     } else {
-      await loadPointCloudFromFile(file);
+      const { raw: rawData, name } = await loadPointCloudFromFile(file);
+      applyPointCloud(rawData, name);
     }
   } catch (err) {
     console.error(err);
@@ -830,7 +760,10 @@ demoBtn?.addEventListener("click", async () => {
   }
   demoBtn.disabled = true;
   try {
-    await loadDemoDataset();
+    status("Loading demo dataset…");
+    const result = await loadDemoDataset({ cloudUrl: DEMO_PCD, trajectoryUrl: DEMO_TRAJECTORY });
+    if (result.cloud) applyPointCloud(result.cloud.raw, result.cloud.name);
+    if (result.trajectory) applyTrajectoryPoints(result.trajectory.points, result.trajectory.name);
   } catch (err) {
     console.error(err);
     status(`Failed to load demo: ${err.message || err}`);
