@@ -516,6 +516,8 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
 
   if (k === " ") { e.preventDefault(); toggle2D3D(); return; } // space toggles 2D/3D
+  if (k === "z") { e.preventDefault(); spline.undoLastAction(); return; }
+  if (k === "y") { e.preventDefault(); spline.redoLastAction(); return; }
   if (k === "delete" || k === "backspace") { e.preventDefault(); spline.deleteSelectedCtrl(); return; }
   if (k === "e") { e.preventDefault(); exportSamples(); return; }
 });

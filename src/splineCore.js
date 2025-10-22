@@ -53,6 +53,50 @@ export function makeSplineSystem({
   let selectedSample = null;
   let showSamples = true;
 
+  let dragging = null; // {kind:"ctrl"|"sample", i}
+  let dragUndoCaptured = false;
+
+  const undoStack = [];
+  const redoStack = [];
+
+  function snapshotState() {
+    return {
+      points: points.map(p => p.clone()),
+      Ts: Ts.slice(),
+      selectedCtrl,
+      selectedSample
+    };
+  }
+  function pushUndoState() {
+    undoStack.push(snapshotState());
+    redoStack.length = 0;
+  }
+  function restoreState(state) {
+    points = state.points.map(p => p.clone());
+    Ts = state.Ts.slice();
+    selectedCtrl = state.selectedCtrl;
+    selectedSample = state.selectedSample;
+    rebuildEverything();
+    dragging = null;
+    dragUndoCaptured = false;
+    setControlsEnabled(true);
+    setCursor(null);
+  }
+  function undoLastAction() {
+    if (undoStack.length === 0) return false;
+    redoStack.push(snapshotState());
+    const prev = undoStack.pop();
+    restoreState(prev);
+    return true;
+  }
+  function redoLastAction() {
+    if (redoStack.length === 0) return false;
+    undoStack.push(snapshotState());
+    const next = redoStack.pop();
+    restoreState(next);
+    return true;
+  }
+
   // ===== Visual objects =====
   let densePts = [];           // resampled polyline points (Vector3)
   let curveObject = null;      // Tube mesh (both 2D/3D)
@@ -429,6 +473,7 @@ export function makeSplineSystem({
       console.warn("[optimizeTs] Not enough sample points to optimize (need ≥2).");
       return;
     }
+    pushUndoState();
   
     const eps = OPT.monotonicEps;
     const T = Ts.slice(); 
@@ -543,7 +588,6 @@ export function makeSplineSystem({
     return best;
   }
 
-  let dragging = null; // {kind:"ctrl"|"sample", i}
   function setCursor(c) {
     if (c) { canvasEl.style.cursor = c; return; }
     canvasEl.style.cursor = is2D() ? "crosshair" : "";
@@ -570,18 +614,21 @@ export function makeSplineSystem({
     if (hitCtrl >= 0) {
       selectedCtrl = hitCtrl; selectedSample = null;
       dragging = { kind: "ctrl", i: hitCtrl };
+      dragUndoCaptured = false;
       setControlsEnabled(false);
       setCursor("grabbing");
       syncCtrlMeshes(); requestRender();
     } else if (hitSample >= 0) {
       selectedSample = hitSample; selectedCtrl = null;
       dragging = { kind: "sample", i: hitSample };
+      dragUndoCaptured = false;
       setControlsEnabled(false);
       setCursor("grabbing");
       syncSampleMeshes(samples); requestRender();
     } else {
       // 2D left click adds a control point
       if (is2D() && e.button === 0) {
+        pushUndoState();
         const v = new THREE.Vector3(p.x, p.y, 0);
         if (selectedCtrl != null) { points.splice(selectedCtrl + 1, 0, v); selectedCtrl = selectedCtrl + 1; }
         else { points.push(v); selectedCtrl = points.length - 1; }
@@ -596,6 +643,10 @@ export function makeSplineSystem({
   window.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     const p = screenToGround(e.clientX, e.clientY);
+    if (!dragUndoCaptured) {
+      pushUndoState();
+      dragUndoCaptured = true;
+    }
     if (dragging.kind === "ctrl") {
       points[dragging.i].set(p.x, p.y, 0);
       rebuildEverything();
@@ -613,12 +664,14 @@ export function makeSplineSystem({
   window.addEventListener("pointerup", () => {
     if (!dragging) return;
     dragging = null;
+    dragUndoCaptured = false;
     setControlsEnabled(true);
     setCursor(null);
   });
 
   // ===== Public helpers =====
   function addAfterSelected() {
+    pushUndoState();
     const i = (selectedCtrl ?? 0);
     const base = points[i];
     const next = points[i + 1] || base.clone().add(new THREE.Vector3(0.5, 0, 0));
@@ -630,6 +683,7 @@ export function makeSplineSystem({
   function deleteSelectedCtrl() {
     if (selectedCtrl == null) return;
     if (points.length <= 2) return;
+    pushUndoState();
     points.splice(selectedCtrl, 1);
     if (selectedCtrl >= points.length) selectedCtrl = points.length - 1;
     rebuildEverything();
@@ -662,6 +716,8 @@ export function makeSplineSystem({
     onCloudLoaded: () => {},
     rebuildCurveObject: (force2d) => rebuildCurveObject(force2d ?? is2D()),
     addAfterSelected,
-    deleteSelectedCtrl
+    deleteSelectedCtrl,
+    undoLastAction,
+    redoLastAction
   };
 }
