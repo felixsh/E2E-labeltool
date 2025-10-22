@@ -1,4 +1,6 @@
 // src/splineCore.js
+import { createTrajectoryOptimizer } from "./optimizer.js";
+
 export function makeSplineSystem({
   THREE, d3, scene,
   N_SAMPLES = 16,
@@ -426,127 +428,18 @@ export function makeSplineSystem({
     vMaxKmh: 120, aLongMax: 3.0, aLatMax: 3.0
   }, optimizer || {});
 
-  function totalCost(Tarr) {
-    const P = Tarr.map(t => { const p = paramToPoint(t); return [p.x, p.y]; });
-
-    // jerk (discrete 3rd diff)
-    let jerk = 0;
-    for (let i = 0; i <= P.length - 4; i++) {
-      const jx = (P[i + 3][0] - 3 * P[i + 2][0] + 3 * P[i + 1][0] - P[i][0]);
-      const jy = (P[i + 3][1] - 3 * P[i + 2][1] + 3 * P[i + 1][1] - P[i][1]);
-      jerk += jx * jx + jy * jy;
-    }
-
-    const dt2 = dt * dt;
-    const v_ms = d3.range(P.length - 1).map(i => {
-      const dx = (P[i + 1][0] - P[i][0]) / dt, dy = (P[i + 1][1] - P[i][1]) / dt; return Math.hypot(dx, dy);
-    });
-    const v_kmh = v_ms.map(v => v * 3.6);
-
-    const a = d3.range(P.length - 2).map(i => {
-      const ax = (P[i + 2][0] - 2 * P[i + 1][0] + P[i][0]) / dt2;
-      const ay = (P[i + 2][1] - 2 * P[i + 1][1] + P[i][1]) / dt2;
-      return [ax, ay];
-    });
-    const tHat = d3.range(P.length - 2).map(i => {
-      const tx = P[i + 2][0] - P[i][0], ty = P[i + 2][1] - P[i][1]; const n = Math.hypot(tx, ty) || 1; return [tx / n, ty / n];
-    });
-    const aLong = a.map(([ax, ay], i) => ax * tHat[i][0] + ay * tHat[i][1]);
-    const aLat = a.map(([ax, ay], i) => {
-      const al = aLong[i];
-      const axp = ax - al * tHat[i][0], ayp = ay - al * tHat[i][1];
-      const mag = Math.hypot(axp, ayp);
-      const sign = Math.sign(tHat[i][0] * ay - tHat[i][1] * ax) || 1;
-      return sign * mag;
-    });
-
-    let penV = 0; for (const v of v_kmh) { const d = v - OPT.vMaxKmh; if (d > 0) penV += d * d; }
-    let penA = 0;
-    for (const al of aLong) { const d = Math.abs(al) - OPT.aLongMax; if (d > 0) penA += d * d; }
-    for (const at of aLat)  { const d = Math.abs(at) - OPT.aLatMax;  if (d > 0) penA += d * d; }
-
-    return OPT.wJerk * jerk + OPT.wVel * penV + OPT.wAcc * penA;
-  }
-
-  function optimizeTs() {
-    if (densePts.length < 2) {
-      console.warn("[optimizeTs] Not enough sample points to optimize (need ≥2).");
-      return;
-    }
-    pushUndoState();
-  
-    const eps = OPT.monotonicEps;
-    const T = Ts.slice(); 
-    T[0] = 0; 
-    T[N - 1] = 1;
-    let best = totalCost(T);
-  
-    console.groupCollapsed("%c[optimizeTs] Optimization started", "color:#6cf");
-    console.log("Initial cost:", best.toFixed(6));
-    console.log("Steps:", OPT.steps);
-    console.log("Max passes/step:", OPT.maxPassesPerStep);
-  
-    let totalPasses = 0;
-    let anyImprovement = false;
-  
-    for (const h0 of OPT.steps) {
-      let improved = true;
-      let passes = 0;
-      console.groupCollapsed(`Step size h0=${h0}`);
-      while (improved && passes < OPT.maxPassesPerStep) {
-        improved = false;
-        passes++;
-        totalPasses++;
-  
-        for (let j = 1; j < N - 1; j++) {
-          const L = T[j - 1] + eps, R = T[j + 1] - eps;
-          let tj = Math.min(R, Math.max(L, T[j]));
-          let bestLocal = best, bestTj = tj;
-  
-          for (const dir of [-1, +1]) {
-            const cand = Math.min(R, Math.max(L, tj + dir * h0));
-            if (Math.abs(cand - tj) < 1e-12) continue;
-            const old = T[j]; 
-            T[j] = cand; 
-            const c = totalCost(T); 
-            T[j] = old;
-            if (c + 1e-12 < bestLocal) { 
-              bestLocal = c; 
-              bestTj = cand; 
-            }
-          }
-  
-          if (bestTj !== tj) { 
-            T[j] = bestTj; 
-            best = bestLocal; 
-            improved = true; 
-            anyImprovement = true;
-          }
-        }
-  
-        if (!improved) {
-          console.log(`↳ Step ${h0}: converged after ${passes} passes (no further improvement).`);
-          break;
-        }
-        if (passes >= OPT.maxPassesPerStep) {
-          console.warn(`↳ Step ${h0}: reached max passes (${OPT.maxPassesPerStep}) before convergence.`);
-        }
-      }
-      console.groupEnd();
-    }
-  
-    if (!anyImprovement) {
-      console.info("[optimizeTs] Terminated: no improvement across all steps.");
-    } else {
-      console.info("[optimizeTs] Optimization complete.");
-    }
-    console.log("Final cost:", best.toFixed(6));
-    console.log("Total passes:", totalPasses);
-    console.groupEnd();
-  
-    Ts = T;
-    updateSamplesAndCharts();
-  }
+  const { optimizeTs } = createTrajectoryOptimizer({
+    d3,
+    getDt: () => dt,
+    getConfig: () => OPT,
+    getSampleCount: () => N,
+    getParamPoint: paramToPoint,
+    getTs: () => Ts,
+    setTs: (nextTs) => { Ts = nextTs; },
+    getDensePointCount: () => densePts.length,
+    pushUndoState,
+    onOptimized: () => updateSamplesAndCharts()
+  });
 
   // ===== Redraw plumbing =====
   function updateSamplesAndCharts() {
