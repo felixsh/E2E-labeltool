@@ -748,6 +748,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "y") { e.preventDefault(); spline.redoLastAction(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "delete" || k === "backspace") { e.preventDefault(); spline.deleteSelectedCtrl(); return; }
+  if (k === "o") { e.preventDefault(); spline.optimizeTs(); return; }
   if (k === "e") { e.preventDefault(); exportSamples(); return; }
 });
 
