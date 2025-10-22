@@ -107,7 +107,27 @@ dialog#helpDlg {
 }
 .dialog-body { padding: 16px; }
 .dialog-body h3 { margin: 0 0 8px; }
+.dialog-body h4 { margin: 16px 0 8px; font-size: 14px; color: var(--muted); }
 .dialog-body ul { margin: 8px 0 16px 18px; color: var(--muted); }
+.help-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 4px 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.help-grid .help-key {
+  font-weight: 600;
+  color: var(--text);
+}
+.help-grid kbd {
+  font-weight: 600;
+}
+.help-note {
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 .dialog-body .actions { display: flex; justify-content: flex-end; }
 dialog::backdrop{ background: rgba(0,0,0,0.4); }
 

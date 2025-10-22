@@ -103,17 +103,30 @@
   <dialog id="helpDlg">
     <div class="dialog-body">
       <h3>Help</h3>
-      <ul>
-        <li><kbd>Space</kbd> — Toggle 2D/3D view</li>
-        <li><kbd>Top</kbd>/<kbd>Iso</kbd> — Camera presets (3D only)</li>
-        <li><kbd>Delete</kbd>/<kbd>Backspace</kbd> — Delete selected control point</li>
-        <li><kbd>Z</kbd> — Undo last spline edit</li>
-        <li><kbd>Y</kbd> — Redo spline edit</li>
-        <li><kbd>S</kbd> — Toggle samples/charts on/off</li>
-        <li><kbd>E</kbd> — Export samples (Nx2 JSON, meters)</li>
-        <li>Drag control/sample points on the ground plane (z=0)</li>
-        <li>Right mouse: pan • Wheel: zoom</li>
-      </ul>
+      <h4>Buttons</h4>
+      <div class="help-grid">
+        <span class="help-key">Load</span><span class="help-desc">Choose a point cloud (.pcd/.bin) and/or trajectory (.npy)</span>
+        <span class="help-key">Demo</span><span class="help-desc">Load the bundled sample dataset</span>
+        <span class="help-key">Top / Iso</span><span class="help-desc">Camera presets (3D only)</span>
+      </div>
+
+      <h4>Keyboard</h4>
+      <div class="help-grid">
+        <span class="help-key"><kbd>Space</kbd></span><span class="help-desc">Toggle 2D/3D view</span>
+        <span class="help-key"><kbd>Delete</kbd>/<kbd>Backspace</kbd></span><span class="help-desc">Delete selected control point</span>
+        <span class="help-key"><kbd>Z</kbd> / <kbd>Y</kbd></span><span class="help-desc">Undo / Redo</span>
+        <span class="help-key"><kbd>S</kbd></span><span class="help-desc">Toggle samples & mini charts</span>
+        <span class="help-key"><kbd>E</kbd></span><span class="help-desc">Export JSON (controls, samples, status)</span>
+      </div>
+
+      <h4>Mouse</h4>
+      <div class="help-grid">
+        <span class="help-key">Wheel</span><span class="help-desc">Zoom</span>
+        <span class="help-key">Left click</span><span class="help-desc">Move control/sample points (drag). In 2D, clicking empty space adds a control point. In 3D, click/drag empty space rotates the view.</span>
+        <span class="help-key">Right click</span><span class="help-desc">Pan view</span>
+      </div>
+
+      <p class="help-note">Footer shows the currently loaded point cloud and trajectory files.</p>
       <div class="actions">
         <button id="helpClose">Close</button>
       </div>
