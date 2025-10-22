@@ -27,40 +27,89 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
     return { iVel, v_kmh, iAcc, aLong, aLat };
   }
 
-  function drawMiniChart(svgSel, X, Y, title, opts={absMax:false, units:"", yLimit:null}){
+  function drawMiniChart(svgSel, X, Y, title, opts = { absMax: false, units: "", yLimit: null }) {
     const node = svgSel.node();
-    const w = node.clientWidth||220, h=node.clientHeight||100;
-    svgSel.attr("viewBox",`0 0 ${w} ${h}`); svgSel.selectAll("*").remove();
-    svgSel.append("text").attr("x",8).attr("y",14).text(title).attr("fill","#cfd3dc").attr("font-size",12);
-    if (X.length<2) return;
-    const xy=X.map((x,i)=>[x,Y[i]]).filter(d=>Number.isFinite(d[1]));
-    if (xy.length<2) return;
-    const xMin=d3.min(xy,d=>d[0]), xMax=d3.max(xy,d=>d[0]);
-    let yMin=d3.min(xy,d=>d[1]), yMax=d3.max(xy,d=>d[1]);
-    if (opts.yLimit && Number.isFinite(opts.yLimit)){
-      if (title.startsWith("velocity")){ yMin=0; yMax=opts.yLimit; }
-      else { yMin=-opts.yLimit; yMax=opts.yLimit; }
-    } else { const pad=(yMax-yMin)*0.15||1; yMin-=pad; yMax+=pad; }
-    const x=d3.scaleLinear().domain([xMin,xMax]).range([8,w-8]);
-    const y=d3.scaleLinear().domain([yMin,yMax]).range([h-18,8]);
-    if (y.domain()[0] < 0 && y.domain()[1] > 0){
-      svgSel.append("line").attr("x1",x(xMin)).attr("x2",x(xMax)).attr("y1",y(0)).attr("y2",y(0))
-        .attr("stroke","#3b4153").attr("stroke-width",1);
+    const w = node.clientWidth || 220;
+    const h = node.clientHeight || 100;
+    svgSel.attr("viewBox", `0 0 ${w} ${h}`); svgSel.selectAll("*").remove();
+
+    const margin = { top: 20, right: 12, bottom: 26, left: 44 };
+    const innerWidth = w - margin.left - margin.right;
+    const innerHeight = h - margin.top - margin.bottom;
+    svgSel.append("text")
+      .attr("x", margin.left)
+      .attr("y", margin.top - 6)
+      .text(title)
+      .attr("fill", "#cfd3dc")
+      .attr("font-size", 12);
+    if (innerWidth <= 0 || innerHeight <= 0) return;
+    if (X.length < 2) return;
+
+    const xy = X.map((x, i) => [x, Y[i]]).filter(d => Number.isFinite(d[1]));
+    if (xy.length < 2) return;
+
+    const xMin = d3.min(xy, d => d[0]), xMax = d3.max(xy, d => d[0]);
+    let yMin = d3.min(xy, d => d[1]), yMax = d3.max(xy, d => d[1]);
+    if (opts.yLimit && Number.isFinite(opts.yLimit)) {
+      if (title.startsWith("velocity")) { yMin = 0; yMax = opts.yLimit; }
+      else { yMin = -opts.yLimit; yMax = opts.yLimit; }
+    } else {
+      const pad = (yMax - yMin) * 0.15 || 1;
+      yMin -= pad; yMax += pad;
     }
-    svgSel.append("path").attr("d", d3.line().x(d=>x(d[0])).y(d=>y(d[1]))(xy))
-      .attr("fill","none").attr("stroke","#9fb3ff").attr("stroke-width",1.5);
-    const iStart=Math.ceil(xMin-1e-9), iEnd=Math.floor(xMax+1e-9);
-    for (let i=iStart;i<=iEnd;i++){
-      const xi=x(i);
-      svgSel.append("line").attr("x1",xi).attr("x2",xi).attr("y1",h-18).attr("y2",h-14).attr("stroke","#3b4153");
-      svgSel.append("text").attr("x",xi).attr("y",h-2).attr("text-anchor","middle").attr("fill","#cfd3dc").attr("font-size",10).text(i);
+
+    const left = margin.left;
+    const right = w - margin.right;
+    const bottom = h - margin.bottom;
+    const x = d3.scaleLinear().domain([xMin, xMax]).range([left, right]);
+    const y = d3.scaleLinear().domain([yMin, yMax]).range([bottom, margin.top]);
+
+    const maxAbs = Math.max(Math.abs(yMin), Math.abs(yMax)) || 1;
+    const fmt = maxAbs >= 100 ? d3.format(".0f") : (maxAbs >= 10 ? d3.format(".1f") : d3.format(".2f"));
+    const yTicks = y.ticks(4);
+    yTicks.forEach(t => {
+      const yt = y(t);
+      if (!Number.isFinite(yt)) return;
+      svgSel.append("line")
+        .attr("x1", left)
+        .attr("x2", right)
+        .attr("y1", yt)
+        .attr("y2", yt)
+        .attr("stroke", t === 0 ? "#3b4153" : "#2b3244")
+        .attr("stroke-width", t === 0 ? 1 : 0.6)
+        .attr("opacity", t === 0 ? 1 : 0.6);
+      svgSel.append("line")
+        .attr("x1", left - 6)
+        .attr("x2", left)
+        .attr("y1", yt)
+        .attr("y2", yt)
+        .attr("stroke", "#3b4153")
+        .attr("stroke-width", 0.8);
+      svgSel.append("text")
+        .attr("x", left - 8)
+        .attr("y", yt + 4)
+        .attr("text-anchor", "end")
+        .attr("fill", "#cfd3dc")
+        .attr("font-size", 10)
+        .text(fmt(t));
+    });
+
+    svgSel.append("path").attr("d", d3.line().x(d => x(d[0])).y(d => y(d[1]))(xy))
+      .attr("fill", "none").attr("stroke", "#9fb3ff").attr("stroke-width", 1.5);
+
+    const iStart = Math.ceil(xMin - 1e-9), iEnd = Math.floor(xMax + 1e-9);
+    for (let i = iStart; i <= iEnd; i++) {
+      const xi = x(i);
+      svgSel.append("line").attr("x1", xi).attr("x2", xi).attr("y1", bottom).attr("y2", bottom + 4).attr("stroke", "#3b4153");
+      svgSel.append("text").attr("x", xi).attr("y", bottom + 16).attr("text-anchor", "middle").attr("fill", "#cfd3dc").attr("font-size", 10).text(i);
     }
-    const vals=xy.map(d=>opts.absMax?Math.abs(d[1]):d[1]); let k=0,v=-Infinity;
-    for (let i=0;i<vals.length;i++) if (vals[i]>v){ v=vals[i]; k=i; }
-    const xmax=xy[k][0], ymaxv=xy[k][1];
-    svgSel.append("circle").attr("cx",x(xmax)).attr("cy",y(ymaxv)).attr("r",3).attr("fill","#cfd3dc");
-    svgSel.append("text").attr("x",w-8).attr("y",14).attr("text-anchor","end").attr("fill","#cfd3dc").attr("font-size",12)
-      .text(`max ${(opts.absMax?Math.abs(ymaxv):ymaxv).toFixed(2)}${opts.units?` ${opts.units}`:""}`);
+
+    const vals = xy.map(d => opts.absMax ? Math.abs(d[1]) : d[1]); let k = 0, v = -Infinity;
+    for (let i = 0; i < vals.length; i++) if (vals[i] > v) { v = vals[i]; k = i; }
+    const xmax = xy[k][0], ymaxv = xy[k][1];
+    svgSel.append("circle").attr("cx", x(xmax)).attr("cy", y(ymaxv)).attr("r", 3).attr("fill", "#cfd3dc");
+    svgSel.append("text").attr("x", right).attr("y", margin.top - 6).attr("text-anchor", "end").attr("fill", "#cfd3dc").attr("font-size", 12)
+      .text(`max ${(opts.absMax ? Math.abs(ymaxv) : ymaxv).toFixed(2)}${opts.units ? ` ${opts.units}` : ""}`);
   }
 
   function render(samples){
