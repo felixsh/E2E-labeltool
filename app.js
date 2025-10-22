@@ -139,11 +139,15 @@ controls.addEventListener("change", () => { snapshot3D(); renderOnce(); });
 
 // KITTI-friendly ISO (rear-right-up, Z-up)
 function setIsoView3D() {
-  if (!bounds) return;
-  updateCenterAndRadius();
-  const k = radius || 10;
+  if (bounds) {
+    updateCenterAndRadius();
+  } else {
+    center.set(0, 0, 0);
+    radius = 10;
+  }
+  const k = Math.max(0.3, radius || 10);
   perspCam.up.set(0,0,1); // Z up
-  perspCam.position.copy(center).add(new THREE.Vector3(-1.4*k, -1.4*k, 1.0*k));
+  perspCam.position.copy(center).add(new THREE.Vector3(-0.12*k, -0.12*k, 0.1*k));
   perspCam.lookAt(center);
   controls.target.copy(center);
   controls.update();
@@ -151,10 +155,14 @@ function setIsoView3D() {
 }
 
 function setTopView3D() {
-  if (!bounds) return;
-  updateCenterAndRadius();
+  if (bounds) {
+    updateCenterAndRadius();
+  } else {
+    center.set(0, 0, 0);
+    radius = 10;
+  }
   perspCam.up.set(0,0,1); // Z up
-  perspCam.position.set(center.x, center.y, center.z + (radius || 10)*2.0);
+  perspCam.position.set(center.x, center.y, center.z + Math.max(1.5, (radius || 10)*0.2));
   perspCam.lookAt(center);
   controls.target.copy(center);
   controls.update();
@@ -517,6 +525,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 }
 
 function applyPointCloud(rawData, name) {
+  initializeSpline();
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
   const cloudBounds = cloudBoundsCache;
@@ -536,17 +545,19 @@ function applyPointCloud(rawData, name) {
   viewTopBtn.disabled = false;
   viewIsoBtn.disabled = false;
 
-  spline.onCloudLoaded(center, radius);
+  spline?.onCloudLoaded?.(center, radius);
   rebuildTrajectoryObject(is2D);
 
   renderOnce();
 
   currentPCDName = name;
   updateStatus();
-  spline.markSamplesOptimized?.(false);
+  spline?.markSamplesOptimized?.(false);
 }
 
 function applyTrajectoryPoints(pointPairs, sourceName) {
+  if (!Array.isArray(pointPairs) || pointPairs.length === 0) return;
+  initializeSpline();
   trajectoryPoints = pointPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
 
   const trajBounds = computeTrajectoryBounds(trajectoryPoints);
@@ -571,7 +582,7 @@ function applyTrajectoryPoints(pointPairs, sourceName) {
   renderOnce();
   currentTrajectoryName = sourceName || "trajectory";
   updateStatus();
-  spline.markSamplesOptimized?.(false);
+  spline?.markSamplesOptimized?.(false);
 }
 
 // ---------- Legend ----------
@@ -629,29 +640,36 @@ const charts = makeCharts({
 });
 
 // ---------- Spline system ----------
-const spline = makeSplineSystem({
-  THREE, d3, scene,
-  N_SAMPLES: Math.max(4, CFG.N_SAMPLES|0 || 16),
-  defaultCurve: CFG.defaultCurve || "basis",
-  defaultAlpha: +CFG.defaultAlpha || 0.5,
-  defaultDt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
-  chartLimits: CFG.chartLimits || {},
-  optimizer: CFG.optimizer || {},
-  requestRender: () => renderOnce(),
-  onSamplesChanged: (samples) => charts.render(samples),
-  getCamera: () => camera,
-  is2D: () => is2D,
-  canvasEl: renderer.domElement,
-  setControlsEnabled: (v) => { if (controls) controls.enabled = v; }
-});
+let spline = null;
 
 let samplesVisible = showSamplesChk ? !!showSamplesChk.checked : true;
 function setSamplesVisible(v) {
   const next = !!v;
   samplesVisible = next;
   if (showSamplesChk) showSamplesChk.checked = next;
-  spline.setShowSamples(next);
+  spline?.setShowSamples?.(next);
 }
+
+function initializeSpline() {
+  if (spline) return;
+  spline = makeSplineSystem({
+    THREE, d3, scene,
+    N_SAMPLES: Math.max(4, CFG.N_SAMPLES|0 || 16),
+    defaultCurve: CFG.defaultCurve || "basis",
+    defaultAlpha: +CFG.defaultAlpha || 0.5,
+    defaultDt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
+    chartLimits: CFG.chartLimits || {},
+    optimizer: CFG.optimizer || {},
+    requestRender: () => renderOnce(),
+    onSamplesChanged: (samples) => charts.render(samples),
+    getCamera: () => camera,
+    is2D: () => is2D,
+    canvasEl: renderer.domElement,
+    setControlsEnabled: (v) => { if (controls) controls.enabled = v; }
+  });
+  setSamplesVisible(samplesVisible);
+}
+
 setSamplesVisible(samplesVisible);
 
 // ---------- UI wiring (spline controls) ----------
@@ -664,29 +682,39 @@ syncAlphaVisibility();
 curveSel?.addEventListener("change", e => {
   const v = e.target.value;
   syncAlphaVisibility();
-  spline.setCurveType(v);
+  spline?.setCurveType?.(v);
 });
 alphaInput?.addEventListener("input", e => {
   const a = +e.target.value || 0;
   if (alphaVal) alphaVal.textContent = a.toFixed(2);
-  spline.setAlpha(a);
+  spline?.setAlpha?.(a);
 });
 showSamplesChk?.addEventListener("change", e => {
   setSamplesVisible(!!e.target.checked);
 });
-optimizeBtn?.addEventListener("click", () => spline.optimizeTs());
+optimizeBtn?.addEventListener("click", () => {
+  if (!spline) {
+    status("Load a point cloud or trajectory before optimizing.");
+    return;
+  }
+  spline.optimizeTs?.();
+});
 
 function exportAll() {
+  if (!spline) {
+    status("Nothing to export yet.");
+    return;
+  }
   // Nx2 in meters
-  const controlPts = spline.getControlPoints();                  // [[x,y], ...]
-  const samplePts  = spline.getSamples().map(s => [s.x, s.y]);   // [[x,y], ...]
-  const weights    = spline.getOptimizerWeights();
-  const samplesOptimized = spline.getSamplesOptimized ? spline.getSamplesOptimized() : false;
+  const controlPts = spline?.getControlPoints ? spline.getControlPoints() : [];
+  const samplePts  = spline?.getSamples ? spline.getSamples().map(s => [s.x, s.y]) : [];
+  const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
+  const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
   const pointCloudName = currentPCDName || null;
   const trajectoryName = currentTrajectoryName || null;
-  const curveType = spline.getCurveType ? spline.getCurveType() : null;
-  const deltaT = spline.getDeltaT ? spline.getDeltaT() : null;
-  const alpha = spline.getAlpha ? spline.getAlpha() : null;
+  const curveType = spline?.getCurveType ? spline.getCurveType() : null;
+  const deltaT = spline?.getDeltaT ? spline.getDeltaT() : null;
+  const alpha = spline?.getAlpha ? spline.getAlpha() : null;
 
   const payload = {
     control_points: controlPts,
@@ -744,11 +772,11 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
 
   if (k === " ") { e.preventDefault(); toggle2D3D(); return; } // space toggles 2D/3D
-  if (k === "z") { e.preventDefault(); spline.undoLastAction(); return; }
-  if (k === "y") { e.preventDefault(); spline.redoLastAction(); return; }
+  if (k === "z") { if (!spline) return; e.preventDefault(); spline.undoLastAction?.(); return; }
+  if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
-  if (k === "delete" || k === "backspace") { e.preventDefault(); spline.deleteSelectedCtrl(); return; }
-  if (k === "o") { e.preventDefault(); spline.optimizeTs(); return; }
+  if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
+  if (k === "o") { if (!spline) return; e.preventDefault(); spline.optimizeTs?.(); return; }
   if (k === "e") { e.preventDefault(); exportSamples(); return; }
 });
 
