@@ -45,8 +45,8 @@ export function makeSplineSystem({
   let alpha = +defaultAlpha || 0.5;
   const dt = +defaultDt > 0 ? +defaultDt : 0.20;
 
-  let points = (Array.isArray((window.MERGED_CONFIG || {}).initCtrl) && (window.MERGED_CONFIG.initCtrl.length >= 2))
-    ? window.MERGED_CONFIG.initCtrl.map(([x, y]) => new THREE.Vector3(x, y, 0))
+  let points = (Array.isArray((window.CONFIG || {}).initCtrl) && (window.CONFIG.initCtrl.length >= 2))
+    ? window.CONFIG.initCtrl.map(([x, y]) => new THREE.Vector3(x, y, 0))
     : [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 4, 0)];  // only two initial points
 
   const N = Math.max(4, (N_SAMPLES | 0));

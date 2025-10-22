@@ -1,6 +1,5 @@
-window.MERGED_CONFIG = {
+window.CONFIG = {
   /* ---------- PCD viewer ---------- */
-  defaultPCD: null,
   demoPCD: "demo/pointcloud.bin",       // used by Demo button
   demoTrajectory: "demo/trajectory.npy",
   maxPoints: 500000,              // hard cap
@@ -8,9 +7,6 @@ window.MERGED_CONFIG = {
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom
   colorMode: "height",            // "height" | "intensity" | "distance" | "solid"
-
-  /* Optional tone mapping scalar (kept for completeness; not exposed in UI) */
-  exposure: 1.0,
 
   /* ---------- Spline editor ---------- */
   // Control points in world meters on z=0
@@ -28,14 +24,6 @@ window.MERGED_CONFIG = {
   chartLimits: {
     velocityKmh: null,            // e.g. 120
     accelMS2:   null             // e.g. 5
-  },
-
-  // Keyboard movement increments (for future use if needed)
-  controls: {
-    moveStepPx: 1,
-    moveStepPxFast: 5,
-    sampleStepT: 0.01,
-    sampleStepTFast: 0.05
   },
 
   // Optimizer hyperparameters

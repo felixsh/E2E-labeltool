@@ -11,7 +11,7 @@ import { makeCharts } from "./src/charts.js";
 import { makeSplineSystem } from "./src/splineCore.js";
 
 // ---------- CONFIG ----------
-const CFG = window.MERGED_CONFIG || {};
+const CFG = window.CONFIG || {};
 const DEMO_PCD = CFG.demoPCD;
 const DEMO_TRAJECTORY = CFG.demoTrajectory;
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
