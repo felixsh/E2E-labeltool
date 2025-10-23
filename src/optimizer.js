@@ -1,3 +1,25 @@
+let alglibCtorPromise = null;
+
+async function getAlglibCtor() {
+  if (!alglibCtorPromise) {
+    alglibCtorPromise = import("https://cdn.jsdelivr.net/gh/Pterodactylus/Alglib.js@master/Alglib-v1.1.0.js")
+      .then(mod => {
+        if (!mod?.Alglib) throw new Error("Alglib export missing");
+        return mod.Alglib;
+      });
+  }
+  return alglibCtorPromise;
+}
+
+async function makeSolver() {
+  const Alglib = await getAlglibCtor();
+  const solver = new Alglib();
+  if (solver?.promise) {
+    await solver.promise;
+  }
+  return solver;
+}
+
 export function createTrajectoryOptimizer({
   d3,
   getDt,
@@ -82,7 +104,20 @@ export function createTrajectoryOptimizer({
     return cfg.wJerk * jerk + cfg.wVel * penV + cfg.wAcc * penA;
   }
 
-  function optimizeTs() {
+  function clampMonotonic(values, eps) {
+    const out = values.slice();
+    let prev = 0;
+    for (let i = 0; i < out.length; i++) {
+      const remaining = out.length - i;
+      const maxAllowed = 1 - eps * (remaining);
+      const next = Math.max(prev + eps, Math.min(maxAllowed, out[i]));
+      out[i] = next;
+      prev = next;
+    }
+    return out;
+  }
+
+  async function optimizeTs() {
     if (getDensePointCount() < 2) {
       logger.warn("[optimizeTs] Not enough sample points to optimize (need ≥2).");
       return;
@@ -98,74 +133,84 @@ export function createTrajectoryOptimizer({
     T[0] = 0;
     T[N - 1] = 1;
 
-    let best = evaluateCost(T, dt, cfg);
+    if (N <= 2) {
+      logger.warn("[optimizeTs] Not enough interior samples to optimize.");
+      return;
+    }
 
-    logger.groupCollapsed?.("%c[optimizeTs] Optimization started", "color:#6cf");
-    logger.log("Initial cost:", best.toFixed(6));
-    logger.log("Steps:", cfg.steps);
-    logger.log("Max passes/step:", cfg.maxPassesPerStep);
+    logger.groupCollapsed?.("%c[optimizeTs] Alglib optimization started", "color:#6cf");
+    logger.log("Interior variables:", N - 2);
+    logger.log("Initial cost:", evaluateCost(T, dt, cfg).toFixed(6));
 
-    let totalPasses = 0;
-    let anyImprovement = false;
+    let solver;
+    try {
+      solver = await makeSolver();
+    } catch (err) {
+      logger.error("[optimizeTs] Failed to load Alglib:", err);
+      logger.groupEnd?.();
+      return;
+    }
 
-    for (const h0 of cfg.steps) {
-      let improved = true;
-      let passes = 0;
-      logger.groupCollapsed?.(`Step size h0=${h0}`);
-      while (improved && passes < cfg.maxPassesPerStep) {
-        improved = false;
-        passes++;
-        totalPasses++;
+    const interiorCount = N - 2;
+    const costFn = (x) => {
+      const Tx = [0, ...x, 1];
+      return evaluateCost(Tx, dt, cfg);
+    };
+    const addFn = solver.add_function?.bind(solver);
+    const addLe = solver.add_less_than_or_equal_to_constraint?.bind(solver);
+    const solve = solver.solve?.bind(solver);
 
-        for (let j = 1; j < N - 1; j++) {
-          const L = T[j - 1] + eps;
-          const R = T[j + 1] - eps;
-          let tj = Math.min(R, Math.max(L, T[j]));
-          let bestLocal = best;
-          let bestTj = tj;
+    if (!addFn || !addLe || !solve) {
+      logger.error("[optimizeTs] Alglib solver does not expose required methods.");
+      solver.remove?.();
+      logger.groupEnd?.();
+      return;
+    }
 
-          for (const dir of [-1, +1]) {
-            const cand = Math.min(R, Math.max(L, tj + dir * h0));
-            if (Math.abs(cand - tj) < 1e-12) continue;
-            const old = T[j];
-            T[j] = cand;
-            const cost = evaluateCost(T, dt, cfg);
-            T[j] = old;
-            if (cost + 1e-12 < bestLocal) {
-              bestLocal = cost;
-              bestTj = cand;
-            }
-          }
+    addFn(costFn);
 
-          if (bestTj !== tj) {
-            T[j] = bestTj;
-            best = bestLocal;
-            improved = true;
-            anyImprovement = true;
-          }
-        }
+    // Bounds for first and last interior points
+    addLe((x) => eps - x[0]);
+    addLe((x) => x[interiorCount - 1] - (1 - eps));
 
-        if (!improved) {
-          logger.log(`↳ Step ${h0}: converged after ${passes} passes (no further improvement).`);
-          break;
-        }
-        if (passes >= cfg.maxPassesPerStep) {
-          logger.warn(`↳ Step ${h0}: reached max passes (${cfg.maxPassesPerStep}) before convergence.`);
+    // Monotonic constraints between neighbors
+    for (let i = 1; i < interiorCount; i++) {
+      addLe((x) => x[i - 1] + eps - x[i]);
+    }
+
+    const xGuess = clampMonotonic(T.slice(1, -1), eps);
+
+    let solution = null;
+    try {
+      const maybe = solve("min", xGuess);
+      if (Array.isArray(maybe) && maybe.length === interiorCount) {
+        solution = maybe;
+      } else if (typeof solver.get_results === "function") {
+        const res = solver.get_results();
+        if (Array.isArray(res) && res.length === interiorCount) {
+          solution = res;
         }
       }
-      logger.groupEnd?.();
+    } catch (err) {
+      logger.error("[optimizeTs] Solver error:", err);
     }
 
-    if (!anyImprovement) {
-      logger.info?.("[optimizeTs] Terminated: no improvement across all steps.");
-    } else {
-      logger.info?.("[optimizeTs] Optimization complete.");
+    if (!solution) {
+      logger.warn("[optimizeTs] Solver did not return a solution; keeping existing samples.");
+      solver.remove?.();
+      logger.groupEnd?.();
+      return;
     }
-    logger.log("Final cost:", best.toFixed(6));
-    logger.log("Total passes:", totalPasses);
+
+    const clamped = clampMonotonic(solution, eps);
+    const nextTs = [0, ...clamped, 1];
+    logger.log("Final cost:", evaluateCost(nextTs, dt, cfg).toFixed(6));
+    logger.log("Solver status:", solver.get_status?.());
+    logger.log("Solver report:", solver.get_report?.());
+    solver.remove?.();
     logger.groupEnd?.();
 
-    setTs(T);
+    setTs(nextTs);
     onOptimized();
   }
 

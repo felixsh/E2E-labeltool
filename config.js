@@ -32,7 +32,7 @@ window.CONFIG = {
   optimizer: {
     steps: [0.05, 0.02, 0.01, 0.005, 0.002],
     maxPassesPerStep: 8,
-    monotonicEps: 1e-4,
+    monotonicEps: 1e-8,
     wJerk: 1.0,
     wVel: 0.10,
     wAcc: 0.10,
