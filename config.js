@@ -2,11 +2,11 @@ window.CONFIG = {
   /* ---------- PCD viewer ---------- */
   demoPCD: "demo/pointcloud.bin",       // used by Demo button
   demoTrajectory: "demo/trajectory.npy",
-  maxPoints: 500000,              // hard cap
-
+  
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom
   colorMode: "height",            // "height" | "intensity" | "distance" | "solid"
+  maxPoints: 500000,              // hard cap
 
   /* ---------- Spline editor ---------- */
   // Control points in world meters on z=0
@@ -15,7 +15,8 @@ window.CONFIG = {
   // Curve settings
   defaultCurve: "basis",          // "basis" | "natural" | "catmullrom"
   defaultAlpha: 0.5,              // only for catmull-rom
-  N_SAMPLES: 16,                  // number of intermediate/sample points
+  N_FUTURE: 25,                  // number of intermediate/sample points
+  N_PAST: 3,                     // how many previously driven (fixed) samples to keep ahead of the spline
 
   // Simulation timestep for velocity/accel (seconds)
   defaultDt: 0.20,
@@ -25,8 +26,6 @@ window.CONFIG = {
     velocityKmh: null,            // e.g. 120
     accelMS2:   null             // e.g. 5
   },
-
-  trajectoryHistoryCount: 3,     // M_PREVIOUS, must be >=1
 
   // Optimizer hyperparameters
   optimizer: {

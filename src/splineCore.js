@@ -3,7 +3,7 @@ import { createTrajectoryOptimizer } from "./optimizer.js";
 
 export function makeSplineSystem({
   THREE, d3, scene,
-  N_SAMPLES = 16,
+  N_FUTURE = 16,
   defaultCurve = "basis",
   defaultAlpha = 0.5,
   defaultDt = 0.20,
@@ -15,7 +15,7 @@ export function makeSplineSystem({
   is2D,                 // () => boolean
   canvasEl,             // renderer.domElement
   setControlsEnabled,   // (bool) => void
-  trajectoryHistoryCount = 1
+  N_PAST = 1
 }) {
   // ===== CSS var helpers =====
   function cssVar(name, fallback) {
@@ -50,13 +50,13 @@ export function makeSplineSystem({
     ? window.CONFIG.initCtrl.map(([x, y]) => new THREE.Vector3(x, y, 0))
     : [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 4, 0)];  // only two initial points
 
-  const SAMPLE_COUNT = Math.max(4, (N_SAMPLES | 0));
+  const SAMPLE_COUNT = Math.max(4, (N_FUTURE | 0));
   let Ts = d3.range(SAMPLE_COUNT + 1).map(i => i / SAMPLE_COUNT);
   let selectedCtrl = points.length - 1; // select last control point by default
   let selectedSample = null;
   let showSamples = true;
   let samplesOptimized = false;
-  const historyCount = Math.max(1, trajectoryHistoryCount | 0 || 1);
+  const historyCount = Math.max(1, N_PAST | 0 || 1);
   let historyPoints = [];
 
   let dragging = null; // {kind:"ctrl"|"sample", i}

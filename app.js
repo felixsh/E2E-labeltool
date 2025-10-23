@@ -14,7 +14,7 @@ import { makeSplineSystem } from "./src/splineCore.js";
 const CFG = window.CONFIG || {};
 const DEMO_PCD = CFG.demoPCD;
 const DEMO_TRAJECTORY = CFG.demoTrajectory;
-const HISTORY_COUNT = Math.max(1, (CFG.trajectoryHistoryCount | 0) || 1);
+const HISTORY_COUNT = Math.max(1, (CFG.N_PAST | 0) || 1);
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 
@@ -657,7 +657,7 @@ function initializeSpline() {
   if (spline) return;
   spline = makeSplineSystem({
     THREE, d3, scene,
-    N_SAMPLES: Math.max(4, CFG.N_SAMPLES|0 || 16),
+    N_FUTURE: Math.max(4, CFG.N_FUTURE|0 || 16),
     defaultCurve: CFG.defaultCurve || "basis",
     defaultAlpha: +CFG.defaultAlpha || 0.5,
     defaultDt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
@@ -669,7 +669,7 @@ function initializeSpline() {
     is2D: () => is2D,
     canvasEl: renderer.domElement,
     setControlsEnabled: (v) => { if (controls) controls.enabled = v; },
-    trajectoryHistoryCount: HISTORY_COUNT
+    N_PAST: HISTORY_COUNT
   });
   spline.setTrajectoryHistory?.(trajectoryHistoryRaw);
   setSamplesVisible(samplesVisible);

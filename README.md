@@ -43,7 +43,7 @@ Current point cloud / trajectory names are shown in the footer.
 
 ## Config
 
-`config.js` holds defaults for point size, curve type, sample count (`N_SAMPLES`), optimisation weights, and `trajectoryHistoryCount` (fixed history samples).
+`config.js` holds defaults for point size, curve type, sample counts (`N_FUTURE`, `N_PAST`), optimisation weights, and other viewer settings.
 
 Happy labelling!
 
