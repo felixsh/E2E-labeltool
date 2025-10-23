@@ -29,7 +29,7 @@ window.CONFIG = {
 
   // Optimizer hyperparameters
   optimizer: {
-    monotonicEps: 1e-8,
+    monotonicEps: 1e-4,
     wJerk: 1.0,
     wVel: 0.10,
     wAcc: 0.10
