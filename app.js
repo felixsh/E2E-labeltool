@@ -5,7 +5,8 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import {
   loadPointCloudFromFile,
   loadTrajectoryFromFile,
-  loadDemoDataset
+  loadDemoDataset,
+  saveNpyFromArray
 } from "./src/dataLoader.js";
 import { makeCharts } from "./src/charts.js";
 import { makeSplineSystem } from "./src/splineCore.js";
@@ -755,7 +756,8 @@ function exportAll() {
   // Nx2 in meters
   const controlPts = spline?.getControlPoints ? spline.getControlPoints() : [];
   const samplesArr = spline?.getSamples ? spline.getSamples() : [];
-  const samplePts  = samplesArr.filter(s => !s.fixed).map(s => [s.t ?? 0, s.x, s.y]);
+  const samplePtsFull = samplesArr.filter(s => !s.fixed).map(s => [s.t ?? 0, s.x, s.y]);
+  const samplePtsXY = samplePtsFull.map(([_, x, y]) => [x, y]);
   const trajectoryRaw = trajectoryRawPoints.slice();
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
@@ -767,7 +769,7 @@ function exportAll() {
 
   const payload = {
     control_points: controlPts,
-    sample_points:  samplePts,
+    sample_points:  samplePtsFull,
     trajectory_raw: trajectoryRaw,
     optimizer:      weights,
     samples_optimized: samplesOptimized,
@@ -790,6 +792,11 @@ function exportAll() {
   a.href = url; a.download = fname;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
+
+  const npyName = `${base}.npy`;
+  saveNpyFromArray({ data: samplePtsXY, filename: npyName }).catch(err => {
+    console.error("Failed to export samples .npy", err);
+  });
 }
 
 exportBtn?.addEventListener("click", exportAll);

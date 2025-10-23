@@ -1,5 +1,6 @@
 import { parsePointCloud } from "./pcdParser.js";
 import { parse as parseNpy, serialize as serializeNpy } from "tfjs-npy";
+import * as tf from "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/+esm";
 
 function nameFromPath(path, fallback) {
   if (!path) return fallback;
@@ -72,10 +73,14 @@ export async function loadTrajectoryFromUrl(url) {
   return { points, tensor, name };
 }
 
-export async function saveTrajectoryToFile({ tensor, filename = "trajectory.npy" }) {
-  if (!tensor) {
-    throw new Error("saveTrajectoryToFile requires a tensor");
+export async function saveNpyFromArray({ data, filename = "array.npy" }) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("saveNpyFromArray requires a non-empty array");
   }
+  const rows = data.length;
+  const cols = Array.isArray(data[0]) ? data[0].length : 1;
+  const flat = data.flat();
+  const tensor = tf.tensor(flat, [rows, cols], "float32");
   const buffer = await serializeNpy(tensor);
   const blob = new Blob([buffer], { type: "application/octet-stream" });
   const link = document.createElement("a");
