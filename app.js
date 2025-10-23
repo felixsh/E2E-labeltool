@@ -824,6 +824,29 @@ setSamplesVisible(samplesVisible);
 let optimizeInFlight = false;
 let optimizeFlashTimeout = null;
 const OPTIMIZE_FLASH_MS = 700;
+let prevBodyCursor = null;
+let prevCanvasCursor = null;
+
+function setOptimizationCursor(active) {
+  const canvas = renderer?.domElement;
+  if (active) {
+    if (prevBodyCursor !== null) return;
+    prevBodyCursor = document.body.style.cursor;
+    prevCanvasCursor = canvas ? canvas.style.cursor : null;
+    document.body.classList.add("optimizing-cursor");
+    if (container) container.classList.add("optimizing-cursor");
+    document.body.style.cursor = "progress";
+    if (canvas) canvas.style.cursor = "progress";
+  } else {
+    if (prevBodyCursor === null) return;
+    document.body.style.cursor = prevBodyCursor || "";
+    document.body.classList.remove("optimizing-cursor");
+    if (container) container.classList.remove("optimizing-cursor");
+    if (canvas) canvas.style.cursor = prevCanvasCursor ?? "";
+    prevBodyCursor = null;
+    prevCanvasCursor = null;
+  }
+}
 
 async function runOptimization() {
   if (!spline) {
@@ -833,6 +856,7 @@ async function runOptimization() {
   if (optimizeInFlight) return;
 
   optimizeInFlight = true;
+  setOptimizationCursor(true);
   statusOptim("Running optimization...");
 
   if (optimizeFlashTimeout) {
@@ -865,6 +889,7 @@ async function runOptimization() {
       optimizeBtn.removeAttribute("aria-busy");
       optimizeBtn.removeAttribute("disabled");
     }
+    setOptimizationCursor(false);
     optimizeInFlight = false;
   }
 }

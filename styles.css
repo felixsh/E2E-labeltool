@@ -50,6 +50,13 @@ input[type="range"] { cursor: ew-resize; }
   background: #1d3b55;
   border-color: rgba(102, 204, 255, 0.4);
 }
+body.optimizing-cursor {
+  cursor: progress !important;
+}
+#stage3d.optimizing-cursor,
+#stage3d.optimizing-cursor canvas.threejs {
+  cursor: progress !important;
+}
 
 #charts.hidden {
   display: none;
