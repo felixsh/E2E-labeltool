@@ -1,5 +1,40 @@
 // src/charts.js
-export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, dt, d3 }) {
+const COLOR_GREEN = [46, 204, 113];
+const COLOR_YELLOW = [246, 194, 62];
+const COLOR_RED = [231, 76, 60];
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function mixColor(c1, c2, t) {
+  return [
+    lerp(c1[0], c2[0], t),
+    lerp(c1[1], c2[1], t),
+    lerp(c1[2], c2[2], t)
+  ];
+}
+
+function colorForThreshold(value, thresholds) {
+  if (!thresholds) return null;
+  const { comfort, max } = thresholds;
+  if (!Number.isFinite(value) || !Number.isFinite(comfort) || !Number.isFinite(max) || max <= comfort) {
+    return null;
+  }
+  if (value <= comfort) return `rgb(${COLOR_GREEN.map(Math.round).join(",")})`;
+  if (value >= max) return `rgb(${COLOR_RED.map(Math.round).join(",")})`;
+  const ratio = (value - comfort) / (max - comfort);
+  if (ratio <= 0.5) {
+    const t = ratio / 0.5;
+    const mixed = mixColor(COLOR_GREEN, COLOR_YELLOW, t);
+    return `rgb(${mixed.map(Math.round).join(",")})`;
+  }
+  const t = (ratio - 0.5) / 0.5;
+  const mixed = mixColor(COLOR_YELLOW, COLOR_RED, t);
+  return `rgb(${mixed.map(Math.round).join(",")})`;
+}
+
+export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, dt, d3, limits = {} }) {
   chartsDiv?.classList?.add("hidden");
 
   function computeKinematics(samplePts){
@@ -68,7 +103,7 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     return { iVel, v_kmh, iAcc, aLong, aLat, aTotal, iJerk, jerkTotal };
   }
 
-  function drawMiniChart(svgSel, X, Y, title, opts = { absMax: false, units: "" }) {
+  function drawMiniChart(svgSel, X, Y, title, opts = { absMax: false, units: "", thresholds: null }) {
     const node = svgSel.node();
     const w = node.clientWidth || 220;
     const h = node.clientHeight || 100;
@@ -145,8 +180,36 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     for (let i = 0; i < vals.length; i++) if (vals[i] > v) { v = vals[i]; k = i; }
     const xmax = xy[k][0], ymaxv = xy[k][1];
     svgSel.append("circle").attr("cx", x(xmax)).attr("cy", y(ymaxv)).attr("r", 3).attr("fill", "#cfd3dc");
-    svgSel.append("text").attr("x", right).attr("y", margin.top - 6).attr("text-anchor", "end").attr("fill", "#cfd3dc").attr("font-size", 12)
-      .text(`max ${(opts.absMax ? Math.abs(ymaxv) : ymaxv).toFixed(2)}${opts.units ? ` ${opts.units}` : ""}`);
+    const maxValue = (opts.absMax ? Math.abs(ymaxv) : ymaxv);
+    const label = `max ${maxValue.toFixed(2)}${opts.units ? ` ${opts.units}` : ""}`;
+    const maxText = svgSel.append("text")
+      .attr("x", right)
+      .attr("y", margin.top - 6)
+      .attr("text-anchor", "end")
+      .attr("font-size", 12)
+      .text(label);
+    const color = colorForThreshold(maxValue, opts.thresholds);
+    if (color) {
+      const bbox = maxText.node()?.getBBox();
+      if (bbox) {
+        const padX = 4;
+        const padY = 2;
+        svgSel.insert("rect", () => maxText.node())
+          .attr("x", bbox.x - padX)
+          .attr("y", bbox.y - padY)
+          .attr("width", bbox.width + padX * 2)
+          .attr("height", bbox.height + padY * 2)
+          .attr("rx", 4)
+          .attr("ry", 4)
+          .attr("fill", color)
+          .attr("stroke", "none");
+        maxText.attr("fill", "#0b0d13");
+      } else {
+        maxText.attr("fill", "#cfd3dc");
+      }
+    } else {
+      maxText.attr("fill", "#cfd3dc");
+    }
   }
 
   function render(samples){
@@ -160,8 +223,8 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     chartsDiv?.classList?.remove("hidden");
     const { iVel, v_kmh, iAcc, aTotal, iJerk, jerkTotal } = computeKinematics(samples);
     drawMiniChart(velChartSel, iVel, v_kmh, "velocity (km/h)", { absMax: false, units: "km/h" });
-    drawMiniChart(accChartSel, iAcc, aTotal, "acceleration total (m/s²)", { absMax: true, units: "m/s²" });
-    drawMiniChart(jerkChartSel, iJerk, jerkTotal, "jerk total (m/s³)", { absMax: true, units: "m/s³" });
+    drawMiniChart(accChartSel, iAcc, aTotal, "acceleration total (m/s²)", { absMax: true, units: "m/s²", thresholds: limits.acceleration });
+    drawMiniChart(jerkChartSel, iJerk, jerkTotal, "jerk total (m/s³)", { absMax: true, units: "m/s³", thresholds: limits.jerk });
   }
 
   return { render };

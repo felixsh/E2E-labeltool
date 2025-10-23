@@ -639,7 +639,8 @@ const charts = makeCharts({
   jerkChartSel: d3.select("#jerkChart"),
   chartsDiv: document.getElementById("charts"),
   dt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
-  d3
+  d3,
+  limits: CFG.kinematicLimits || {}
 });
 
 // ---------- Spline system ----------

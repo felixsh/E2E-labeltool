@@ -21,6 +21,12 @@ window.CONFIG = {
   // Simulation timestep for velocity/accel (seconds)
   defaultDt: 0.20,
 
+  // Comfort / max thresholds used by charts (m/s² and m/s³)
+  kinematicLimits: {
+    acceleration: { comfort: 3, max: 9 },
+    jerk: { comfort: 2, max: 15 }
+  },
+
   // Optimizer hyperparameters
   optimizer: {
     monotonicEps: 1e-8,
