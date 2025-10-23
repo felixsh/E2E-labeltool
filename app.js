@@ -391,7 +391,9 @@ let bounds = null;
 let center = new THREE.Vector3();
 let radius = 10;
 let currentPCDName = ""; // used for export filename
+let currentPCDPath = null;
 let currentTrajectoryName = "";
+let currentTrajectoryPath = null;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -661,7 +663,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
   }
 }
 
-function applyPointCloud(rawData, name) {
+function applyPointCloud(rawData, name, path) {
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
   initializeSpline();
@@ -691,11 +693,12 @@ function applyPointCloud(rawData, name) {
   renderOnce();
 
   currentPCDName = name;
+  currentPCDPath = path || null;
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
 
-function applyTrajectoryPoints(pointPairs, sourceName) {
+function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   if (!Array.isArray(pointPairs) || pointPairs.length === 0) return;
   const usableCount = Math.min(HISTORY_COUNT, pointPairs.length);
   const histStart = Math.max(0, pointPairs.length - usableCount);
@@ -726,6 +729,7 @@ function applyTrajectoryPoints(pointPairs, sourceName) {
 
   renderOnce();
   currentTrajectoryName = sourceName || "trajectory";
+  currentTrajectoryPath = sourcePath || null;
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
@@ -931,6 +935,8 @@ function exportAll() {
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
   const pointCloudName = currentPCDName || null;
   const trajectoryName = currentTrajectoryName || null;
+  const pointCloudPath = currentPCDPath || null;
+  const trajectoryPath = currentTrajectoryPath || null;
   const curveType = spline?.getCurveType ? spline.getCurveType() : null;
   const deltaT = spline?.getDeltaT ? spline.getDeltaT() : null;
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
@@ -941,8 +947,8 @@ function exportAll() {
     trajectory_raw: trajectoryRaw,
     optimizer:      weights,
     samples_optimized: samplesOptimized,
-    pointcloud_file: pointCloudName,
-    trajectory_file: trajectoryName,
+    pointcloud_path: pointCloudPath,
+    trajectory_path: trajectoryPath,
     curve_type: curveType,
     delta_t: deltaT
   };
@@ -1020,11 +1026,11 @@ fileInput.addEventListener("change", async (e) => {
   try {
     const lower = (file.name || "").toLowerCase();
     if (lower.endsWith(".npy")) {
-      const { points, name } = await loadTrajectoryFromFile(file);
-      applyTrajectoryPoints(points, name);
+      const { points, name, path: sourcePath } = await loadTrajectoryFromFile(file);
+      applyTrajectoryPoints(points, name, sourcePath);
     } else {
-      const { raw: rawData, name } = await loadPointCloudFromFile(file);
-      applyPointCloud(rawData, name);
+      const { raw: rawData, name, path: sourcePath } = await loadPointCloudFromFile(file);
+      applyPointCloud(rawData, name, sourcePath);
     }
   } catch (err) {
     console.error(err);
@@ -1042,8 +1048,8 @@ demoBtn?.addEventListener("click", async () => {
   demoBtn.disabled = true;
   try {
     const result = await loadDemoDataset({ cloudUrl: DEMO_PCD, trajectoryUrl: DEMO_TRAJECTORY });
-    if (result.cloud) applyPointCloud(result.cloud.raw, result.cloud.name);
-    if (result.trajectory) applyTrajectoryPoints(result.trajectory.points, result.trajectory.name);
+    if (result.cloud) applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
+    if (result.trajectory) applyTrajectoryPoints(result.trajectory.points, result.trajectory.name, result.trajectory.path);
     updateStatus();
   } catch (err) {
     console.error(err);

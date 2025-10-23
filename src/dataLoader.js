@@ -33,7 +33,11 @@ export async function loadPointCloudFromFile(file) {
   const buffer = await file.arrayBuffer();
   const name = file?.name || "pointcloud.pcd";
   const raw = parsePointCloud(buffer, name);
-  return { raw, name };
+  const path =
+    file?.path ||
+    file?.webkitRelativePath ||
+    (file?.name ? file.name : null);
+  return { raw, name, path };
 }
 
 export async function loadPointCloudFromUrl(url) {
@@ -44,7 +48,7 @@ export async function loadPointCloudFromUrl(url) {
   const buffer = await response.arrayBuffer();
   const name = nameFromPath(url, "pointcloud.pcd");
   const raw = parsePointCloud(buffer, name);
-  return { raw, name };
+  return { raw, name, path: url };
 }
 
 export async function loadTrajectoryFromFile(file) {
@@ -55,7 +59,11 @@ export async function loadTrajectoryFromFile(file) {
     data: tensor.dataSync()
   });
   const name = file?.name || "trajectory.npy";
-  return { points, tensor, name };
+  const path =
+    file?.path ||
+    file?.webkitRelativePath ||
+    (file?.name ? file.name : null);
+  return { points, tensor, name, path };
 }
 
 export async function loadTrajectoryFromUrl(url) {
@@ -70,7 +78,7 @@ export async function loadTrajectoryFromUrl(url) {
     data: tensor.dataSync()
   });
   const name = nameFromPath(url, "trajectory.npy");
-  return { points, tensor, name };
+  return { points, tensor, name, path: url };
 }
 
 export async function saveNpyFromArray({ data, filename = "array.npy" }) {
