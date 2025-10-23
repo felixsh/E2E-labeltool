@@ -46,7 +46,7 @@ select, input[type="range"], button {
   padding: 6px 8px; border-radius: 8px; cursor: pointer;
 }
 input[type="range"] { cursor: ew-resize; }
-#weightsBtn[aria-pressed="true"]{
+.toggle-btn[aria-pressed="true"]{
   background: #1d3b55;
   border-color: rgba(102, 204, 255, 0.4);
 }

@@ -42,7 +42,7 @@ const curveSel    = document.getElementById("curveType");
 const alphaWrap   = document.getElementById("alphaWrap");
 const alphaInput  = document.getElementById("alpha");
 const alphaVal    = document.getElementById("alphaVal");
-const showSamplesChk = document.getElementById("showSamplesChk");
+const samplesBtn  = document.getElementById("samplesBtn");
 const optimizeBtn = document.getElementById("optimizeBtn");
 const weightsBtn  = document.getElementById("weightsBtn");
 const exportBtn   = document.getElementById("exportSamplesBtn");
@@ -787,11 +787,13 @@ const charts = makeCharts({
 // ---------- Spline system ----------
 let spline = null;
 
-let samplesVisible = showSamplesChk ? !!showSamplesChk.checked : true;
+let samplesVisible = true;
 function setSamplesVisible(v) {
   const next = !!v;
   samplesVisible = next;
-  if (showSamplesChk) showSamplesChk.checked = next;
+  if (samplesBtn) {
+    samplesBtn.setAttribute("aria-pressed", next ? "true" : "false");
+  }
   spline?.setShowSamples?.(next);
 }
 
@@ -884,8 +886,8 @@ alphaInput?.addEventListener("input", e => {
   if (alphaVal) alphaVal.textContent = a.toFixed(2);
   spline?.setAlpha?.(a);
 });
-showSamplesChk?.addEventListener("change", e => {
-  setSamplesVisible(!!e.target.checked);
+samplesBtn?.addEventListener("click", () => {
+  setSamplesVisible(!samplesVisible);
 });
 optimizeBtn?.addEventListener("click", () => { runOptimization(); });
 
