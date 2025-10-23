@@ -26,9 +26,6 @@ window.CONFIG = {
     monotonicEps: 1e-8,
     wJerk: 1.0,
     wVel: 0.10,
-    wAcc: 0.10,
-    vMaxKmh: 120,
-    aLongMax: 3.0,
-    aLatMax: 3.0
+    wAcc: 0.10
   }
 };

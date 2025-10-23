@@ -452,8 +452,7 @@ export function makeSplineSystem({
   // ===== Optimizer (jerk + limits) =====
   const OPT = Object.assign({
     monotonicEps: 1e-4,
-    wJerk: 1.0, wVel: 0.10, wAcc: 0.10,
-    vMaxKmh: 120, aLongMax: 3.0, aLatMax: 3.0
+    wJerk: 1.0, wVel: 0.10, wAcc: 0.10
   }, optimizer || {});
 
   const { optimizeTs } = createTrajectoryOptimizer({
@@ -649,12 +648,8 @@ export function makeSplineSystem({
     return points.map(p => [p.x, p.y]);
   }
   function getOptimizerWeights() {
-    const {
-      wJerk, wVel, wAcc,
-      vMaxKmh, aLongMax, aLatMax,
-      monotonicEps
-    } = OPT;
-    return { wJerk, wVel, wAcc, vMaxKmh, aLongMax, aLatMax, monotonicEps };
+    const { wJerk, wVel, wAcc, monotonicEps } = OPT;
+    return { wJerk, wVel, wAcc, monotonicEps };
   }
 
   return {

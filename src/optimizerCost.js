@@ -31,7 +31,6 @@ export function makeEvaluateCost({
       const dy = (P[i + 1][1] - P[i][1]) / dt;
       return Math.hypot(dx, dy);
     });
-    const v_kmh = v_ms.map(v => v * 3.6);
 
     const a = d3.range(P.length - 2).map(i => {
       const ax = (P[i + 2][0] - 2 * P[i + 1][0] + P[i][0]) / dt2;
@@ -54,21 +53,10 @@ export function makeEvaluateCost({
       return sign * mag;
     });
 
-    let penV = 0;
-    for (const v of v_kmh) {
-      const d = v - cfg.vMaxKmh;
-      if (d > 0) penV += d * d;
-    }
-
-    let penA = 0;
-    for (const al of aLong) {
-      const d = Math.abs(al) - cfg.aLongMax;
-      if (d > 0) penA += d * d;
-    }
-    for (const at of aLat) {
-      const d = Math.abs(at) - cfg.aLatMax;
-      if (d > 0) penA += d * d;
-    }
+    const penV = v_ms.reduce((sum, v) => sum + v * v, 0);
+    const penA =
+      aLong.reduce((sum, val) => sum + val * val, 0) +
+      aLat.reduce((sum, val) => sum + val * val, 0);
 
     return cfg.wJerk * jerk + cfg.wVel * penV + cfg.wAcc * penA;
   };
