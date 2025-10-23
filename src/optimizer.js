@@ -113,10 +113,11 @@ export function createTrajectoryOptimizer({
     }
 
     const xGuess = clampMonotonic(T.slice(1, -1), eps);
+    const maxIterations = Number.isFinite(cfg?.solver?.maxIterations) ? cfg.solver.maxIterations : undefined;
 
     let solution = null;
     try {
-      const maybe = solve("min", xGuess);
+      const maybe = solve("min", xGuess, [], maxIterations);
       if (Array.isArray(maybe) && maybe.length === interiorCount) {
         solution = maybe;
       } else if (typeof solver.get_results === "function") {
@@ -138,9 +139,11 @@ export function createTrajectoryOptimizer({
 
     const clamped = clampMonotonic(solution, eps);
     const nextTs = [0, ...clamped, 1];
-    logger.log("Final cost:", evaluateCost(nextTs, dt, cfg).toFixed(6));
+    const finalCost = evaluateCost(nextTs, dt, cfg);
+    logger.log("Final cost:", finalCost.toFixed(6));
     logger.log("Solver status:", solver.get_status?.());
     logger.log("Solver report:", solver.get_report?.());
+
     solver.remove?.();
     logger.groupEnd?.();
 

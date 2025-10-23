@@ -32,6 +32,9 @@ window.CONFIG = {
     monotonicEps: 1e-4,
     wJerk: 1.0,
     wVel: 0.10,
-    wAcc: 0.10
+    wAcc: 0.10,
+    solver: {
+      maxIterations: 30000
+    }
   }
 };
