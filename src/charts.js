@@ -1,5 +1,6 @@
 // src/charts.js
 export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chartsDiv, dt, d3 }) {
+  chartsDiv?.classList?.add("hidden");
 
   function computeKinematics(samplePts){
     if (!samplePts || samplePts.length < 2) {
@@ -138,8 +139,14 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
   }
 
   function render(samples){
-    if (!samples || !samples.length){ chartsDiv.style.display = "none"; return; }
-    chartsDiv.style.display = "";
+    if (!samples || !samples.length){
+      chartsDiv?.classList?.add("hidden");
+      velChartSel.selectAll("*").remove();
+      accLongChartSel.selectAll("*").remove();
+      accLatChartSel.selectAll("*").remove();
+      return;
+    }
+    chartsDiv?.classList?.remove("hidden");
     const { iVel, v_kmh, iAcc, aLong, aLat } = computeKinematics(samples);
     drawMiniChart(velChartSel,     iVel, v_kmh, "velocity (km/h)",      {absMax:false, units:"km/h"});
     drawMiniChart(accLongChartSel, iAcc, aLong, "longitudinal a (m/s²)", {absMax:true,  units:"m/s²"});
