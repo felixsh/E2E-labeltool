@@ -44,10 +44,151 @@ const alphaInput  = document.getElementById("alpha");
 const alphaVal    = document.getElementById("alphaVal");
 const showSamplesChk = document.getElementById("showSamplesChk");
 const optimizeBtn = document.getElementById("optimizeBtn");
+const weightsBtn  = document.getElementById("weightsBtn");
 const exportBtn   = document.getElementById("exportSamplesBtn");
 const helpBtn     = document.getElementById("helpBtn");
 const helpDlg     = document.getElementById("helpDlg");
 const helpClose   = document.getElementById("helpClose");
+const weightsPanel = document.getElementById("weightsPanel");
+const weightJerkInput = document.getElementById("weightJerk");
+const weightVelInput  = document.getElementById("weightVel");
+const weightAccInput  = document.getElementById("weightAcc");
+const weightJerkNumber = document.getElementById("weightJerkNumber");
+const weightVelNumber  = document.getElementById("weightVelNumber");
+const weightAccNumber  = document.getElementById("weightAccNumber");
+
+function finiteOr(value, fallback) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+const optimizerDefaults = CFG.optimizer || {};
+const weightState = {
+  wJerk: finiteOr(optimizerDefaults.wJerk, 1.0),
+  wVel: finiteOr(optimizerDefaults.wVel, 0.10),
+  wAcc: finiteOr(optimizerDefaults.wAcc, 0.10)
+};
+let weightsVisible = false;
+
+function formatWeight(val) {
+  return Number.isFinite(val) ? val.toFixed(2) : "0.00";
+}
+
+const weightControls = {
+  wJerk: { slider: weightJerkInput, number: weightJerkNumber },
+  wVel:  { slider: weightVelInput,  number: weightVelNumber },
+  wAcc:  { slider: weightAccInput,  number: weightAccNumber }
+};
+
+function clampToInput(value, inputEl) {
+  if (!inputEl) return value;
+  let next = value;
+  const min = Number.parseFloat(inputEl.min);
+  const max = Number.parseFloat(inputEl.max);
+  if (Number.isFinite(min)) next = Math.max(min, next);
+  if (Number.isFinite(max)) next = Math.min(max, next);
+  const step = Number.parseFloat(inputEl.step);
+  if (Number.isFinite(step) && step > 0) {
+    next = Math.round(next / step) * step;
+    next = Number(next.toFixed(6));
+  }
+  return next;
+}
+
+function applyWeightValue(kind, rawValue, sourceEl, { updateSpline = true } = {}) {
+  const ctrls = weightControls[kind];
+  if (!ctrls) return;
+  let val = Number(rawValue);
+  if (!Number.isFinite(val)) return;
+  val = clampToInput(val, ctrls.slider);
+  val = clampToInput(val, ctrls.number);
+  weightState[kind] = val;
+  if (ctrls.slider && sourceEl !== ctrls.slider) {
+    ctrls.slider.value = String(val);
+  }
+  if (ctrls.number && sourceEl !== ctrls.number) {
+    ctrls.number.value = formatWeight(val);
+  }
+  if (updateSpline) applyWeightsToSpline();
+}
+
+function syncWeightControls() {
+  for (const kind of Object.keys(weightControls)) {
+    const val = weightState[kind];
+    if (Number.isFinite(val)) {
+      applyWeightValue(kind, val, null, { updateSpline: false });
+    }
+  }
+}
+
+function applyWeightsToSpline() {
+  if (spline?.setOptimizerWeights) {
+    spline.setOptimizerWeights({ ...weightState });
+  }
+}
+
+function setWeightsVisible(v) {
+  weightsVisible = !!v;
+  if (weightsPanel) {
+    weightsPanel.classList.toggle("open", weightsVisible);
+    weightsPanel.setAttribute("aria-hidden", weightsVisible ? "false" : "true");
+  }
+  if (weightsBtn) {
+    weightsBtn.setAttribute("aria-pressed", weightsVisible ? "true" : "false");
+  }
+  if (weightsVisible) {
+    syncWeightControls();
+  }
+}
+
+function toggleWeightsPanel() {
+  setWeightsVisible(!weightsVisible);
+  if (weightsVisible) {
+    applyWeightsToSpline();
+  }
+}
+
+syncWeightControls();
+setWeightsVisible(false);
+
+function hookWeightControl(kind) {
+  const ctrls = weightControls[kind];
+  if (!ctrls) return;
+  const { slider, number } = ctrls;
+  if (slider) {
+    slider.addEventListener("input", () => {
+      applyWeightValue(kind, slider.value, slider);
+    });
+    slider.addEventListener("change", () => {
+      applyWeightValue(kind, slider.value, slider);
+    });
+  }
+  if (number) {
+    number.addEventListener("input", () => {
+      const raw = number.value;
+      if (!raw || raw.trim() === "" || raw === "-" || raw === "." || raw === "-.") return;
+      applyWeightValue(kind, raw, number, { updateSpline: false });
+    });
+    const commit = () => {
+      const raw = number.value;
+      const trimmed = raw?.trim() ?? "";
+      const value = trimmed !== "" ? raw : weightState[kind];
+      applyWeightValue(kind, value, number);
+    };
+    number.addEventListener("change", commit);
+    number.addEventListener("blur", commit);
+    number.addEventListener("keydown", (evt) => {
+      if (evt.key === "Enter") {
+        evt.preventDefault();
+        commit();
+        number.blur();
+      }
+    });
+  }
+}
+
+["wJerk", "wVel", "wAcc"].forEach(hookWeightControl);
+weightsBtn?.addEventListener("click", toggleWeightsPanel);
 
 // ---------- THREE setup ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -673,6 +814,7 @@ function initializeSpline() {
   });
   spline.setTrajectoryHistory?.(trajectoryHistoryRaw);
   setSamplesVisible(samplesVisible);
+  applyWeightsToSpline();
 }
 
 setSamplesVisible(samplesVisible);
@@ -831,6 +973,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "z") { if (!spline) return; e.preventDefault(); spline.undoLastAction?.(); return; }
   if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
+  if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
   if (k === "l") {

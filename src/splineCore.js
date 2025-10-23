@@ -455,6 +455,42 @@ export function makeSplineSystem({
     wJerk: 1.0, wVel: 0.10, wAcc: 0.10
   }, optimizer || {});
 
+  function setOptimizerWeights(next) {
+    if (!next) return;
+    let changed = false;
+    if (Number.isFinite(next.wJerk)) {
+      const v = Math.max(0, next.wJerk);
+      if (!Number.isFinite(OPT.wJerk) || Math.abs(OPT.wJerk - v) > 1e-9) {
+        OPT.wJerk = v;
+        changed = true;
+      }
+    }
+    if (Number.isFinite(next.wVel)) {
+      const v = Math.max(0, next.wVel);
+      if (!Number.isFinite(OPT.wVel) || Math.abs(OPT.wVel - v) > 1e-9) {
+        OPT.wVel = v;
+        changed = true;
+      }
+    }
+    if (Number.isFinite(next.wAcc)) {
+      const v = Math.max(0, next.wAcc);
+      if (!Number.isFinite(OPT.wAcc) || Math.abs(OPT.wAcc - v) > 1e-9) {
+        OPT.wAcc = v;
+        changed = true;
+      }
+    }
+    if (Number.isFinite(next.monotonicEps)) {
+      const v = Math.max(0, next.monotonicEps);
+      if (!Number.isFinite(OPT.monotonicEps) || Math.abs(OPT.monotonicEps - v) > 1e-9) {
+        OPT.monotonicEps = v;
+        changed = true;
+      }
+    }
+    if (changed) {
+      samplesOptimized = false;
+    }
+  }
+
   const { optimizeTs } = createTrajectoryOptimizer({
     d3,
     getDt: () => dt,
@@ -659,6 +695,7 @@ export function makeSplineSystem({
     getSamples: () => getSamples(),
     getControlPoints,
     getOptimizerWeights,
+    setOptimizerWeights,
     getCurveType: () => curveType,
     getAlpha: () => alpha,
     getDeltaT: () => dt,

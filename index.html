@@ -62,6 +62,7 @@
         </label>
 
         <button id="optimizeBtn" title="Optimize sampling (jerk/limits)">Optimize</button>
+        <button id="weightsBtn" type="button" title="Adjust optimization weights (W)">Weights</button>
         <button id="exportSamplesBtn" title="Export JSON">Export</button>
 
         <button id="helpBtn" title="Keyboard shortcuts">Help</button>
@@ -73,6 +74,26 @@
     <div id="stage3d">
       <!-- Mode badge -->
       <div id="modeBadge" class="badge three">3D</div>
+
+      <!-- Weights panel (top-left) -->
+      <div id="weightsPanel" aria-hidden="true">
+        <div class="panel-title">Optimizer Weights</div>
+        <div class="slider-row">
+          <label for="weightJerk">Jerk</label>
+          <input id="weightJerk" type="range" min="0" max="8" step="0.01" value="1" />
+          <input id="weightJerkNumber" type="number" min="0" max="8" step="0.01" value="1.00" />
+        </div>
+        <div class="slider-row">
+          <label for="weightVel">Velocity</label>
+          <input id="weightVel" type="range" min="0" max="4" step="0.01" value="0.10" />
+          <input id="weightVelNumber" type="number" min="0" max="4" step="0.01" value="0.10" />
+        </div>
+        <div class="slider-row">
+          <label for="weightAcc">Acceleration</label>
+          <input id="weightAcc" type="range" min="0" max="4" step="0.01" value="0.10" />
+          <input id="weightAccNumber" type="number" min="0" max="4" step="0.01" value="0.10" />
+        </div>
+      </div>
 
       <!-- Charts (top-right) -->
       <div id="charts">
@@ -118,6 +139,7 @@
         <span class="help-key"><kbd>Z</kbd> / <kbd>Y</kbd></span><span class="help-desc">Undo / Redo</span>
         <span class="help-key"><kbd>S</kbd></span><span class="help-desc">Toggle samples & mini charts</span>
         <span class="help-key"><kbd>O</kbd></span><span class="help-desc">Run optimization</span>
+        <span class="help-key"><kbd>W</kbd></span><span class="help-desc">Toggle optimizer weights panel</span>
         <span class="help-key"><kbd>L</kbd></span><span class="help-desc">Open the Load dialog</span>
         <span class="help-key"><kbd>E</kbd></span><span class="help-desc">Export JSON (controls, samples, status)</span>
       </div>

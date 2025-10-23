@@ -33,6 +33,7 @@ Open <http://localhost:8000/> in a WebGL-capable browser.
 | `Z` / `Y` | Undo / Redo |
 | `S` | Toggle samples & charts |
 | `O` | Run optimisation |
+| `W` | Toggle optimizer weights panel |
 | `L` | Open the Load dialog |
 | `E` | Export JSON |
 | Mouse wheel | Zoom |

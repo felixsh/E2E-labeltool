@@ -46,6 +46,10 @@ select, input[type="range"], button {
   padding: 6px 8px; border-radius: 8px; cursor: pointer;
 }
 input[type="range"] { cursor: ew-resize; }
+#weightsBtn[aria-pressed="true"]{
+  background: #1d3b55;
+  border-color: rgba(102, 204, 255, 0.4);
+}
 
 #charts.hidden {
   display: none;
@@ -103,6 +107,64 @@ input[type="range"] { cursor: ew-resize; }
 main { height: calc(100vh - 96px); }
 #stage3d { position: relative; width: 100%; height: 100%; background: #0b0d13; }
 #stage3d canvas.threejs { width: 100%; height: 100%; display: block; }
+
+#weightsPanel{
+  position: absolute;
+  left: 12px;
+  top: 60px;
+  width: 540px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(0,0,0,0.84);
+  border: 1px solid #2a2f40;
+  border-radius: 10px;
+  pointer-events: auto;
+  color: var(--text);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+#weightsPanel.open{
+  display: flex;
+}
+#weightsPanel .panel-title{
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+#weightsPanel .slider-row{
+  display: grid;
+  grid-template-columns: 90px 1fr 80px;
+  align-items: center;
+  gap: 10px;
+}
+#weightsPanel .slider-row label{
+  color: var(--text);
+  font-size: 13px;
+}
+#weightsPanel input[type="range"]{
+  width: 100%;
+}
+#weightsPanel input[type="number"]{
+  background: #111420;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+}
+#weightsPanel input[type="number"]::-webkit-outer-spin-button,
+#weightsPanel input[type="number"]::-webkit-inner-spin-button{
+  opacity: 0.2;
+}
+#weightsPanel input[type="number"]:focus{
+  outline: none;
+  border-color: rgba(102, 204, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(102, 204, 255, 0.25);
+}
 
 footer {
   padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
