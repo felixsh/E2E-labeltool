@@ -14,6 +14,7 @@ import { makeSplineSystem } from "./src/splineCore.js";
 const CFG = window.CONFIG || {};
 const DEMO_PCD = CFG.demoPCD;
 const DEMO_TRAJECTORY = CFG.demoTrajectory;
+const HISTORY_COUNT = Math.max(1, (CFG.trajectoryHistoryCount | 0) || 1);
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 
@@ -266,6 +267,7 @@ const trajectorySpheres = [];
 let trajectorySphereGeom = null;
 let trajectorySphereRadius = 0;
 let trajectorySphereMat = null;
+let trajectoryHistoryRaw = [];
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
@@ -525,7 +527,9 @@ function rebuildTrajectoryObject(force2D = is2D) {
 }
 
 function applyPointCloud(rawData, name) {
+  trajectoryHistoryRaw = [];
   initializeSpline();
+  spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
   const cloudBounds = cloudBoundsCache;
@@ -557,7 +561,11 @@ function applyPointCloud(rawData, name) {
 
 function applyTrajectoryPoints(pointPairs, sourceName) {
   if (!Array.isArray(pointPairs) || pointPairs.length === 0) return;
+  const usableCount = Math.min(HISTORY_COUNT, pointPairs.length);
+  const histStart = Math.max(0, pointPairs.length - usableCount);
+  trajectoryHistoryRaw = pointPairs.slice(histStart).map(([x, y]) => [x, y]);
   initializeSpline();
+  spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   trajectoryPoints = pointPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
 
   const trajBounds = computeTrajectoryBounds(trajectoryPoints);
@@ -665,8 +673,10 @@ function initializeSpline() {
     getCamera: () => camera,
     is2D: () => is2D,
     canvasEl: renderer.domElement,
-    setControlsEnabled: (v) => { if (controls) controls.enabled = v; }
+    setControlsEnabled: (v) => { if (controls) controls.enabled = v; },
+    trajectoryHistoryCount: HISTORY_COUNT
   });
+  spline.setTrajectoryHistory?.(trajectoryHistoryRaw);
   setSamplesVisible(samplesVisible);
 }
 
@@ -707,7 +717,8 @@ function exportAll() {
   }
   // Nx2 in meters
   const controlPts = spline?.getControlPoints ? spline.getControlPoints() : [];
-  const samplePts  = spline?.getSamples ? spline.getSamples().map(s => [s.t ?? 0, s.x, s.y]) : [];
+  const samplesArr = spline?.getSamples ? spline.getSamples() : [];
+  const samplePts  = samplesArr.filter(s => !s.fixed).map(s => [s.t ?? 0, s.x, s.y]);
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
   const pointCloudName = currentPCDName || null;

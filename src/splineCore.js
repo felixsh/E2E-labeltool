@@ -14,7 +14,8 @@ export function makeSplineSystem({
   getCamera,            // () => camera
   is2D,                 // () => boolean
   canvasEl,             // renderer.domElement
-  setControlsEnabled    // (bool) => void
+  setControlsEnabled,   // (bool) => void
+  trajectoryHistoryCount = 1
 }) {
   // ===== CSS var helpers =====
   function cssVar(name, fallback) {
@@ -55,6 +56,8 @@ export function makeSplineSystem({
   let selectedSample = null;
   let showSamples = true;
   let samplesOptimized = false;
+  const historyCount = Math.max(1, trajectoryHistoryCount | 0 || 1);
+  let historyPoints = [];
 
   let dragging = null; // {kind:"ctrl"|"sample", i}
   let dragUndoCaptured = false;
@@ -392,9 +395,15 @@ export function makeSplineSystem({
   }
   function getSamples() {
     const samples = [];
+    if (historyPoints.length) {
+      const startIdx = -(historyPoints.length - 1);
+      historyPoints.forEach((p, idx) => {
+        samples.push({ idx: startIdx + idx, x: p.x, y: p.y, fixed: true });
+      });
+    }
     for (let tsIndex = 1; tsIndex < Ts.length; tsIndex++) {
       const p = paramToPoint(Ts[tsIndex]);
-      samples.push({ idx: tsIndex, tsIndex, i: tsIndex, t: Ts[tsIndex], x: p.x, y: p.y });
+      samples.push({ idx: tsIndex, tsIndex, t: Ts[tsIndex], x: p.x, y: p.y, fixed: false });
     }
     return samples;
   }
@@ -421,7 +430,8 @@ export function makeSplineSystem({
       m.position.set(s.x, s.y, 0);
       m.material = (i === selectedSample) ? smplMatSel : smplMat;
       m.userData.i = i;
-      m.userData.tsIndex = s.tsIndex ?? (i + 1);
+      m.userData.tsIndex = s.tsIndex ?? null;
+      m.userData.fixed = !!s.fixed;
       m.visible = !!showSamples;
 
       const lab = sampleLabels[i];
@@ -451,6 +461,7 @@ export function makeSplineSystem({
     setTs: (nextTs) => { Ts = nextTs; },
     getDensePointCount: () => densePts.length,
     pushUndoState: () => pushUndoState("optimize"),
+    getFixedPoints: () => historyPoints.map(p => [p.x, p.y]),
     onOptimized: () => {
       samplesOptimized = true;
       updateSamplesAndCharts();
@@ -530,6 +541,7 @@ export function makeSplineSystem({
       samplesOptimized = false;
     } else if (hitSample >= 0) {
       const sample = samples[hitSample];
+      if (sample?.fixed) { return; }
       selectedSample = hitSample; selectedCtrl = null;
       dragging = { kind: "sample", i: hitSample, tsIndex: sample.tsIndex };
       dragUndoCaptured = false;
@@ -612,6 +624,18 @@ export function makeSplineSystem({
     samplesOptimized = false;
   }
 
+  function setTrajectoryHistory(pointsArr) {
+    if (!Array.isArray(pointsArr)) {
+      historyPoints = [];
+    } else {
+      const usable = Math.min(historyCount, pointsArr.length);
+      const start = Math.max(0, pointsArr.length - usable);
+      historyPoints = pointsArr.slice(start).map(([x, y]) => new THREE.Vector3(x, y, 0));
+    }
+    selectedSample = null;
+    updateSamplesAndCharts();
+  }
+
   // ===== Init =====
   rebuildEverything();
 
@@ -640,6 +664,7 @@ export function makeSplineSystem({
     getDeltaT: () => dt,
     getSamplesOptimized: () => samplesOptimized,
     markSamplesOptimized: (flag) => { samplesOptimized = !!flag; },
+    setTrajectoryHistory,
     optimizeTs,
     onCloudLoaded: () => {},
     rebuildCurveObject: (force2d) => rebuildCurveObject(force2d ?? is2D()),

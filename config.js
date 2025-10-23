@@ -26,6 +26,8 @@ window.CONFIG = {
     accelMS2:   null             // e.g. 5
   },
 
+  trajectoryHistoryCount: 3,     // M_PREVIOUS, must be >=1
+
   // Optimizer hyperparameters
   optimizer: {
     steps: [0.05, 0.02, 0.01, 0.005, 0.002],

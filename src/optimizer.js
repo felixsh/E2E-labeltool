@@ -9,13 +9,24 @@ export function createTrajectoryOptimizer({
   getDensePointCount,
   pushUndoState,
   onOptimized,
+  getFixedPoints = () => [],
   logger = console
 }) {
   function evaluateCost(Tarray, dt, cfg) {
-    const P = Tarray.map(t => {
+    const fixed = getFixedPoints ? getFixedPoints() : [];
+    let paramPoints = Tarray.map(t => {
       const p = getParamPoint(t);
       return [p.x, p.y];
     });
+    if (fixed.length && paramPoints.length) {
+      const lastFixed = fixed[fixed.length - 1];
+      const firstParam = paramPoints[0];
+      if (Math.abs(firstParam[0] - lastFixed[0]) < 1e-9 && Math.abs(firstParam[1] - lastFixed[1]) < 1e-9) {
+        paramPoints = paramPoints.slice(1);
+      }
+    }
+    const P = fixed.concat(paramPoints);
+    console.log("[optimizer] evaluating with", P.length, "points", P);
 
     let jerk = 0;
     for (let i = 0; i <= P.length - 4; i++) {

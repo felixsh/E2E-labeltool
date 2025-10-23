@@ -3,27 +3,57 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
   const CLIM = Object.assign({ velocityKmh:null, accelMS2:null }, chartLimits||{});
 
   function computeKinematics(samplePts){
-    const N=samplePts.length;
-    const pos=samplePts.map(p=>[p.x,p.y]);
-    const v_ms = d3.range(N-1).map(i => {
-      const dx=(pos[i+1][0]-pos[i][0])/dt, dy=(pos[i+1][1]-pos[i][1])/dt; return Math.hypot(dx,dy);
+    if (!samplePts || samplePts.length < 2) {
+      return { iVel: [], v_kmh: [], iAcc: [], aLong: [], aLat: [] };
+    }
+    const sorted = samplePts.slice().sort((a, b) => a.idx - b.idx);
+    const dedup = [];
+    const idx = [];
+    const EPS = 1e-9;
+    for (const p of sorted) {
+      if (!dedup.length || Math.abs(p.x - dedup[dedup.length - 1][0]) > EPS || Math.abs(p.y - dedup[dedup.length - 1][1]) > EPS) {
+        dedup.push([p.x, p.y]);
+        idx.push(p.idx);
+      }
+    }
+    if (dedup.length < 2) {
+      return { iVel: [], v_kmh: [], iAcc: [], aLong: [], aLat: [] };
+    }
+    const pos = dedup;
+
+    const v_ms = [];
+    const v_kmh = [];
+    const iVel = [];
+    for (let i = 0; i < pos.length - 1; i++) {
+      const dx = (pos[i + 1][0] - pos[i][0]) / dt;
+      const dy = (pos[i + 1][1] - pos[i][1]) / dt;
+      const vel = Math.hypot(dx, dy);
+      v_ms.push(vel);
+      v_kmh.push(vel * 3.6);
+      iVel.push((idx[i] + idx[i + 1]) / 2);
+    }
+
+    const a = [];
+    const tHat = [];
+    for (let i = 0; i < pos.length - 2; i++) {
+      const ax = (pos[i + 2][0] - 2 * pos[i + 1][0] + pos[i][0]) / (dt * dt);
+      const ay = (pos[i + 2][1] - 2 * pos[i + 1][1] + pos[i][1]) / (dt * dt);
+      a.push([ax, ay]);
+      const tx = pos[i + 2][0] - pos[i][0];
+      const ty = pos[i + 2][1] - pos[i][1];
+      const n = Math.hypot(tx, ty) || 1;
+      tHat.push([tx / n, ty / n]);
+    }
+    const aLong = a.map(([ax, ay], i) => ax * tHat[i][0] + ay * tHat[i][1]);
+    const aLat = a.map(([ax, ay], i) => {
+      const along = aLong[i];
+      const axp = ax - along * tHat[i][0];
+      const ayp = ay - along * tHat[i][1];
+      const mag = Math.hypot(axp, ayp);
+      const sign = Math.sign(tHat[i][0] * ay - tHat[i][1] * ax) || 1;
+      return sign * mag;
     });
-    const v_kmh = v_ms.map(v=>v*3.6);
-    const iVel  = d3.range(N-1).map(i => i+0.5);
-    const a = d3.range(N-2).map(i => {
-      const ax=(pos[i+2][0]-2*pos[i+1][0]+pos[i][0])/(dt*dt);
-      const ay=(pos[i+2][1]-2*pos[i+1][1]+pos[i][1])/(dt*dt);
-      return [ax,ay];
-    });
-    const tHat = d3.range(N-2).map(i => {
-      const tx=pos[i+2][0]-pos[i][0], ty=pos[i+2][1]-pos[i][1]; const n=Math.hypot(tx,ty)||1; return [tx/n,ty/n];
-    });
-    const aLong = a.map(([ax,ay],i)=> ax*tHat[i][0] + ay*tHat[i][1]);
-    const aLat  = a.map(([ax,ay],i)=> {
-      const along=aLong[i]; const axp=ax-along*tHat[i][0], ayp=ay-along*tHat[i][1];
-      const mag=Math.hypot(axp,ayp); const sign=Math.sign(tHat[i][0]*ay - tHat[i][1]*ax)||1; return sign*mag;
-    });
-    const iAcc = d3.range(N-2).map(i => i+1);
+    const iAcc = a.map((_, i) => idx[i + 1]);
     return { iVel, v_kmh, iAcc, aLong, aLat };
   }
 
