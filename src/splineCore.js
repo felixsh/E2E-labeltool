@@ -7,7 +7,6 @@ export function makeSplineSystem({
   defaultCurve = "basis",
   defaultAlpha = 0.5,
   defaultDt = 0.20,
-  chartLimits = {},
   optimizer = {},
   requestRender = () => {},
   onSamplesChanged = () => {},

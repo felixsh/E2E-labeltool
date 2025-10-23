@@ -21,12 +21,6 @@ window.CONFIG = {
   // Simulation timestep for velocity/accel (seconds)
   defaultDt: 0.20,
 
-  // Mini-chart axis limits (null = auto)
-  chartLimits: {
-    velocityKmh: null,            // e.g. 120
-    accelMS2:   null             // e.g. 5
-  },
-
   // Optimizer hyperparameters
   optimizer: {
     monotonicEps: 1e-8,

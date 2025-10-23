@@ -638,7 +638,6 @@ const charts = makeCharts({
   accLongChartSel: d3.select("#accLongChart"),
   accLatChartSel: d3.select("#accLatChart"),
   chartsDiv: document.getElementById("charts"),
-  chartLimits: CFG.chartLimits || {},
   dt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
   d3
 });
@@ -662,7 +661,6 @@ function initializeSpline() {
     defaultCurve: CFG.defaultCurve || "basis",
     defaultAlpha: +CFG.defaultAlpha || 0.5,
     defaultDt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
-    chartLimits: CFG.chartLimits || {},
     optimizer: CFG.optimizer || {},
     requestRender: () => renderOnce(),
     onSamplesChanged: (samples) => charts.render(samples),

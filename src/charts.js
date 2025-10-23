@@ -1,6 +1,5 @@
 // src/charts.js
-export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chartsDiv, chartLimits, dt, d3 }) {
-  const CLIM = Object.assign({ velocityKmh:null, accelMS2:null }, chartLimits||{});
+export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chartsDiv, dt, d3 }) {
 
   function computeKinematics(samplePts){
     if (!samplePts || samplePts.length < 2) {
@@ -57,7 +56,7 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
     return { iVel, v_kmh, iAcc, aLong, aLat };
   }
 
-  function drawMiniChart(svgSel, X, Y, title, opts = { absMax: false, units: "", yLimit: null }) {
+  function drawMiniChart(svgSel, X, Y, title, opts = { absMax: false, units: "" }) {
     const node = svgSel.node();
     const w = node.clientWidth || 220;
     const h = node.clientHeight || 100;
@@ -79,14 +78,10 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
     if (xy.length < 2) return;
 
     const xMin = d3.min(xy, d => d[0]), xMax = d3.max(xy, d => d[0]);
-    let yMin = d3.min(xy, d => d[1]), yMax = d3.max(xy, d => d[1]);
-    if (opts.yLimit && Number.isFinite(opts.yLimit)) {
-      if (title.startsWith("velocity")) { yMin = 0; yMax = opts.yLimit; }
-      else { yMin = -opts.yLimit; yMax = opts.yLimit; }
-    } else {
-      const pad = (yMax - yMin) * 0.15 || 1;
-      yMin -= pad; yMax += pad;
-    }
+    let yMin = d3.min(xy, d => d[1]);
+    let yMax = d3.max(xy, d => d[1]);
+    const pad = (yMax - yMin) * 0.15 || 1;
+    yMin -= pad; yMax += pad;
 
     const left = margin.left;
     const right = w - margin.right;
@@ -146,9 +141,9 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
     if (!samples || !samples.length){ chartsDiv.style.display = "none"; return; }
     chartsDiv.style.display = "";
     const { iVel, v_kmh, iAcc, aLong, aLat } = computeKinematics(samples);
-    drawMiniChart(velChartSel,     iVel, v_kmh, "velocity (km/h)",      {absMax:false, units:"km/h", yLimit:CLIM.velocityKmh});
-    drawMiniChart(accLongChartSel, iAcc, aLong, "longitudinal a (m/s²)", {absMax:true,  units:"m/s²", yLimit:CLIM.accelMS2});
-    drawMiniChart(accLatChartSel,  iAcc, aLat,  "lateral a (m/s²)",      {absMax:true,  units:"m/s²", yLimit:CLIM.accelMS2});
+    drawMiniChart(velChartSel,     iVel, v_kmh, "velocity (km/h)",      {absMax:false, units:"km/h"});
+    drawMiniChart(accLongChartSel, iAcc, aLong, "longitudinal a (m/s²)", {absMax:true,  units:"m/s²"});
+    drawMiniChart(accLatChartSel,  iAcc, aLat,  "lateral a (m/s²)",      {absMax:true,  units:"m/s²"});
   }
 
   return { render };
