@@ -1,3 +1,5 @@
+import { makeEvaluateCost } from "./optimizerCost.js";
+
 let alglibCtorPromise = null;
 
 async function getAlglibCtor() {
@@ -34,75 +36,7 @@ export function createTrajectoryOptimizer({
   getFixedPoints = () => [],
   logger = console
 }) {
-  function evaluateCost(Tarray, dt, cfg) {
-    const fixed = getFixedPoints ? getFixedPoints() : [];
-    let paramPoints = Tarray.map(t => {
-      const p = getParamPoint(t);
-      return [p.x, p.y];
-    });
-    if (fixed.length && paramPoints.length) {
-      const lastFixed = fixed[fixed.length - 1];
-      const firstParam = paramPoints[0];
-      if (Math.abs(firstParam[0] - lastFixed[0]) < 1e-9 && Math.abs(firstParam[1] - lastFixed[1]) < 1e-9) {
-        paramPoints = paramPoints.slice(1);
-      }
-    }
-    const P = fixed.concat(paramPoints);
-
-    let jerk = 0;
-    for (let i = 0; i <= P.length - 4; i++) {
-      const jx = (P[i + 3][0] - 3 * P[i + 2][0] + 3 * P[i + 1][0] - P[i][0]);
-      const jy = (P[i + 3][1] - 3 * P[i + 2][1] + 3 * P[i + 1][1] - P[i][1]);
-      jerk += jx * jx + jy * jy;
-    }
-
-    const dt2 = dt * dt;
-    const v_ms = d3.range(P.length - 1).map(i => {
-      const dx = (P[i + 1][0] - P[i][0]) / dt;
-      const dy = (P[i + 1][1] - P[i][1]) / dt;
-      return Math.hypot(dx, dy);
-    });
-    const v_kmh = v_ms.map(v => v * 3.6);
-
-    const a = d3.range(P.length - 2).map(i => {
-      const ax = (P[i + 2][0] - 2 * P[i + 1][0] + P[i][0]) / dt2;
-      const ay = (P[i + 2][1] - 2 * P[i + 1][1] + P[i][1]) / dt2;
-      return [ax, ay];
-    });
-    const tHat = d3.range(P.length - 2).map(i => {
-      const tx = P[i + 2][0] - P[i][0];
-      const ty = P[i + 2][1] - P[i][1];
-      const n = Math.hypot(tx, ty) || 1;
-      return [tx / n, ty / n];
-    });
-    const aLong = a.map(([ax, ay], i) => ax * tHat[i][0] + ay * tHat[i][1]);
-    const aLat = a.map(([ax, ay], i) => {
-      const al = aLong[i];
-      const axp = ax - al * tHat[i][0];
-      const ayp = ay - al * tHat[i][1];
-      const mag = Math.hypot(axp, ayp);
-      const sign = Math.sign(tHat[i][0] * ay - tHat[i][1] * ax) || 1;
-      return sign * mag;
-    });
-
-    let penV = 0;
-    for (const v of v_kmh) {
-      const d = v - cfg.vMaxKmh;
-      if (d > 0) penV += d * d;
-    }
-
-    let penA = 0;
-    for (const al of aLong) {
-      const d = Math.abs(al) - cfg.aLongMax;
-      if (d > 0) penA += d * d;
-    }
-    for (const at of aLat) {
-      const d = Math.abs(at) - cfg.aLatMax;
-      if (d > 0) penA += d * d;
-    }
-
-    return cfg.wJerk * jerk + cfg.wVel * penV + cfg.wAcc * penA;
-  }
+  const evaluateCost = makeEvaluateCost({ d3, getParamPoint, getFixedPoints });
 
   function clampMonotonic(values, eps) {
     const out = values.slice();
