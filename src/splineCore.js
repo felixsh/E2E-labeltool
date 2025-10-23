@@ -204,9 +204,17 @@ export function makeSplineSystem({
 
   function paramToPoint(t) {
     if (densePts.length === 0) return new THREE.Vector3();
-    const f = t * (densePts.length - 1), i = Math.floor(f), u = f - i;
-    if (i >= densePts.length - 1) return densePts[densePts.length - 1].clone();
-    return densePts[i].clone().lerp(densePts[i + 1], u);
+    const span = Math.max(1, densePts.length - 1);
+    const f = t * span;
+    const i = Math.floor(f);
+    const u = f - i;
+    const idx = Math.min(Math.max(i, 0), densePts.length - 1);
+    const idxNext = Math.min(idx + 1, densePts.length - 1);
+    const base = densePts[idx];
+    if (!base) return new THREE.Vector3();
+    const next = densePts[idxNext];
+    if (!next || idxNext === idx) return base.clone();
+    return base.clone().lerp(next, u);
   }
   function projectPointToParam(p) {
     if (densePts.length < 2) return 0;
