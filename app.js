@@ -827,6 +827,13 @@ window.addEventListener("keydown", (e) => {
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
+  if (k === "l") {
+    e.preventDefault();
+    fileInput?.focus?.();
+    fileInput?.click?.();
+    statusOptim("Select a point cloud or trajectory to load.");
+    return;
+  }
   if (k === "e") { e.preventDefault(); exportSamples(); return; }
 });
 
