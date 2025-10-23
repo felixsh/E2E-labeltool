@@ -21,6 +21,7 @@ let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 // ---------- DOM ----------
 const container   = document.getElementById("stage3d");
 const statusEl    = document.getElementById("status");
+const statusExtra = document.getElementById("statusExtra");
 const fileInput   = document.getElementById("fileInput");
 const demoBtn     = document.getElementById("demoBtn");
 const colorModeSel= document.getElementById("colorMode");
@@ -261,6 +262,7 @@ let trajectoryHistoryRaw = [];
 let trajectoryRawPoints = [];
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
+function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
   const cloudLabel = currentPCDName ? currentPCDName : "no point cloud";
@@ -675,6 +677,54 @@ function initializeSpline() {
 
 setSamplesVisible(samplesVisible);
 
+let optimizeInFlight = false;
+let optimizeFlashTimeout = null;
+const OPTIMIZE_FLASH_MS = 700;
+
+async function runOptimization() {
+  if (!spline) {
+    statusOptim("Load a point cloud or trajectory before optimizing.");
+    return;
+  }
+  if (optimizeInFlight) return;
+
+  optimizeInFlight = true;
+  statusOptim("Running optimization...");
+
+  if (optimizeFlashTimeout) {
+    clearTimeout(optimizeFlashTimeout);
+    optimizeFlashTimeout = null;
+  }
+  if (optimizeBtn) {
+    optimizeBtn.classList.remove("optimized-flash");
+    optimizeBtn.classList.add("optimizing");
+    optimizeBtn.setAttribute("aria-busy", "true");
+    optimizeBtn.setAttribute("disabled", "true");
+  }
+
+  try {
+    await Promise.resolve(spline.optimizeTs?.());
+    if (optimizeBtn) {
+      optimizeBtn.classList.add("optimized-flash");
+      optimizeFlashTimeout = window.setTimeout(() => {
+        optimizeBtn.classList.remove("optimized-flash");
+        optimizeFlashTimeout = null;
+      }, OPTIMIZE_FLASH_MS);
+    }
+    statusOptim("Optimization complete.");
+  } catch (err) {
+    console.error("Optimization failed", err);
+    statusOptim("Optimization failed.");
+  } finally {
+    if (optimizeBtn) {
+      optimizeBtn.classList.remove("optimizing");
+      optimizeBtn.removeAttribute("aria-busy");
+      optimizeBtn.removeAttribute("disabled");
+    }
+    optimizeInFlight = false;
+  }
+}
+
 // ---------- UI wiring (spline controls) ----------
 function syncAlphaVisibility() {
   if (!alphaWrap) return;
@@ -695,13 +745,7 @@ alphaInput?.addEventListener("input", e => {
 showSamplesChk?.addEventListener("change", e => {
   setSamplesVisible(!!e.target.checked);
 });
-optimizeBtn?.addEventListener("click", () => {
-  if (!spline) {
-    status("Load a point cloud or trajectory before optimizing.");
-    return;
-  }
-  spline.optimizeTs?.();
-});
+optimizeBtn?.addEventListener("click", () => { runOptimization(); });
 
 function exportAll() {
   if (!spline) {
@@ -782,7 +826,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
-  if (k === "o") { if (!spline) return; e.preventDefault(); spline.optimizeTs?.(); return; }
+  if (k === "o") { e.preventDefault(); runOptimization(); return; }
   if (k === "e") { e.preventDefault(); exportSamples(); return; }
 });
 

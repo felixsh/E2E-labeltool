@@ -47,6 +47,55 @@ select, input[type="range"], button {
 }
 input[type="range"] { cursor: ew-resize; }
 
+#optimizeBtn {
+  position: relative;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+#optimizeBtn.optimizing {
+  animation: optimize-pulse 1.1s ease-in-out infinite;
+  cursor: progress;
+}
+
+#optimizeBtn[disabled] {
+  opacity: 1;
+}
+
+#optimizeBtn.optimized-flash {
+  animation: optimize-finish 0.7s ease-out;
+}
+
+@keyframes optimize-pulse {
+  0% {
+    background-color: #111420;
+    box-shadow: 0 0 0 0 rgba(102, 204, 255, 0.0);
+    border-color: var(--border);
+  }
+  50% {
+    background-color: #1d3b55;
+    box-shadow: 0 0 14px 0 rgba(102, 204, 255, 0.65);
+    border-color: rgba(102, 204, 255, 0.7);
+  }
+  100% {
+    background-color: #111420;
+    box-shadow: 0 0 0 0 rgba(102, 204, 255, 0.0);
+    border-color: var(--border);
+  }
+}
+
+@keyframes optimize-finish {
+  0% {
+    background-color: #38bdf8;
+    box-shadow: 0 0 18px 0 rgba(56, 189, 248, 0.75);
+    border-color: rgba(56, 189, 248, 0.8);
+  }
+  100% {
+    background-color: #111420;
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+    border-color: var(--border);
+  }
+}
+
 main { height: calc(100vh - 96px); }
 #stage3d { position: relative; width: 100%; height: 100%; background: #0b0d13; }
 #stage3d canvas.threejs { width: 100%; height: 100%; display: block; }
@@ -54,6 +103,19 @@ main { height: calc(100vh - 96px); }
 footer {
   padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border);
   color: var(--muted);
+  display: flex; align-items: center; gap: 12px;
+}
+
+#status { flex: 1 1 auto; min-width: 0; }
+
+#statusExtra {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-weight: 400;
+  min-height: 1em;
+  text-align: right;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Mode badge (inside stage) */
