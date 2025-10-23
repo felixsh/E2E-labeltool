@@ -450,10 +450,14 @@ export function makeSplineSystem({
   }
 
   // ===== Optimizer (jerk + limits) =====
-  const OPT = Object.assign({
-    monotonicEps: 1e-4,
-    wJerk: 1.0, wVel: 0.10, wAcc: 0.10
-  }, optimizer || {});
+  const OPT = Object.assign({}, optimizer || {});
+  const epsDefault = (Number.isFinite(OPT.monotonicEps) && OPT.monotonicEps >= 0) ? OPT.monotonicEps : 1e-4;
+  OPT.monotonicEps = epsDefault;
+  if (Number.isFinite(OPT.maxIterations)) {
+    OPT.maxIterations = Math.max(1, Math.floor(OPT.maxIterations));
+  } else {
+    delete OPT.maxIterations;
+  }
 
   function setOptimizerWeights(next) {
     if (!next) return;
@@ -476,13 +480,6 @@ export function makeSplineSystem({
       const v = Math.max(0, next.wAcc);
       if (!Number.isFinite(OPT.wAcc) || Math.abs(OPT.wAcc - v) > 1e-9) {
         OPT.wAcc = v;
-        changed = true;
-      }
-    }
-    if (Number.isFinite(next.monotonicEps)) {
-      const v = Math.max(0, next.monotonicEps);
-      if (!Number.isFinite(OPT.monotonicEps) || Math.abs(OPT.monotonicEps - v) > 1e-9) {
-        OPT.monotonicEps = v;
         changed = true;
       }
     }
@@ -684,8 +681,8 @@ export function makeSplineSystem({
     return points.map(p => [p.x, p.y]);
   }
   function getOptimizerWeights() {
-    const { wJerk, wVel, wAcc, monotonicEps } = OPT;
-    return { wJerk, wVel, wAcc, monotonicEps };
+    const { wJerk, wVel, wAcc, monotonicEps, maxIterations } = OPT;
+    return { wJerk, wVel, wAcc, monotonicEps, maxIterations };
   }
 
   return {

@@ -113,7 +113,7 @@ export function createTrajectoryOptimizer({
     }
 
     const xGuess = clampMonotonic(T.slice(1, -1), eps);
-    const maxIterations = Number.isFinite(cfg?.solver?.maxIterations) ? cfg.solver.maxIterations : undefined;
+    const maxIterations = Number.isFinite(cfg?.maxIterations) ? cfg.maxIterations : undefined;
 
     let solution = null;
     try {
