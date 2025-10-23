@@ -1,5 +1,5 @@
 import { parsePointCloud } from "./pcdParser.js";
-import { load as loadNpy } from "npyjs";
+import { parse as parseNpy, serialize as serializeNpy } from "tfjs-npy";
 
 function nameFromPath(path, fallback) {
   if (!path) return fallback;
@@ -47,22 +47,44 @@ export async function loadPointCloudFromUrl(url) {
 }
 
 export async function loadTrajectoryFromFile(file) {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const parsed = await loadNpy(objectUrl);
-    const points = parseTrajectory(parsed);
-    const name = file?.name || "trajectory.npy";
-    return { points, name };
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
+  const buffer = await file.arrayBuffer();
+  const tensor = parseNpy(buffer);
+  const points = parseTrajectory({
+    shape: tensor.shape,
+    data: tensor.dataSync()
+  });
+  const name = file?.name || "trajectory.npy";
+  return { points, tensor, name };
 }
 
 export async function loadTrajectoryFromUrl(url) {
-  const parsed = await loadNpy(url);
-  const points = parseTrajectory(parsed);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  const buffer = await response.arrayBuffer();
+  const tensor = parseNpy(buffer);
+  const points = parseTrajectory({
+    shape: tensor.shape,
+    data: tensor.dataSync()
+  });
   const name = nameFromPath(url, "trajectory.npy");
-  return { points, name };
+  return { points, tensor, name };
+}
+
+export async function saveTrajectoryToFile({ tensor, filename = "trajectory.npy" }) {
+  if (!tensor) {
+    throw new Error("saveTrajectoryToFile requires a tensor");
+  }
+  const buffer = await serializeNpy(tensor);
+  const blob = new Blob([buffer], { type: "application/octet-stream" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
 }
 
 export async function loadDemoDataset({ cloudUrl, trajectoryUrl } = {}) {
