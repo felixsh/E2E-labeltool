@@ -34,7 +34,7 @@ window.CONFIG = {
     wVel: 0.10,
     wAcc: 0.10,
     solver: {
-      maxIterations: 30000
+      maxIterations: 10000
     }
   }
 };
