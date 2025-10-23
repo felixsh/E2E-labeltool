@@ -1,10 +1,10 @@
 // src/charts.js
-export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chartsDiv, dt, d3 }) {
+export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, dt, d3 }) {
   chartsDiv?.classList?.add("hidden");
 
   function computeKinematics(samplePts){
     if (!samplePts || samplePts.length < 2) {
-      return { iVel: [], v_kmh: [], iAcc: [], aLong: [], aLat: [] };
+      return { iVel: [], v_kmh: [], iAcc: [], aLong: [], aLat: [], aTotal: [], iJerk: [], jerkTotal: [] };
     }
     const sorted = samplePts.slice().sort((a, b) => a.idx - b.idx);
     const dedup = [];
@@ -17,7 +17,7 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
       }
     }
     if (dedup.length < 2) {
-      return { iVel: [], v_kmh: [], iAcc: [], aLong: [], aLat: [] };
+      return { iVel: [], v_kmh: [], iAcc: [], aLong: [], aLat: [], aTotal: [], iJerk: [], jerkTotal: [] };
     }
     const pos = dedup;
 
@@ -54,7 +54,18 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
       return sign * mag;
     });
     const iAcc = a.map((_, i) => idx[i + 1]);
-    return { iVel, v_kmh, iAcc, aLong, aLat };
+    const aTotal = aLong.map((ax, i) => Math.hypot(ax, aLat[i]));
+
+    const iJerk = [];
+    const jerkTotal = [];
+    for (let i = 0; i < aLong.length - 1; i++) {
+      const jLong = (aLong[i + 1] - aLong[i]) / dt;
+      const jLat = (aLat[i + 1] - aLat[i]) / dt;
+      iJerk.push((iAcc[i] + iAcc[i + 1]) / 2);
+      jerkTotal.push(Math.hypot(jLong, jLat));
+    }
+
+    return { iVel, v_kmh, iAcc, aLong, aLat, aTotal, iJerk, jerkTotal };
   }
 
   function drawMiniChart(svgSel, X, Y, title, opts = { absMax: false, units: "" }) {
@@ -142,15 +153,15 @@ export function makeCharts({ velChartSel, accLongChartSel, accLatChartSel, chart
     if (!samples || !samples.length){
       chartsDiv?.classList?.add("hidden");
       velChartSel.selectAll("*").remove();
-      accLongChartSel.selectAll("*").remove();
-      accLatChartSel.selectAll("*").remove();
+      accChartSel.selectAll("*").remove();
+      jerkChartSel.selectAll("*").remove();
       return;
     }
     chartsDiv?.classList?.remove("hidden");
-    const { iVel, v_kmh, iAcc, aLong, aLat } = computeKinematics(samples);
-    drawMiniChart(velChartSel,     iVel, v_kmh, "velocity (km/h)",      {absMax:false, units:"km/h"});
-    drawMiniChart(accLongChartSel, iAcc, aLong, "longitudinal a (m/s²)", {absMax:true,  units:"m/s²"});
-    drawMiniChart(accLatChartSel,  iAcc, aLat,  "lateral a (m/s²)",      {absMax:true,  units:"m/s²"});
+    const { iVel, v_kmh, iAcc, aTotal, iJerk, jerkTotal } = computeKinematics(samples);
+    drawMiniChart(velChartSel, iVel, v_kmh, "velocity (km/h)", { absMax: false, units: "km/h" });
+    drawMiniChart(accChartSel, iAcc, aTotal, "acceleration total (m/s²)", { absMax: true, units: "m/s²" });
+    drawMiniChart(jerkChartSel, iJerk, jerkTotal, "jerk total (m/s³)", { absMax: true, units: "m/s³" });
   }
 
   return { render };

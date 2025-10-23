@@ -635,8 +635,8 @@ function updateLegend() {
 // ---------- Charts (create BEFORE spline) ----------
 const charts = makeCharts({
   velChartSel: d3.select("#velChart"),
-  accLongChartSel: d3.select("#accLongChart"),
-  accLatChartSel: d3.select("#accLatChart"),
+  accChartSel: d3.select("#accTotalChart"),
+  jerkChartSel: d3.select("#jerkChart"),
   chartsDiv: document.getElementById("charts"),
   dt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
   d3
