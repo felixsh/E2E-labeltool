@@ -268,6 +268,7 @@ let trajectorySphereGeom = null;
 let trajectorySphereRadius = 0;
 let trajectorySphereMat = null;
 let trajectoryHistoryRaw = [];
+let trajectoryRawPoints = [];
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
@@ -528,6 +529,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 
 function applyPointCloud(rawData, name) {
   trajectoryHistoryRaw = [];
+  trajectoryRawPoints = [];
   initializeSpline();
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
@@ -564,6 +566,7 @@ function applyTrajectoryPoints(pointPairs, sourceName) {
   const usableCount = Math.min(HISTORY_COUNT, pointPairs.length);
   const histStart = Math.max(0, pointPairs.length - usableCount);
   trajectoryHistoryRaw = pointPairs.slice(histStart).map(([x, y]) => [x, y]);
+  trajectoryRawPoints = pointPairs.map(([x, y]) => [x, y]);
   initializeSpline();
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   trajectoryPoints = pointPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
@@ -719,6 +722,7 @@ function exportAll() {
   const controlPts = spline?.getControlPoints ? spline.getControlPoints() : [];
   const samplesArr = spline?.getSamples ? spline.getSamples() : [];
   const samplePts  = samplesArr.filter(s => !s.fixed).map(s => [s.t ?? 0, s.x, s.y]);
+  const trajectoryRaw = trajectoryRawPoints.slice();
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
   const pointCloudName = currentPCDName || null;
@@ -730,6 +734,7 @@ function exportAll() {
   const payload = {
     control_points: controlPts,
     sample_points:  samplePts,
+    trajectory_raw: trajectoryRaw,
     optimizer:      weights,
     samples_optimized: samplesOptimized,
     pointcloud_file: pointCloudName,
