@@ -616,12 +616,12 @@ function updateLegend() {
     legendMin.textContent = min.toFixed(2);
     legendMax.textContent = max.toFixed(2);
     return;
-  } else if (colorMode === "intensity") {
+  } else   if (colorMode === "intensity") {
     legendTitle.textContent = "Intensity";
-    min = 0; max = 1; stops = viridisStops; flip = false;
+    min = 0; max = 1; stops = viridisStops; flip = true;
   } else if (colorMode === "distance") {
     legendTitle.textContent = "Range (m)";
-    min = 0; max = radius*2 || 1; stops = viridisStops; flip = false;
+    min = 0; max = radius*2 || 1; stops = viridisStops; flip = true;
   } else {
     legendTitle.textContent = "Color"; min="—"; max="—";
   }
