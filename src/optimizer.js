@@ -26,7 +26,6 @@ export function createTrajectoryOptimizer({
       }
     }
     const P = fixed.concat(paramPoints);
-    console.log("[optimizer] evaluating with", P.length, "points", P);
 
     let jerk = 0;
     for (let i = 0; i <= P.length - 4; i++) {
