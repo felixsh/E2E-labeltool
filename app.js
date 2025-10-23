@@ -69,6 +69,7 @@ scene.add(axes);
 let is2D = false;
 let camera = null;
 let controls = null;
+const DEFAULT_ORTHO_ZOOM = 15;
 
 const perspCam = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 5000);
 perspCam.position.set(30, 30, 30);
@@ -84,14 +85,13 @@ function makeOrthoCamera() {
   cam.position.set(c.x, c.y, c.z + 200); // top-down
   cam.up.set(0, 1, 0);
   cam.lookAt(c.x, c.y, c.z);
-  cam.zoom = 1;
+  cam.zoom = DEFAULT_ORTHO_ZOOM;
   cam.updateProjectionMatrix();
   return cam;
 }
 
 function makeControls(cam) {
   const c = new OrbitControls(cam, renderer.domElement);
-  c.enableDamping = true;
   c.minDistance = 1;
   c.maxDistance = 2000;
   return c;
@@ -106,7 +106,7 @@ const lastState3D = {
 const lastState2D = {
   pos: new THREE.Vector3(0,0,200),
   target: new THREE.Vector3(0,0,0),
-  zoom: 1
+  zoom: DEFAULT_ORTHO_ZOOM
 };
 
 function snapshot3D() {
@@ -140,32 +140,20 @@ controls.addEventListener("change", () => { snapshot3D(); renderOnce(); });
 
 // KITTI-friendly ISO (rear-right-up, Z-up)
 function setIsoView3D() {
-  if (bounds) {
-    updateCenterAndRadius();
-  } else {
-    center.set(0, 0, 0);
-    radius = 10;
-  }
-  const k = Math.max(0.3, radius || 10);
   perspCam.up.set(0,0,1); // Z up
-  perspCam.position.copy(center).add(new THREE.Vector3(-0.12*k, -0.12*k, 0.1*k));
-  perspCam.lookAt(center);
-  controls.target.copy(center);
+  perspCam.position.set(-20, -20, 15);
+  controls.target.set(0, 0, 0);
+  perspCam.lookAt(controls.target);
   controls.update();
   snapshot3D();
 }
 
 function setTopView3D() {
-  if (bounds) {
-    updateCenterAndRadius();
-  } else {
-    center.set(0, 0, 0);
-    radius = 10;
-  }
-  perspCam.up.set(0,0,1); // Z up
-  perspCam.position.set(center.x, center.y, center.z + Math.max(1.5, (radius || 10)*0.2));
-  perspCam.lookAt(center);
-  controls.target.copy(center);
+  perspCam.up.set(0,1,0); // Y up
+  perspCam.position.set(0, 0, 32);
+  controls.target.set(0, 0, 0);
+  perspCam.lookAt(controls.target);
+  perspCam.up.set(0,0.001,0.999); // Z up, dirty hack
   controls.update();
   snapshot3D();
 }
@@ -196,6 +184,8 @@ function enter2D(state = lastState2D) {
     camera.position.set(center.x, center.y, center.z + Math.max(1, radius*2.0));
     controls.target.copy(center);
     camera.lookAt(center);
+    camera.zoom = DEFAULT_ORTHO_ZOOM;
+    camera.updateProjectionMatrix();
   }
   controls.update();
 
@@ -873,3 +863,5 @@ function renderOnce(){ renderer.render(scene, camera); }
 // ---------- Helper: update legend initially ----------
 updateLegend();
 setBadge("3D");
+setIsoView3D();
+renderOnce();
