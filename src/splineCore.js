@@ -444,8 +444,6 @@ export function makeSplineSystem({
 
   // ===== Optimizer (jerk + limits) =====
   const OPT = Object.assign({
-    steps: [0.05, 0.02, 0.01, 0.005, 0.002],
-    maxPassesPerStep: 8,
     monotonicEps: 1e-4,
     wJerk: 1.0, wVel: 0.10, wAcc: 0.10,
     vMaxKmh: 120, aLongMax: 3.0, aLatMax: 3.0
@@ -647,9 +645,9 @@ export function makeSplineSystem({
     const {
       wJerk, wVel, wAcc,
       vMaxKmh, aLongMax, aLatMax,
-      steps, maxPassesPerStep, monotonicEps
+      monotonicEps
     } = OPT;
-    return { wJerk, wVel, wAcc, vMaxKmh, aLongMax, aLatMax, steps, maxPassesPerStep, monotonicEps };
+    return { wJerk, wVel, wAcc, vMaxKmh, aLongMax, aLatMax, monotonicEps };
   }
 
   return {
