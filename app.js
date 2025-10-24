@@ -85,19 +85,17 @@ function normalizeScenarioPath(path) {
 function extractScenarioNameFromPath(path) {
   const normalized = normalizeScenarioPath(path);
   if (!normalized) return null;
-  const segments = normalized.split("/").filter(Boolean);
-  for (let i = segments.length - 1; i >= 0; i--) {
-    const segment = segments[i];
-    const lower = segment.toLowerCase();
-    if (lower.startsWith("e2e_") || lower.startsWith("3d_perception_")) {
-      return segment;
-    }
-  }
-  return null;
+  const match = normalized.match(/(e2e_[^/]+|3d_perception_recording_adenauer_[^/]+)/i);
+  if (!match) return null;
+  let scenario = match[1];
+  scenario = scenario.replace(/^trajectory_/i, "");
+  scenario = scenario.replace(/\.npy$/i, "");
+  scenario = scenario.replace(/\.bin$/i, "");
+  return scenario;
 }
 
 function recomputeScenarioName() {
-  currentScenarioName = pointCloudScenarioName || null;
+  currentScenarioName = trajectoryScenarioName || pointCloudScenarioName || null;
 }
 
 function sanitizeFileStem(name, fallback = "export") {
@@ -239,6 +237,7 @@ scene.background = new THREE.Color(0x0b0d13);
 
 // Grid & axes (X/Y plane, Z up)
 const grid = new THREE.GridHelper(100, 20, 0x334, 0x223);
+grid.renderOrder = -100;
 grid.rotation.x = Math.PI / 2;
 scene.add(grid);
 const axes = new THREE.AxesHelper(5);
@@ -432,6 +431,7 @@ let currentTrajectoryName = "";
 let currentTrajectoryPath = null;
 let currentScenarioName = null;
 let pointCloudScenarioName = null;
+let trajectoryScenarioName = null;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -678,10 +678,10 @@ function ensureFutureTrajectorySphereResources(radius, color) {
   }
 
   if (!trajectoryFutureSphereMat) {
-    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), depthTest: true, depthWrite: false, transparent: false, opacity: 1 });
+    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), depthTest: false, depthWrite: false, transparent: false, opacity: 1 });
   } else {
     trajectoryFutureSphereMat.color.copy(color);
-    trajectoryFutureSphereMat.depthTest = true;
+    trajectoryFutureSphereMat.depthTest = false;
     trajectoryFutureSphereMat.depthWrite = false;
     trajectoryFutureSphereMat.transparent = false;
     trajectoryFutureSphereMat.opacity = 1;
@@ -760,7 +760,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 
     while (trajectoryFutureSpheres.length < trajectoryFuturePoints.length) {
       const mesh = new THREE.Mesh(trajectoryFutureSphereGeom, trajectoryFutureSphereMat);
-      mesh.renderOrder = force2D ? 1 : 1;
+      mesh.renderOrder = force2D ? -50 : -50;
       scene.add(mesh);
       trajectoryFutureSpheres.push(mesh);
     }
@@ -776,7 +776,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
       mesh.visible = true;
       mesh.geometry = trajectoryFutureSphereGeom;
       mesh.material = trajectoryFutureSphereMat;
-      mesh.renderOrder = force2D ? 1 : 1;
+      mesh.renderOrder = force2D ? -50 : -50;
     }
 
     if (trajectoryFuturePoints.length >= 2) {
@@ -786,10 +786,10 @@ function rebuildTrajectoryObject(force2D = is2D) {
       const radialSegments = 16;
       const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
       const material = new THREE.MeshBasicMaterial({ color: gtColor.clone(), transparent: false, opacity: 1 });
-      material.depthTest = true;
+      material.depthTest = false;
       material.depthWrite = false;
       trajectoryFutureLine = new THREE.Mesh(tubeGeometry, material);
-      trajectoryFutureLine.renderOrder = force2D ? 0 : 0;
+      trajectoryFutureLine.renderOrder = force2D ? -60 : -60;
       scene.add(trajectoryFutureLine);
     }
   }
@@ -800,6 +800,7 @@ function applyPointCloud(rawData, name, path) {
   trajectoryRawPoints = [];
   trajectoryPastPoints = null;
   trajectoryFuturePoints = null;
+  trajectoryScenarioName = null;
   initializeSpline();
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
@@ -828,7 +829,6 @@ function applyPointCloud(rawData, name, path) {
 
   currentPCDName = name;
   currentPCDPath = path || null;
-  pointCloudScenarioName = extractScenarioNameFromPath(currentPCDPath) || null;
   recomputeScenarioName();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
@@ -892,6 +892,9 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   renderOnce();
   currentTrajectoryName = sourceName || "trajectory";
   currentTrajectoryPath = sourcePath || null;
+  const scenarioFromName = extractScenarioNameFromPath(currentTrajectoryName);
+  trajectoryScenarioName = scenarioFromName || null;
+  recomputeScenarioName();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
@@ -1122,8 +1125,8 @@ function collectExportSnapshot() {
   }
 
   const base = scenarioName
-    ? `${sanitizeFileStem(scenarioName, "scenario")}_label`
-    : "labeled_trajectories";
+    ? `labels_${sanitizeFileStem(scenarioName, "scenario")}`
+    : "labels";
   const fname = `${base}.json`;
 
   return { payload, filename: fname };
@@ -1217,11 +1220,13 @@ demoBtn?.addEventListener("click", async () => {
     const result = await loadDemoDataset({ cloudUrl: DEMO_PCD, trajectoryUrl: DEMO_TRAJECTORY });
     if (result.cloud) {
       applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
-      pointCloudScenarioName = "demo";
-      currentScenarioName = "demo";
-      updateStatus();
     }
-    if (result.trajectory) applyTrajectoryPoints(result.trajectory.points, result.trajectory.name, result.trajectory.path);
+    if (result.trajectory) {
+      applyTrajectoryPoints(result.trajectory.points, result.trajectory.name, result.trajectory.path);
+    }
+    pointCloudScenarioName = "demo";
+    trajectoryScenarioName = "demo";
+    recomputeScenarioName();
     updateStatus();
   } catch (err) {
     console.error(err);
