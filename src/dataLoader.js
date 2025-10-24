@@ -28,6 +28,29 @@ function parseTrajectory(parsed) {
   return points;
 }
 
+function normalizeTrajectory(parsed) {
+  if (!parsed || !Array.isArray(parsed.shape)) return parsed;
+  const [rows, cols] = parsed.shape;
+  if (rows && cols > 2 && parsed.data) {
+    const stride = cols;
+    const ctor =
+      typeof parsed.data.constructor === "function"
+        ? parsed.data.constructor
+        : Float64Array;
+    const trimmed = new ctor(rows * 2);
+    for (let i = 0; i < rows; i++) {
+      trimmed[i * 2 + 0] = parsed.data[i * stride + 0];
+      trimmed[i * 2 + 1] = parsed.data[i * stride + 1];
+    }
+    return {
+      ...parsed,
+      shape: [rows, 2],
+      data: trimmed
+    };
+  }
+  return parsed;
+}
+
 export async function loadPointCloudFromFile(file) {
   const buffer = await file.arrayBuffer();
   const name = file?.name || "pointcloud.pcd";
@@ -52,7 +75,7 @@ export async function loadPointCloudFromUrl(url) {
 
 export async function loadTrajectoryFromFile(file) {
   const buffer = await file.arrayBuffer();
-  const parsed = await loadNpy(buffer);
+  const parsed = normalizeTrajectory(await loadNpy(buffer));
   const points = parseTrajectory({
     shape: parsed.shape,
     data: parsed.data
@@ -71,7 +94,7 @@ export async function loadTrajectoryFromUrl(url) {
     throw new Error(`${response.status} ${response.statusText}`);
   }
   const buffer = await response.arrayBuffer();
-  const parsed = await loadNpy(buffer);
+  const parsed = normalizeTrajectory(await loadNpy(buffer));
   const points = parseTrajectory({
     shape: parsed.shape,
     data: parsed.data

@@ -165,6 +165,7 @@ async function tryAutoLoadTrajectoryFromPointCloud(pointCloudPath, { notifyOnMis
       statusOptim(`Loaded trajectory ${name}.`);
     }
   } catch (err) {
+    console.error("[auto-trajectory] failed to load", candidatePath, err);
     if (notifyOnMissing) {
       statusOptim("No trajectory file found.");
     }
