@@ -61,6 +61,7 @@ const weightAccInput  = document.getElementById("weightAcc");
 const weightJerkNumber = document.getElementById("weightJerkNumber");
 const weightVelNumber  = document.getElementById("weightVelNumber");
 const weightAccNumber  = document.getElementById("weightAccNumber");
+const scenarioInfoBox = document.getElementById("scenarioInfo");
 
 function finiteOr(value, fallback) {
   const num = Number(value);
@@ -76,6 +77,11 @@ const weightState = {
 let weightsVisible = false;
 
 const manouverTypes = CFG.manouverTypes || {};
+
+const SCENARIO_METADATA_PATH = "e2e_scenarios.csv";
+let scenarioMetadataById = null;
+let scenarioMetadataPromise = null;
+let currentScenarioMetadata = null;
 
 function normalizeScenarioPath(path) {
   if (typeof path !== "string") return "";
@@ -96,12 +102,23 @@ function extractScenarioNameFromPath(path) {
 
 function recomputeScenarioName() {
   currentScenarioName = trajectoryScenarioName || pointCloudScenarioName || null;
+  updateScenarioMetadata(currentScenarioName);
 }
 
 function sanitizeFileStem(name, fallback = "export") {
   if (!name || typeof name !== "string") return fallback;
   const cleaned = name.replace(/[^\w.-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
   return cleaned || fallback;
+}
+
+function escapeHtml(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function formatWeight(val) {
@@ -113,6 +130,84 @@ const weightControls = {
   wVel:  { slider: weightVelInput,  number: weightVelNumber },
   wAcc:  { slider: weightAccInput,  number: weightAccNumber }
 };
+
+async function ensureScenarioMetadata() {
+  if (scenarioMetadataById) return scenarioMetadataById;
+  if (!scenarioMetadataPromise) {
+    scenarioMetadataPromise = d3
+      .csv(SCENARIO_METADATA_PATH)
+      .then((rows) => {
+        const map = {};
+        if (rows && Array.isArray(rows)) {
+          for (const row of rows) {
+            const id = row?.ID ?? row?.id;
+            if (!id) continue;
+            let note = row?.["special note"] ?? row?.specialNote ?? null;
+            if (!note || /^nan$/i.test(String(note))) note = null;
+            map[id] = {
+              id,
+              instruction: row?.["high-level instruction"] ?? row?.instruction ?? "",
+              specialNote: note
+            };
+          }
+        }
+        scenarioMetadataById = map;
+        return scenarioMetadataById;
+      })
+      .catch((err) => {
+        console.error("Unable to load scenario metadata:", err);
+        scenarioMetadataById = {};
+        return scenarioMetadataById;
+      });
+  }
+  return scenarioMetadataPromise;
+}
+
+function updateScenarioMetadata(name) {
+  if (!name) {
+    currentScenarioMetadata = null;
+    renderScenarioInfo();
+    return;
+  }
+  void ensureScenarioMetadata().then((metadata) => {
+    currentScenarioMetadata = metadata ? metadata[name] || null : null;
+    renderScenarioInfo();
+  });
+}
+
+function renderScenarioInfo() {
+  if (!scenarioInfoBox) return;
+  const name = currentScenarioName;
+  const metadata = currentScenarioMetadata;
+  if (!name || !metadata) {
+    scenarioInfoBox.style.display = "none";
+    scenarioInfoBox.textContent = "";
+    return;
+  }
+
+  const instruction = metadata.instruction ? escapeHtml(metadata.instruction) : "";
+  const note = metadata.specialNote ? escapeHtml(metadata.specialNote) : "";
+
+  if (!instruction && !note) {
+    scenarioInfoBox.style.display = "none";
+    scenarioInfoBox.textContent = "";
+    return;
+  }
+
+  const lines = [];
+  if (instruction) {
+    lines.push(
+      `<span class="scenario-info-line"><span class="scenario-info-label">Instruction:</span><span class="scenario-info-text">${instruction}</span></span>`
+    );
+  }
+  if (note) {
+    lines.push(
+      `<span class="scenario-info-line"><span class="scenario-info-label">Note:</span><span class="scenario-info-text">${note}</span></span>`
+    );
+  }
+  scenarioInfoBox.innerHTML = lines.join("");
+  scenarioInfoBox.style.display = "inline-block";
+}
 
 function clampToInput(value, inputEl) {
   if (!inputEl) return value;
@@ -796,10 +891,9 @@ function rebuildTrajectoryObject(force2D = is2D) {
 }
 
 function applyPointCloud(rawData, name, path) {
+  trajectoryHistoryRaw = [];
   initializeSpline();
-  if (trajectoryHistoryRaw && trajectoryHistoryRaw.length) {
-    spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
-  }
+  spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
   const cloudBounds = cloudBoundsCache;
@@ -826,6 +920,7 @@ function applyPointCloud(rawData, name, path) {
 
   currentPCDName = name;
   currentPCDPath = path || null;
+  pointCloudScenarioName = null;
   recomputeScenarioName();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
