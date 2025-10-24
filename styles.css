@@ -37,16 +37,18 @@ header {
 .toolbar { display: flex; width: 100%; justify-content: space-between; gap: 10px; align-items: center; }
 .toolbar .left, .toolbar .right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 14px; line-height: 1.2; }
 label.checkbox { gap: 8px; }
-label.file { padding: 6px 10px; background: #111420; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text); }
+label.file { padding: 6px 12px; background: #111420; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text); font-size: 14px; line-height: 1.2; height: 34px; display: inline-flex; align-items: center; }
 label.file input { display: none; }
 
-select, input[type="range"], button {
+select, button {
   background: #111420; border: 1px solid var(--border); color: var(--text);
-  padding: 6px 8px; border-radius: 8px; cursor: pointer;
+  padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; line-height: 1.2; height: 34px;
+  display: inline-flex; align-items: center; gap: 6px;
 }
-input[type="range"] { cursor: ew-resize; }
+input[type="range"] { cursor: ew-resize; height: 4px; }
 .toggle-btn[aria-pressed="true"]{
   background: #1d3b55;
   border-color: rgba(102, 204, 255, 0.4);
@@ -230,7 +232,7 @@ footer {
 /* Mode badge (inside stage) */
 .badge {
   position: absolute; left: 12px; top: 12px;
-  padding: 4px 8px; border-radius: 8px; font-weight: 600; font-size: 12px;
+  padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 15px;
   background: rgba(0,0,0,0.8); border: 1px solid var(--border); color: var(--text);
   pointer-events: none;
 }
