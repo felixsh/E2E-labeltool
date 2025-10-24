@@ -5,6 +5,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import {
   loadPointCloudFromFile,
   loadTrajectoryFromFile,
+  loadTrajectoryFromUrl,
   loadDemoDataset
 } from "./src/dataLoader.js";
 import { makeCharts } from "./src/charts.js";
@@ -76,6 +77,99 @@ const weightState = {
 let weightsVisible = false;
 
 const manouverTypes = CFG.manouverTypes || {};
+
+function normalizeScenarioPath(path) {
+  if (typeof path !== "string") return "";
+  return path.replace(/\\/g, "/");
+}
+
+function extractScenarioNameFromPath(path) {
+  const normalized = normalizeScenarioPath(path);
+  if (!normalized) return null;
+  const segments = normalized.split("/").filter(Boolean);
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const segment = segments[i];
+    const lower = segment.toLowerCase();
+    if (lower.startsWith("e2e_") || lower.startsWith("3d_perception_")) {
+      return segment;
+    }
+  }
+  return null;
+}
+
+function recomputeScenarioName() {
+  currentScenarioName = pointCloudScenarioName || null;
+}
+
+function sanitizeFileStem(name, fallback = "export") {
+  if (!name || typeof name !== "string") return fallback;
+  const cleaned = name.replace(/[^\w.-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  return cleaned || fallback;
+}
+
+function buildTrajectoryCandidatePath(pointCloudPath) {
+  const normalized = normalizeScenarioPath(pointCloudPath);
+  if (!normalized) return null;
+  const lidarIdx = normalized.toLowerCase().lastIndexOf("/lidar_bin/");
+  if (lidarIdx >= 0) {
+    return normalized.slice(0, lidarIdx) + "/trajectory.npy";
+  }
+  const lastSlash = normalized.lastIndexOf("/");
+  if (lastSlash < 0) return null;
+  return normalized.slice(0, lastSlash + 1) + "trajectory.npy";
+}
+
+function resolveToAbsoluteUrl(path) {
+  if (!path) return path;
+  try {
+    return new URL(path, window.location.href).toString();
+  } catch (err) {
+    return path;
+  }
+}
+
+async function tryAutoLoadTrajectoryFromPointCloud(pointCloudPath, { notifyOnMissing = false } = {}) {
+  console.log("[auto-trajectory] evaluating point cloud path:", pointCloudPath);
+  if (!pointCloudPath) {
+    console.log("[auto-trajectory] skipped: no point cloud path provided.");
+    if (notifyOnMissing) statusOptim("No trajectory file found.");
+    return;
+  }
+  const candidatePath = buildTrajectoryCandidatePath(pointCloudPath);
+  if (!candidatePath) {
+    console.log("[auto-trajectory] skipped: unable to derive trajectory path.");
+    if (notifyOnMissing) statusOptim("No trajectory file found.");
+    return;
+  }
+
+  const normalizedCandidate = normalizeScenarioPath(candidatePath);
+  const normalizedExisting = normalizeScenarioPath(currentTrajectoryPath);
+  if (normalizedCandidate && normalizedCandidate === normalizedExisting) {
+    console.log("[auto-trajectory] skipped: candidate matches already loaded trajectory.");
+    return;
+  }
+
+  const candidateScenario = extractScenarioNameFromPath(candidatePath);
+  const existingScenario = extractScenarioNameFromPath(currentTrajectoryPath);
+  if (candidateScenario && existingScenario && candidateScenario === existingScenario) {
+    console.log("[auto-trajectory] skipped: trajectory for scenario already loaded.");
+    return;
+  }
+
+  const absoluteUrl = resolveToAbsoluteUrl(candidatePath);
+  console.log("[auto-trajectory] attempting:", candidatePath, "→", absoluteUrl);
+  try {
+    const { points, name } = await loadTrajectoryFromUrl(absoluteUrl);
+    applyTrajectoryPoints(points, name, candidatePath);
+    if (notifyOnMissing) {
+      statusOptim(`Loaded trajectory ${name}.`);
+    }
+  } catch (err) {
+    if (notifyOnMissing) {
+      statusOptim("No trajectory file found.");
+    }
+  }
+}
 
 function formatWeight(val) {
   return Number.isFinite(val) ? val.toFixed(2) : "0.00";
@@ -401,6 +495,8 @@ let currentPCDName = ""; // used for export filename
 let currentPCDPath = null;
 let currentTrajectoryName = "";
 let currentTrajectoryPath = null;
+let currentScenarioName = null;
+let pointCloudScenarioName = null;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -671,6 +767,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 }
 
 function applyPointCloud(rawData, name, path) {
+  console.log("[auto-trajectory] applyPointCloud from path:", path);
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
   initializeSpline();
@@ -701,6 +798,16 @@ function applyPointCloud(rawData, name, path) {
 
   currentPCDName = name;
   currentPCDPath = path || null;
+  pointCloudScenarioName = extractScenarioNameFromPath(currentPCDPath) || null;
+  recomputeScenarioName();
+  const existingScenario =
+    extractScenarioNameFromPath(currentTrajectoryPath);
+  const shouldNotifyMissing =
+    !currentTrajectoryPath ||
+    (pointCloudScenarioName && pointCloudScenarioName !== existingScenario);
+  void tryAutoLoadTrajectoryFromPointCloud(currentPCDPath, {
+    notifyOnMissing: shouldNotifyMissing
+  });
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
@@ -950,7 +1057,6 @@ function collectExportSnapshot() {
     trajectory_path: trajectoryPath,
     curve_type: curveType,
     delta_t: deltaT,
-    manouver_type: null,
     samples_optimized: samplesOptimized,
     optimizer:      weights,
     control_points: controlPts,
@@ -958,11 +1064,18 @@ function collectExportSnapshot() {
     trajectory_raw: trajectoryRaw
   };
 
+  const scenarioName = currentScenarioName || null;
+  if (scenarioName) {
+    payload.scenario_name = scenarioName;
+  }
+
   if (curveType === "catmullrom" && alpha != null) {
     payload.alpha = alpha;
   }
 
-  const base = "labeled_trajectories";
+  const base = scenarioName
+    ? `${sanitizeFileStem(scenarioName, "scenario")}_label`
+    : "labeled_trajectories";
   const fname = `${base}.json`;
 
   return { payload, filename: fname };
@@ -1054,7 +1167,12 @@ demoBtn?.addEventListener("click", async () => {
   demoBtn.disabled = true;
   try {
     const result = await loadDemoDataset({ cloudUrl: DEMO_PCD, trajectoryUrl: DEMO_TRAJECTORY });
-    if (result.cloud) applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
+    if (result.cloud) {
+      applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
+      pointCloudScenarioName = "demo";
+      currentScenarioName = "demo";
+      updateStatus();
+    }
     if (result.trajectory) applyTrajectoryPoints(result.trajectory.points, result.trajectory.name, result.trajectory.path);
     updateStatus();
   } catch (err) {
