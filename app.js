@@ -440,6 +440,13 @@ const trajectorySpheres = [];
 let trajectorySphereGeom = null;
 let trajectorySphereRadius = 0;
 let trajectorySphereMat = null;
+let trajectoryPastPoints = null;
+let trajectoryFuturePoints = null;
+let trajectoryFutureLine = null;
+const trajectoryFutureSpheres = [];
+let trajectoryFutureSphereGeom = null;
+let trajectoryFutureSphereRadius = 0;
+let trajectoryFutureSphereMat = null;
 let trajectoryHistoryRaw = [];
 let trajectoryRawPoints = [];
 
@@ -620,16 +627,27 @@ function mergeBounds(a, b) {
 }
 
 function disposeTrajectoryLine() {
-  if (!trajectoryLine) return;
-  scene.remove(trajectoryLine);
-  trajectoryLine.geometry.dispose();
-  trajectoryLine.material.dispose();
-  trajectoryLine = null;
+  if (trajectoryLine) {
+    scene.remove(trajectoryLine);
+    trajectoryLine.geometry.dispose();
+    trajectoryLine.material.dispose();
+    trajectoryLine = null;
+  }
+  if (trajectoryFutureLine) {
+    scene.remove(trajectoryFutureLine);
+    trajectoryFutureLine.geometry.dispose();
+    trajectoryFutureLine.material.dispose();
+    trajectoryFutureLine = null;
+  }
 }
 
 function clearTrajectorySpheres() {
   while (trajectorySpheres.length) {
     const mesh = trajectorySpheres.pop();
+    scene.remove(mesh);
+  }
+  while (trajectoryFutureSpheres.length) {
+    const mesh = trajectoryFutureSpheres.pop();
     scene.remove(mesh);
   }
 }
@@ -650,60 +668,138 @@ function ensureTrajectorySphereResources(radius, color) {
   }
 }
 
+function ensureFutureTrajectorySphereResources(radius, color) {
+  const r = Math.max(1e-3, radius);
+  if (!trajectoryFutureSphereGeom || Math.abs(trajectoryFutureSphereRadius - r) > 1e-6) {
+    trajectoryFutureSphereGeom?.dispose();
+    trajectoryFutureSphereGeom = new THREE.SphereGeometry(r, 20, 16);
+    trajectoryFutureSphereRadius = r;
+    trajectoryFutureSpheres.forEach(mesh => { mesh.geometry = trajectoryFutureSphereGeom; });
+  }
+
+  if (!trajectoryFutureSphereMat) {
+    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), depthTest: true, depthWrite: false, transparent: false, opacity: 1 });
+  } else {
+    trajectoryFutureSphereMat.color.copy(color);
+    trajectoryFutureSphereMat.depthTest = true;
+    trajectoryFutureSphereMat.depthWrite = false;
+    trajectoryFutureSphereMat.transparent = false;
+    trajectoryFutureSphereMat.opacity = 1;
+  }
+}
+
 function rebuildTrajectoryObject(force2D = is2D) {
   disposeTrajectoryLine();
 
-  const hasPoints = Array.isArray(trajectoryPoints) && trajectoryPoints.length >= 2;
-  if (!hasPoints) {
-    clearTrajectorySpheres();
-    return;
-  }
-
-  const trajColor = cssColor("--trajectory-color", "#ff4d8d");
   const pointRadius = Math.max(1e-3, cssNumber("--trajectory-point-size", 0.2));
   const tubeRadius = Math.max(1e-3, cssNumber("--trajectory-tube-radius", pointRadius * 0.6));
   const zOffset = 0;
 
-  const pathPoints = trajectoryPoints.map(p => new THREE.Vector3(p.x, p.y, 0));
-  const curve = new THREE.CatmullRomCurve3(pathPoints, false, "catmullrom", 0.1);
-  const tubularSegments = Math.max(32, trajectoryPoints.length * 8);
-  const radialSegments = 16;
-  const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
+  const hasPast = Array.isArray(trajectoryPastPoints) && trajectoryPastPoints.length > 0;
+  const hasFuture = Array.isArray(trajectoryFuturePoints) && trajectoryFuturePoints.length > 0;
 
-  const material = new THREE.MeshBasicMaterial({ color: trajColor.clone(), transparent: true, opacity: 0.96 });
-  material.depthTest = false;
-  material.depthWrite = false;
-  trajectoryLine = new THREE.Mesh(tubeGeometry, material);
-  trajectoryLine.renderOrder = force2D ? 2400 : 6;
-  scene.add(trajectoryLine);
-
-  ensureTrajectorySphereResources(pointRadius, trajColor);
-
-  while (trajectorySpheres.length < trajectoryPoints.length) {
-    const mesh = new THREE.Mesh(trajectorySphereGeom, trajectorySphereMat);
-    mesh.renderOrder = force2D ? 2402 : 8;
-    scene.add(mesh);
-    trajectorySpheres.push(mesh);
+  if (!hasPast) {
+    while (trajectorySpheres.length) {
+      const mesh = trajectorySpheres.pop();
+      scene.remove(mesh);
+    }
   }
-  while (trajectorySpheres.length > trajectoryPoints.length) {
-    const mesh = trajectorySpheres.pop();
-    scene.remove(mesh);
+  if (!hasFuture) {
+    while (trajectoryFutureSpheres.length) {
+      const mesh = trajectoryFutureSpheres.pop();
+      scene.remove(mesh);
+    }
   }
 
-  for (let i = 0; i < trajectoryPoints.length; i++) {
-    const mesh = trajectorySpheres[i];
-    const p = trajectoryPoints[i];
-    mesh.position.set(p.x, p.y, zOffset);
-    mesh.visible = true;
-    mesh.geometry = trajectorySphereGeom;
-    mesh.material = trajectorySphereMat;
-    mesh.renderOrder = force2D ? 2402 : 8;
+  if (!hasPast && !hasFuture) {
+    return;
+  }
+
+  if (hasPast) {
+    const trajColor = cssColor("--trajectory-color", "#ff4d8d");
+    ensureTrajectorySphereResources(pointRadius, trajColor);
+
+    while (trajectorySpheres.length < trajectoryPastPoints.length) {
+      const mesh = new THREE.Mesh(trajectorySphereGeom, trajectorySphereMat);
+      mesh.renderOrder = force2D ? 2402 : 8;
+      scene.add(mesh);
+      trajectorySpheres.push(mesh);
+    }
+    while (trajectorySpheres.length > trajectoryPastPoints.length) {
+      const mesh = trajectorySpheres.pop();
+      scene.remove(mesh);
+    }
+
+    for (let i = 0; i < trajectoryPastPoints.length; i++) {
+      const mesh = trajectorySpheres[i];
+      const p = trajectoryPastPoints[i];
+      mesh.position.set(p.x, p.y, zOffset);
+      mesh.visible = true;
+      mesh.geometry = trajectorySphereGeom;
+      mesh.material = trajectorySphereMat;
+      mesh.renderOrder = force2D ? 2402 : 8;
+    }
+
+    if (trajectoryPastPoints.length >= 2) {
+      const pathPoints = trajectoryPastPoints.map(p => new THREE.Vector3(p.x, p.y, 0));
+      const curve = new THREE.CatmullRomCurve3(pathPoints, false, "catmullrom", 0.1);
+      const tubularSegments = Math.max(32, trajectoryPastPoints.length * 8);
+      const radialSegments = 16;
+      const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
+      const material = new THREE.MeshBasicMaterial({ color: trajColor.clone(), transparent: true, opacity: 0.96 });
+      material.depthTest = false;
+      material.depthWrite = false;
+      trajectoryLine = new THREE.Mesh(tubeGeometry, material);
+      trajectoryLine.renderOrder = force2D ? 2400 : 6;
+      scene.add(trajectoryLine);
+    }
+  }
+  if (hasFuture) {
+    const gtColor = cssColor("--trajectory-groundtruth-color", "#4dff88");
+    ensureFutureTrajectorySphereResources(pointRadius, gtColor);
+
+    while (trajectoryFutureSpheres.length < trajectoryFuturePoints.length) {
+      const mesh = new THREE.Mesh(trajectoryFutureSphereGeom, trajectoryFutureSphereMat);
+      mesh.renderOrder = force2D ? 1 : 1;
+      scene.add(mesh);
+      trajectoryFutureSpheres.push(mesh);
+    }
+    while (trajectoryFutureSpheres.length > trajectoryFuturePoints.length) {
+      const mesh = trajectoryFutureSpheres.pop();
+      scene.remove(mesh);
+    }
+
+    for (let i = 0; i < trajectoryFuturePoints.length; i++) {
+      const mesh = trajectoryFutureSpheres[i];
+      const p = trajectoryFuturePoints[i];
+      mesh.position.set(p.x, p.y, zOffset);
+      mesh.visible = true;
+      mesh.geometry = trajectoryFutureSphereGeom;
+      mesh.material = trajectoryFutureSphereMat;
+      mesh.renderOrder = force2D ? 1 : 1;
+    }
+
+    if (trajectoryFuturePoints.length >= 2) {
+      const pathPoints = trajectoryFuturePoints.map(p => new THREE.Vector3(p.x, p.y, 0));
+      const curve = new THREE.CatmullRomCurve3(pathPoints, false, "catmullrom", 0.1);
+      const tubularSegments = Math.max(32, trajectoryFuturePoints.length * 8);
+      const radialSegments = 16;
+      const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
+      const material = new THREE.MeshBasicMaterial({ color: gtColor.clone(), transparent: false, opacity: 1 });
+      material.depthTest = true;
+      material.depthWrite = false;
+      trajectoryFutureLine = new THREE.Mesh(tubeGeometry, material);
+      trajectoryFutureLine.renderOrder = force2D ? 0 : 0;
+      scene.add(trajectoryFutureLine);
+    }
   }
 }
 
 function applyPointCloud(rawData, name, path) {
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
+  trajectoryPastPoints = null;
+  trajectoryFuturePoints = null;
   initializeSpline();
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
@@ -740,13 +836,39 @@ function applyPointCloud(rawData, name, path) {
 
 function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   if (!Array.isArray(pointPairs) || pointPairs.length === 0) return;
-  const usableCount = Math.min(HISTORY_COUNT, pointPairs.length);
-  const histStart = Math.max(0, pointPairs.length - usableCount);
-  trajectoryHistoryRaw = pointPairs.slice(histStart).map(([x, y]) => [x, y]);
+
+  let closestIdx = -1;
+  let minDistSq = Infinity;
+  for (let i = 0; i < pointPairs.length; i++) {
+    const [x, y] = pointPairs[i];
+    const distSq = x * x + y * y;
+    if (!Number.isFinite(distSq)) continue;
+    if (distSq < minDistSq) {
+      minDistSq = distSq;
+      closestIdx = i;
+    }
+  }
+
+  if (closestIdx < 0) {
+    closestIdx = pointPairs.length - 1;
+  }
+
+  const pastPairs = pointPairs.slice(0, Math.max(0, closestIdx) + 1);
+  const futurePairs = pointPairs.slice(Math.max(0, closestIdx) + 1);
+
+  trajectoryPastPoints = pastPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
+  trajectoryFuturePoints = futurePairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
+  trajectoryPoints = [...trajectoryPastPoints, ...trajectoryFuturePoints];
+
   trajectoryRawPoints = pointPairs.map(([x, y]) => [x, y]);
+
+  const historySource = pastPairs.length ? pastPairs : pointPairs;
+  const usableCount = Math.min(HISTORY_COUNT, historySource.length);
+  const histStart = Math.max(0, historySource.length - usableCount);
+  trajectoryHistoryRaw = historySource.slice(histStart).map(([x, y]) => [x, y]);
+
   initializeSpline();
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
-  trajectoryPoints = pointPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
 
   const trajBounds = computeTrajectoryBounds(trajectoryPoints);
   const cloudBounds = cloudBoundsCache;

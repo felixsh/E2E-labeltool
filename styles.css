@@ -21,6 +21,7 @@
 
   /* --- trajectory overlay --- */
   --trajectory-color: #ff4d8d;
+  --trajectory-groundtruth-color: #4dff88;
   --trajectory-point-size: 0.18;   /* sphere radius (m) */
   --trajectory-tube-radius: 0.07;  /* tube radius (m) */
 }
