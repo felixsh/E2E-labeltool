@@ -931,8 +931,6 @@ function exportAll() {
   const trajectoryRaw = trajectoryRawPoints.slice();
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
-  const pointCloudName = currentPCDName || null;
-  const trajectoryName = currentTrajectoryName || null;
   const pointCloudPath = currentPCDPath || null;
   const trajectoryPath = currentTrajectoryPath || null;
   const curveType = spline?.getCurveType ? spline.getCurveType() : null;
@@ -940,15 +938,15 @@ function exportAll() {
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
 
   const payload = {
-    control_points: controlPts,
-    sample_points:  samplePtsFull,
-    trajectory_raw: trajectoryRaw,
-    optimizer:      weights,
-    samples_optimized: samplesOptimized,
     pointcloud_path: pointCloudPath,
     trajectory_path: trajectoryPath,
     curve_type: curveType,
-    delta_t: deltaT
+    delta_t: deltaT,
+    samples_optimized: samplesOptimized,
+    optimizer:      weights,
+    control_points: controlPts,
+    sample_points:  samplePtsFull,
+    trajectory_raw: trajectoryRaw
   };
 
   if (curveType === "catmullrom" && alpha != null) {
