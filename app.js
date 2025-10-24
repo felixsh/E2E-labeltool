@@ -962,7 +962,7 @@ function collectExportSnapshot() {
     payload.alpha = alpha;
   }
 
-  const base = (currentPCDName || "spline").replace(/\.[^.]+$/,"");
+  const base = "labeled_trajectories";
   const fname = `${base}.json`;
 
   return { payload, filename: fname };
