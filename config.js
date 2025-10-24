@@ -29,5 +29,21 @@ window.CONFIG = {
     wVel: 0.10,
     wAcc: 0.10,
     maxIterations: 10000
+  },
+
+  // Export dialog options. Keys are emitted as `manouver_type` in the exported JSON payload.
+  manouverTypes: {
+    offroad: {
+      title: "Offroad",
+      description: "offroad but no crash"
+    },
+    crash: {
+      title: "Crash",
+      description: "vehicle crashed with static object"
+    },
+    deviation: {
+      title: "Deviation",
+      description: "didn't follow the instruction"
+    }
   }
 };

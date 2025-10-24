@@ -231,8 +231,9 @@ footer {
 #legend .labels{ display: grid; row-gap: 4px; }
 #legend .ticks{ display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
 
-/* Help dialog */
-dialog#helpDlg {
+/* Dialogs */
+dialog#helpDlg,
+dialog#manouverDlg {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #111420;
@@ -265,6 +266,59 @@ dialog#helpDlg {
 }
 .dialog-body .actions { display: flex; justify-content: flex-end; }
 dialog::backdrop{ background: rgba(0,0,0,0.4); }
+
+.manouver-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.manouver-intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.manouver-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.manouver-option {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #121622;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.manouver-option:hover {
+  border-color: rgba(102, 204, 255, 0.6);
+}
+.manouver-option.selected {
+  border-color: rgba(102, 204, 255, 0.9);
+  background: rgba(40, 80, 120, 0.35);
+}
+.manouver-option input[type="radio"] {
+  margin-top: 4px;
+}
+.manouver-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.manouver-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.manouver-desc {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 420px;
+}
+.manouver-dialog .actions {
+  gap: 8px;
+}
 
 /* KBD styling in footer */
 kbd {

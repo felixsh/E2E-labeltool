@@ -45,6 +45,11 @@ const samplesBtn  = document.getElementById("samplesBtn");
 const optimizeBtn = document.getElementById("optimizeBtn");
 const weightsBtn  = document.getElementById("weightsBtn");
 const exportBtn   = document.getElementById("exportSamplesBtn");
+const manouverDlg = document.getElementById("manouverDlg");
+const manouverForm = document.getElementById("manouverForm");
+const manouverOptionsEl = document.getElementById("manouverOptions");
+const manouverCancelBtn = document.getElementById("manouverCancel");
+const manouverConfirmBtn = document.getElementById("manouverConfirm");
 const helpBtn     = document.getElementById("helpBtn");
 const helpDlg     = document.getElementById("helpDlg");
 const helpClose   = document.getElementById("helpClose");
@@ -69,6 +74,11 @@ const weightState = {
 };
 let weightsVisible = false;
 
+const manouverTypes = CFG.manouverTypes || {};
+const manouverTypeKeys = Object.keys(manouverTypes);
+let manouverOptionsBuilt = false;
+let lastManouverKey = null;
+
 function formatWeight(val) {
   return Number.isFinite(val) ? val.toFixed(2) : "0.00";
 }
@@ -78,6 +88,122 @@ const weightControls = {
   wVel:  { slider: weightVelInput,  number: weightVelNumber },
   wAcc:  { slider: weightAccInput,  number: weightAccNumber }
 };
+
+function titleizeKey(key = "") {
+  return key
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function normalizedManouverMeta(key) {
+  const entry = manouverTypes[key];
+  if (!entry || typeof entry === "string") {
+    const description = typeof entry === "string" ? entry : "";
+    return { title: titleizeKey(key), description };
+  }
+  const title =
+    typeof entry.title === "string" && entry.title.trim().length
+      ? entry.title
+      : titleizeKey(key);
+  const description =
+    typeof entry.description === "string" ? entry.description : "";
+  return { title, description };
+}
+
+function updateManouverSelection(selectedKey) {
+  if (!manouverOptionsEl) return;
+  const radios = manouverOptionsEl.querySelectorAll(
+    'input[name="manouverOption"]'
+  );
+  let found = false;
+  radios.forEach((radio) => {
+    const isSelected = !!selectedKey && radio.value === selectedKey;
+    radio.checked = isSelected;
+    radio.closest(".manouver-option")?.classList.toggle("selected", isSelected);
+    if (isSelected) found = true;
+  });
+  if (manouverConfirmBtn) {
+    manouverConfirmBtn.disabled = !found;
+  }
+  if (!found) {
+    lastManouverKey = null;
+  }
+}
+
+function ensureManouverOptionsBuilt() {
+  if (manouverOptionsBuilt || !manouverOptionsEl) return;
+  manouverOptionsEl.innerHTML = "";
+  manouverTypeKeys.forEach((key) => {
+    const meta = normalizedManouverMeta(key);
+    const label = document.createElement("label");
+    label.className = "manouver-option";
+    label.dataset.key = key;
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "manouverOption";
+    radio.value = key;
+
+    const details = document.createElement("div");
+    details.className = "manouver-details";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "manouver-title";
+    titleEl.textContent = meta.title;
+    details.append(titleEl);
+
+    if (meta.description) {
+      const descEl = document.createElement("div");
+      descEl.className = "manouver-desc";
+      descEl.textContent = meta.description;
+      details.append(descEl);
+    }
+
+    label.append(radio, details);
+    manouverOptionsEl.append(label);
+
+    radio.addEventListener("change", () => {
+      lastManouverKey = radio.value;
+      updateManouverSelection(lastManouverKey);
+    });
+
+  });
+  manouverOptionsBuilt = true;
+  updateManouverSelection(lastManouverKey);
+}
+
+async function promptManouverType() {
+  if (!manouverDlg || !manouverOptionsEl || manouverTypeKeys.length === 0) {
+    return null;
+  }
+
+  ensureManouverOptionsBuilt();
+  updateManouverSelection(lastManouverKey);
+  manouverDlg.returnValue = "";
+
+  return new Promise((resolve) => {
+    const handleClose = () => {
+      manouverDlg.removeEventListener("close", handleClose);
+      const value = manouverDlg.returnValue;
+      if (value) {
+        lastManouverKey = value;
+        resolve(value);
+      } else {
+        resolve(null);
+      }
+    };
+
+    manouverDlg.addEventListener("close", handleClose, { once: true });
+
+    try {
+      manouverDlg.showModal();
+    } catch (err) {
+      console.error("Failed to open manouver selection dialog", err);
+      manouverDlg.removeEventListener("close", handleClose);
+      resolve(null);
+    }
+  });
+}
 
 function clampToInput(value, inputEl) {
   if (!inputEl) return value;
@@ -188,6 +314,24 @@ function hookWeightControl(kind) {
 
 ["wJerk", "wVel", "wAcc"].forEach(hookWeightControl);
 weightsBtn?.addEventListener("click", toggleWeightsPanel);
+
+manouverCancelBtn?.addEventListener("click", () => {
+  manouverDlg?.close("");
+});
+
+manouverDlg?.addEventListener("cancel", (evt) => {
+  evt.preventDefault();
+  manouverDlg?.close("");
+});
+
+manouverForm?.addEventListener("submit", (evt) => {
+  evt.preventDefault();
+  const selected = manouverOptionsEl?.querySelector(
+    'input[name="manouverOption"]:checked'
+  );
+  if (!selected) return;
+  manouverDlg?.close(selected.value);
+});
 
 // ---------- THREE setup ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -919,7 +1063,7 @@ samplesBtn?.addEventListener("click", () => {
 });
 optimizeBtn?.addEventListener("click", () => { runOptimization(); });
 
-function exportAll() {
+async function exportAll() {
   if (!spline) {
     status("Nothing to export yet.");
     return;
@@ -937,17 +1081,31 @@ function exportAll() {
   const deltaT = spline?.getDeltaT ? spline.getDeltaT() : null;
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
 
+  let manouverType = null;
+  if (manouverDlg && manouverTypeKeys.length > 0) {
+    manouverType = await promptManouverType();
+    if (!manouverType) {
+      status("Export canceled.");
+      return;
+    }
+  }
+
   const payload = {
     pointcloud_path: pointCloudPath,
     trajectory_path: trajectoryPath,
     curve_type: curveType,
     delta_t: deltaT,
+    manouver_type: null,
     samples_optimized: samplesOptimized,
     optimizer:      weights,
     control_points: controlPts,
     sample_points:  samplePtsFull,
     trajectory_raw: trajectoryRaw
   };
+
+  if (manouverType) {
+    payload.manouver_type = manouverType;
+  }
 
   if (curveType === "catmullrom" && alpha != null) {
     payload.alpha = alpha;
@@ -965,10 +1123,13 @@ function exportAll() {
 
 }
 
-exportBtn?.addEventListener("click", exportAll);
+exportBtn?.addEventListener("click", (evt) => {
+  evt?.preventDefault?.();
+  void exportAll();
+});
 window.addEventListener("keydown", (e) => {
   if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) return;
-  if (e.key.toLowerCase() === "e") { e.preventDefault(); exportAll(); }
+  if (e.key.toLowerCase() === "e") { e.preventDefault(); void exportAll(); }
 });
 
 
@@ -1008,7 +1169,7 @@ window.addEventListener("keydown", (e) => {
     statusOptim("Select a point cloud or trajectory to load.");
     return;
   }
-  if (k === "e") { e.preventDefault(); exportSamples(); return; }
+  if (k === "e") { e.preventDefault(); void exportAll(); return; }
 });
 
 // ---------- File/open ----------

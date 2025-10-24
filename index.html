@@ -118,6 +118,18 @@
     <div id="statusExtra" aria-live="polite"></div>
   </footer>
 
+  <dialog id="manouverDlg">
+    <form method="dialog" class="dialog-body manouver-dialog" id="manouverForm">
+      <h3>Select manouver type</h3>
+      <p class="manouver-intro">Choose the label that best describes this export.</p>
+      <div id="manouverOptions" class="manouver-options"></div>
+      <div class="actions">
+        <button type="button" id="manouverCancel">Cancel</button>
+        <button type="submit" id="manouverConfirm" disabled>Export</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Help dialog -->
   <dialog id="helpDlg">
     <div class="dialog-body">
