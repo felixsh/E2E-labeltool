@@ -1,5 +1,5 @@
 import { parsePointCloud } from "./pcdParser.js";
-import { parse as parseNpy } from "tfjs-npy";
+import { load as loadNpy } from "npyjs";
 
 function nameFromPath(path, fallback) {
   if (!path) return fallback;
@@ -52,17 +52,17 @@ export async function loadPointCloudFromUrl(url) {
 
 export async function loadTrajectoryFromFile(file) {
   const buffer = await file.arrayBuffer();
-  const tensor = parseNpy(buffer);
+  const parsed = await loadNpy(buffer);
   const points = parseTrajectory({
-    shape: tensor.shape,
-    data: tensor.dataSync()
+    shape: parsed.shape,
+    data: parsed.data
   });
   const name = file?.name || "trajectory.npy";
   const path =
     file?.path ||
     file?.webkitRelativePath ||
     (file?.name ? file.name : null);
-  return { points, tensor, name, path };
+  return { points, raw: parsed, name, path };
 }
 
 export async function loadTrajectoryFromUrl(url) {
@@ -71,13 +71,13 @@ export async function loadTrajectoryFromUrl(url) {
     throw new Error(`${response.status} ${response.statusText}`);
   }
   const buffer = await response.arrayBuffer();
-  const tensor = parseNpy(buffer);
+  const parsed = await loadNpy(buffer);
   const points = parseTrajectory({
-    shape: tensor.shape,
-    data: tensor.dataSync()
+    shape: parsed.shape,
+    data: parsed.data
   });
   const name = nameFromPath(url, "trajectory.npy");
-  return { points, tensor, name, path: url };
+  return { points, raw: parsed, name, path: url };
 }
 
 export async function loadDemoDataset({ cloudUrl, trajectoryUrl } = {}) {
