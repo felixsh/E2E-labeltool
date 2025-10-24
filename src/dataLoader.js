@@ -56,9 +56,9 @@ export async function loadPointCloudFromFile(file) {
   const name = file?.name || "pointcloud.pcd";
   const raw = parsePointCloud(buffer, name);
   const path =
-    file?.path ||
-    file?.webkitRelativePath ||
-    (file?.name ? file.name : null);
+    typeof file?.webkitRelativePath === "string" && file.webkitRelativePath.trim()
+      ? file.webkitRelativePath
+      : file?.path || (file?.name ? file.name : null);
   return { raw, name, path };
 }
 
@@ -82,9 +82,9 @@ export async function loadTrajectoryFromFile(file) {
   });
   const name = file?.name || "trajectory.npy";
   const path =
-    file?.path ||
-    file?.webkitRelativePath ||
-    (file?.name ? file.name : null);
+    typeof file?.webkitRelativePath === "string" && file.webkitRelativePath.trim()
+      ? file.webkitRelativePath
+      : file?.path || (file?.name ? file.name : null);
   return { points, raw: parsed, name, path };
 }
 

@@ -5,7 +5,6 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import {
   loadPointCloudFromFile,
   loadTrajectoryFromFile,
-  loadTrajectoryFromUrl,
   loadDemoDataset
 } from "./src/dataLoader.js";
 import { makeCharts } from "./src/charts.js";
@@ -105,71 +104,6 @@ function sanitizeFileStem(name, fallback = "export") {
   if (!name || typeof name !== "string") return fallback;
   const cleaned = name.replace(/[^\w.-]/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
   return cleaned || fallback;
-}
-
-function buildTrajectoryCandidatePath(pointCloudPath) {
-  const normalized = normalizeScenarioPath(pointCloudPath);
-  if (!normalized) return null;
-  const lidarIdx = normalized.toLowerCase().lastIndexOf("/lidar_bin/");
-  if (lidarIdx >= 0) {
-    return normalized.slice(0, lidarIdx) + "/trajectory.npy";
-  }
-  const lastSlash = normalized.lastIndexOf("/");
-  if (lastSlash < 0) return null;
-  return normalized.slice(0, lastSlash + 1) + "trajectory.npy";
-}
-
-function resolveToAbsoluteUrl(path) {
-  if (!path) return path;
-  try {
-    return new URL(path, window.location.href).toString();
-  } catch (err) {
-    return path;
-  }
-}
-
-async function tryAutoLoadTrajectoryFromPointCloud(pointCloudPath, { notifyOnMissing = false } = {}) {
-  console.log("[auto-trajectory] evaluating point cloud path:", pointCloudPath);
-  if (!pointCloudPath) {
-    console.log("[auto-trajectory] skipped: no point cloud path provided.");
-    if (notifyOnMissing) statusOptim("No trajectory file found.");
-    return;
-  }
-  const candidatePath = buildTrajectoryCandidatePath(pointCloudPath);
-  if (!candidatePath) {
-    console.log("[auto-trajectory] skipped: unable to derive trajectory path.");
-    if (notifyOnMissing) statusOptim("No trajectory file found.");
-    return;
-  }
-
-  const normalizedCandidate = normalizeScenarioPath(candidatePath);
-  const normalizedExisting = normalizeScenarioPath(currentTrajectoryPath);
-  if (normalizedCandidate && normalizedCandidate === normalizedExisting) {
-    console.log("[auto-trajectory] skipped: candidate matches already loaded trajectory.");
-    return;
-  }
-
-  const candidateScenario = extractScenarioNameFromPath(candidatePath);
-  const existingScenario = extractScenarioNameFromPath(currentTrajectoryPath);
-  if (candidateScenario && existingScenario && candidateScenario === existingScenario) {
-    console.log("[auto-trajectory] skipped: trajectory for scenario already loaded.");
-    return;
-  }
-
-  const absoluteUrl = resolveToAbsoluteUrl(candidatePath);
-  console.log("[auto-trajectory] attempting:", candidatePath, "→", absoluteUrl);
-  try {
-    const { points, name } = await loadTrajectoryFromUrl(absoluteUrl);
-    applyTrajectoryPoints(points, name, candidatePath);
-    if (notifyOnMissing) {
-      statusOptim(`Loaded trajectory ${name}.`);
-    }
-  } catch (err) {
-    console.error("[auto-trajectory] failed to load", candidatePath, err);
-    if (notifyOnMissing) {
-      statusOptim("No trajectory file found.");
-    }
-  }
 }
 
 function formatWeight(val) {
@@ -768,7 +702,6 @@ function rebuildTrajectoryObject(force2D = is2D) {
 }
 
 function applyPointCloud(rawData, name, path) {
-  console.log("[auto-trajectory] applyPointCloud from path:", path);
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
   initializeSpline();
@@ -801,14 +734,6 @@ function applyPointCloud(rawData, name, path) {
   currentPCDPath = path || null;
   pointCloudScenarioName = extractScenarioNameFromPath(currentPCDPath) || null;
   recomputeScenarioName();
-  const existingScenario =
-    extractScenarioNameFromPath(currentTrajectoryPath);
-  const shouldNotifyMissing =
-    !currentTrajectoryPath ||
-    (pointCloudScenarioName && pointCloudScenarioName !== existingScenario);
-  void tryAutoLoadTrajectoryFromPointCloud(currentPCDPath, {
-    notifyOnMissing: shouldNotifyMissing
-  });
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
