@@ -153,6 +153,36 @@ main { height: calc(100vh - 96px); }
 }
 .scenario-info-line:last-child { margin-bottom: 0; }
 
+#exportWarnDlg .dialog-body {
+  width: auto;
+  min-width: 280px;
+  max-width: 80vw;
+}
+#exportWarnDlg .actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+#exportWarnDlg p {
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+.dialog-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+#exportWarnDlg .dialog-close { font-size: 22px; }
+.dialog-close:hover { color: var(--text); }
+#exportWarnDlg .export-warn-dialog {
+  position: relative;
+}
+
 #weightsPanel{
   position: absolute;
   left: 12px;
@@ -271,7 +301,8 @@ footer {
 
 /* Dialogs */
 dialog#helpDlg,
-dialog#manouverDlg {
+dialog#manouverDlg,
+dialog#exportWarnDlg {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #111420;
@@ -279,7 +310,7 @@ dialog#manouverDlg {
   max-width: 520px;
   width: calc(100% - 32px);
 }
-.dialog-body { padding: 16px; }
+.dialog-body { padding: 16px; position: relative; }
 .dialog-body h3 { margin: 0 0 8px; }
 .dialog-body h4 { margin: 16px 0 8px; font-size: 14px; color: var(--muted); }
 .dialog-body ul { margin: 8px 0 16px 18px; color: var(--muted); }
@@ -303,6 +334,15 @@ dialog#manouverDlg {
   font-size: 13px;
 }
 .dialog-body .actions { display: flex; justify-content: flex-end; }
+.dialog-body .actions .primary {
+  background: #2563eb;
+  border-color: rgba(37, 99, 235, 0.85);
+  color: #fff;
+}
+.dialog-body .actions .primary:hover {
+  background: #1d4ed8;
+  border-color: rgba(29, 78, 216, 0.9);
+}
 dialog::backdrop{ background: rgba(0,0,0,0.4); }
 
 .manouver-dialog {

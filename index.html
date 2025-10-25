@@ -73,6 +73,18 @@
       <div id="modeBadge" class="badge three">3D</div>
       <div id="scenarioInfo" aria-live="polite"></div>
 
+      <dialog id="exportWarnDlg">
+        <form method="dialog" class="dialog-body manouver-dialog export-warn-dialog" id="exportWarnForm">
+          <button type="button" id="exportWarnClose" aria-label="Cancel export" class="dialog-close">×</button>
+          <h3>Export Without Optimization?</h3>
+          <p>Optimization has not been run for the current samples. Export anyway?</p>
+          <div class="actions">
+            <button type="button" id="exportWarnSkip">Export</button>
+            <button type="button" id="exportWarnOptimize" class="primary">Optimize</button>
+          </div>
+        </form>
+      </dialog>
+
       <!-- Weights panel (top-left) -->
       <div id="weightsPanel" aria-hidden="true">
         <div class="panel-title">Optimizer Weights</div>
@@ -121,12 +133,12 @@
 
   <dialog id="manouverDlg">
     <form method="dialog" class="dialog-body manouver-dialog" id="manouverForm">
+      <button type="button" class="dialog-close" id="manouverClose" aria-label="Close">×</button>
       <h3>Select manouver type</h3>
       <p class="manouver-intro">Choose the label that best describes this export.</p>
       <div id="manouverOptions" class="manouver-options"></div>
       <div class="actions">
-        <button type="button" id="manouverCancel">Cancel</button>
-        <button type="submit" id="manouverConfirm" disabled>Export</button>
+        <button type="submit" id="manouverConfirm" disabled class="primary">Export</button>
       </div>
     </form>
   </dialog>
@@ -134,6 +146,7 @@
   <!-- Help dialog -->
   <dialog id="helpDlg">
     <div class="dialog-body">
+      <button type="button" id="helpCloseBtn" class="dialog-close" aria-label="Close help">×</button>
       <h3>Help</h3>
       <h4>Buttons</h4>
       <div class="help-grid">
@@ -160,11 +173,7 @@
         <span class="help-key">Left click</span><span class="help-desc">Move control/sample points (drag). In 2D, clicking empty space adds a control point. In 3D, click/drag empty space rotates the view.</span>
         <span class="help-key">Right click</span><span class="help-desc">Pan view</span>
       </div>
-
       <p class="help-note">Footer shows the currently loaded point cloud and trajectory files.</p>
-      <div class="actions">
-        <button id="helpClose">Close</button>
-      </div>
     </div>
   </dialog>
 

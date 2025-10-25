@@ -106,6 +106,7 @@ export function createExporter({
   optionsContainer,
   cancelButton,
   confirmButton,
+  beforePrompt,
   exportButton,
   onCollectData,
   onStatus = NO_OP
@@ -189,6 +190,24 @@ export function createExporter({
       if (!onCollectData) return;
       const snapshot = await onCollectData();
       if (!snapshot) return;
+
+      if (beforePrompt) {
+        try {
+          const proceed = await beforePrompt(snapshot);
+          if (proceed === true) {
+            // continue
+          } else if (proceed === false) {
+            onStatus("Export canceled.");
+            return;
+          } else {
+            return;
+          }
+        } catch (err) {
+          console.error("Pre-export check failed", err);
+          onStatus("Export canceled.");
+          return;
+        }
+      }
 
       let manouverKey = null;
       if (options.length > 0) {

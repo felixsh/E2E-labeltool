@@ -48,12 +48,12 @@ const weightsBtn  = document.getElementById("weightsBtn");
 const exportBtn   = document.getElementById("exportSamplesBtn");
 const manouverDlg = document.getElementById("manouverDlg");
 const manouverForm = document.getElementById("manouverForm");
+const manouverCloseBtn = document.getElementById("manouverClose");
 const manouverOptionsEl = document.getElementById("manouverOptions");
-const manouverCancelBtn = document.getElementById("manouverCancel");
 const manouverConfirmBtn = document.getElementById("manouverConfirm");
 const helpBtn     = document.getElementById("helpBtn");
 const helpDlg     = document.getElementById("helpDlg");
-const helpClose   = document.getElementById("helpClose");
+const helpCloseBtn   = document.getElementById("helpCloseBtn");
 const weightsPanel = document.getElementById("weightsPanel");
 const weightJerkInput = document.getElementById("weightJerk");
 const weightVelInput  = document.getElementById("weightVel");
@@ -62,6 +62,11 @@ const weightJerkNumber = document.getElementById("weightJerkNumber");
 const weightVelNumber  = document.getElementById("weightVelNumber");
 const weightAccNumber  = document.getElementById("weightAccNumber");
 const scenarioInfoBox = document.getElementById("scenarioInfo");
+const exportWarnDlg = document.getElementById("exportWarnDlg");
+const exportWarnForm = document.getElementById("exportWarnForm");
+const exportWarnOptimizeBtn = document.getElementById("exportWarnOptimize");
+const exportWarnSkipBtn = document.getElementById("exportWarnSkip");
+const exportWarnCloseBtn = document.getElementById("exportWarnClose");
 
 function finiteOr(value, fallback) {
   const num = Number(value);
@@ -1112,9 +1117,9 @@ function setOptimizationCursor(active) {
 async function runOptimization() {
   if (!spline) {
     statusOptim("Load a point cloud or trajectory before optimizing.");
-    return;
+    return false;
   }
-  if (optimizeInFlight) return;
+  if (optimizeInFlight) return false;
 
   optimizeInFlight = true;
   setOptimizationCursor(true);
@@ -1124,6 +1129,8 @@ async function runOptimization() {
     clearTimeout(optimizeFlashTimeout);
     optimizeFlashTimeout = null;
   }
+  let succeeded = false;
+
   if (optimizeBtn) {
     optimizeBtn.classList.remove("optimized-flash");
     optimizeBtn.classList.add("optimizing");
@@ -1133,6 +1140,7 @@ async function runOptimization() {
 
   try {
     await Promise.resolve(spline.optimizeTs?.());
+    succeeded = true;
     if (optimizeBtn) {
       optimizeBtn.classList.add("optimized-flash");
       optimizeFlashTimeout = window.setTimeout(() => {
@@ -1153,6 +1161,8 @@ async function runOptimization() {
     setOptimizationCursor(false);
     optimizeInFlight = false;
   }
+
+  return succeeded;
 }
 
 // ---------- UI wiring (spline controls) ----------
@@ -1224,27 +1234,126 @@ function collectExportSnapshot() {
   return { payload, filename: fname };
 }
 
+let pendingExportWarning = null;
+let resolveExportWarning = null;
+let exportWarningOpen = false;
+
+function resolveExportWarningDecision(value, message) {
+  if (message) status(message);
+  if (resolveExportWarning) {
+    resolveExportWarning(value);
+    resolveExportWarning = null;
+    pendingExportWarning = null;
+  }
+  exportWarningOpen = false;
+}
+
+function ensureOptimizedBeforeExport(snapshot) {
+  const optimized = snapshot?.payload?.samples_optimized;
+  if (optimized) return true;
+
+  if (pendingExportWarning) return pendingExportWarning;
+
+  pendingExportWarning = new Promise((resolve) => {
+    resolveExportWarning = resolve;
+    try {
+      exportWarningOpen = true;
+      exportWarnDlg?.showModal?.();
+      requestAnimationFrame(() => {
+        exportWarnSkipBtn?.focus?.();
+      });
+    } catch (err) {
+      console.error("Failed to open export warning dialog", err);
+      resolveExportWarningDecision(false);
+    }
+  });
+
+  return pendingExportWarning;
+}
+
 const exportController = createExporter({
   manouverTypes,
   dialog: manouverDlg,
   form: manouverForm,
   optionsContainer: manouverOptionsEl,
-  cancelButton: manouverCancelBtn,
+  cancelButton: manouverCloseBtn,
   confirmButton: manouverConfirmBtn,
   exportButton: exportBtn,
+  beforePrompt: ensureOptimizedBeforeExport,
   onCollectData: collectExportSnapshot,
   onStatus: status
 });
 
 window.addEventListener("keydown", (e) => {
+  if (exportWarningOpen) return;
   if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) return;
-  if (e.key.toLowerCase() === "e") { e.preventDefault(); void exportController?.exportAll?.(); }
+  if (e.key.toLowerCase() === "e") {
+    e.preventDefault();
+    void exportController?.exportAll?.();
+  }
+});
+
+function handleExportWarnSkip() {
+  exportWarnDlg?.close?.();
+  resolveExportWarningDecision(true);
+}
+
+exportWarnSkipBtn?.addEventListener("click", handleExportWarnSkip);
+
+async function handleExportWarnOptimize() {
+  exportWarnOptimizeBtn.disabled = true;
+  try {
+    exportWarnDlg?.close?.();
+    const optimized = await runOptimization();
+    if (optimized) {
+      resolveExportWarningDecision(null);
+      window.setTimeout(() => {
+        void exportController?.exportAll?.();
+      }, 0);
+    } else {
+      resolveExportWarningDecision(false, "Optimization failed; export canceled.");
+    }
+  } catch (err) {
+    console.error("Optimization before export failed", err);
+    resolveExportWarningDecision(false, "Optimization failed; export canceled.");
+  } finally {
+    exportWarnOptimizeBtn.disabled = false;
+  }
+}
+
+exportWarnOptimizeBtn?.addEventListener("click", handleExportWarnOptimize);
+
+exportWarnCloseBtn?.addEventListener("click", () => {
+  exportWarnDlg?.close?.();
+  resolveExportWarningDecision(false, "Export canceled.");
+});
+
+exportWarnForm?.addEventListener("submit", (evt) => {
+  evt.preventDefault();
+});
+
+document.addEventListener("keydown", (evt) => {
+  if (!exportWarningOpen) return;
+  const key = evt.key.toLowerCase();
+  if (key === "o") {
+    evt.preventDefault();
+    evt.stopImmediatePropagation();
+    void handleExportWarnOptimize();
+  } else if (key === "e") {
+    evt.preventDefault();
+    evt.stopImmediatePropagation();
+    handleExportWarnSkip();
+  }
+}, true);
+
+manouverCloseBtn?.addEventListener("click", () => {
+  manouverDlg?.close();
 });
 
 
 // Help dialog
 helpBtn?.addEventListener("click", () => { helpDlg?.showModal(); });
-helpClose?.addEventListener("click", () => { helpDlg?.close(); });
+helpCloseBtn?.addEventListener("click", () => { helpDlg?.close(); });
 
 // ---------- UI wiring (PCD) ----------
 colorModeSel.addEventListener("change", () => { colorMode = colorModeSel.value; updateLegend(); buildCloud(); });
@@ -1367,3 +1476,8 @@ updateLegend();
 setBadge("3D");
 setIsoView3D();
 renderOnce();
+exportWarnDlg?.addEventListener("cancel", (evt) => {
+  evt.preventDefault();
+  exportWarnDlg?.close?.();
+  resolveExportWarningDecision(false, "Export canceled.");
+});
