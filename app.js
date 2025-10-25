@@ -1204,10 +1204,12 @@ function collectExportSnapshot() {
   const curveType = spline?.getCurveType ? spline.getCurveType() : null;
   const deltaT = spline?.getDeltaT ? spline.getDeltaT() : null;
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
+  const scenarioName = currentScenarioName || null;
 
   const payload = {
     pointcloud_path: pointCloudPath,
     trajectory_path: trajectoryPath,
+    scenario_name: scenarioName,
     curve_type: curveType,
     delta_t: deltaT,
     samples_optimized: samplesOptimized,
@@ -1216,11 +1218,6 @@ function collectExportSnapshot() {
     sample_points:  samplePtsFull,
     trajectory_raw: trajectoryRaw
   };
-
-  const scenarioName = currentScenarioName || null;
-  if (scenarioName) {
-    payload.scenario_name = scenarioName;
-  }
 
   if (curveType === "catmullrom" && alpha != null) {
     payload.alpha = alpha;
