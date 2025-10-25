@@ -186,7 +186,7 @@ main { height: calc(100vh - 96px); }
 #weightsPanel{
   position: absolute;
   left: 12px;
-  top: 60px;
+  top: 120px;
   width: 540px;
   display: none;
   flex-direction: column;
