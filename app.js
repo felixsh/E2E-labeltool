@@ -1289,6 +1289,7 @@ const exportController = createExporter({
 
 window.addEventListener("keydown", (e) => {
   if (exportWarningOpen) return;
+  if (manouverDlg?.open) return;
   if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) return;
   if (e.key.toLowerCase() === "e") {
     e.preventDefault();

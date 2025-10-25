@@ -114,6 +114,9 @@ export function createExporter({
   const options = normalizeManouverTypes(manouverTypes);
   let optionsBuilt = false;
   let lastSelectedKey = options[0]?.key ?? null;
+  let keyNavAttached = false;
+  let dialogClosing = false;
+  let exportInFlight = false;
 
   const ensureOptions = () => {
     if (optionsBuilt || !optionsContainer) return;
@@ -130,6 +133,91 @@ export function createExporter({
     optionsBuilt = true;
   };
 
+  const getOptionRadios = () => {
+    if (!optionsContainer) return [];
+    return Array.from(
+      optionsContainer.querySelectorAll('input[name="manouverOption"]')
+    );
+  };
+
+  const moveSelection = (delta) => {
+    const radios = getOptionRadios();
+    if (!radios.length) return null;
+    let idx = radios.findIndex(radio => radio.checked);
+    if (idx === -1) {
+      idx = delta > 0 ? 0 : radios.length - 1;
+    } else {
+      const len = radios.length;
+      idx = (idx + delta + len) % len;
+    }
+    const next = radios[idx];
+    if (next) {
+      next.checked = true;
+      lastSelectedKey = next.value;
+      updateSelectionState(optionsContainer, confirmButton, next.value);
+    }
+    return next;
+  };
+
+  const confirmSelection = () => {
+    if (!optionsContainer || !dialog?.open || dialogClosing) return false;
+    const selected = optionsContainer.querySelector(
+      'input[name="manouverOption"]:checked'
+    );
+    if (!selected) return false;
+    dialogClosing = true;
+    dialog.returnValue = selected.value;
+    dialog.close(selected.value);
+    return true;
+  };
+
+  const handleKeydown = (evt) => {
+    if (!dialog?.open) return;
+    const target = evt.target;
+    const withinDialog =
+      target === document.body || target === dialog || dialog.contains(target);
+    if (!withinDialog) return;
+
+    const key = evt.key;
+    if (key === "ArrowDown" || key === "ArrowRight") {
+      const changed = moveSelection(1);
+      if (changed) {
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+      }
+    } else if (key === "ArrowUp" || key === "ArrowLeft") {
+      const changed = moveSelection(-1);
+      if (changed) {
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+      }
+    } else if (key === "Enter") {
+      const accepted = confirmSelection();
+      if (accepted) {
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+      }
+    } else if (key.toLowerCase?.() === "e") {
+      const accepted = confirmSelection();
+      if (accepted) {
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+      }
+    }
+  };
+
+  const enableKeyNav = () => {
+    if (keyNavAttached) return;
+    document.addEventListener("keydown", handleKeydown, true);
+    keyNavAttached = true;
+  };
+
+  const disableKeyNav = () => {
+    if (!keyNavAttached) return;
+    document.removeEventListener("keydown", handleKeydown, true);
+    keyNavAttached = false;
+  };
+
   const promptManouver = async () => {
     if (!dialog || !optionsContainer || options.length === 0) {
       return null;
@@ -142,6 +230,8 @@ export function createExporter({
     return new Promise(resolve => {
       const handleClose = () => {
         dialog.removeEventListener("close", handleClose);
+        disableKeyNav();
+        dialogClosing = false;
         const value = dialog.returnValue;
         if (value) {
           lastSelectedKey = value;
@@ -161,13 +251,21 @@ export function createExporter({
             active.blur?.();
           }
         });
+        enableKeyNav();
       } catch (err) {
         console.error("Failed to open manouver selection dialog", err);
         dialog.removeEventListener("close", handleClose);
+        disableKeyNav();
+        dialogClosing = false;
         resolve(null);
       }
     });
   };
+
+  confirmButton?.addEventListener("click", evt => {
+    evt.preventDefault?.();
+    confirmSelection();
+  });
 
   cancelButton?.addEventListener("click", () => {
     dialog?.close("");
@@ -178,20 +276,9 @@ export function createExporter({
     dialog.close("");
   });
 
-  form?.addEventListener("submit", evt => {
-    evt.preventDefault();
-    if (!optionsContainer) {
-      dialog?.close("");
-      return;
-    }
-    const selected = optionsContainer.querySelector(
-      'input[name="manouverOption"]:checked'
-    );
-    if (!selected) return;
-    dialog?.close(selected.value);
-  });
-
   const exportAll = async () => {
+    if (exportInFlight) return;
+    exportInFlight = true;
     try {
       if (!onCollectData) return;
       const snapshot = await onCollectData();
@@ -238,6 +325,8 @@ export function createExporter({
     } catch (err) {
       console.error("Export failed", err);
       onStatus("Export failed.");
+    } finally {
+      exportInFlight = false;
     }
   };
 
