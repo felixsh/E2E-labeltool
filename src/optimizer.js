@@ -86,65 +86,152 @@ export function createTrajectoryOptimizer({
     }
 
     const interiorCount = N - 2;
-    const costFn = (x) => {
-      const Tx = [0, ...x, 1];
-      return evaluateCost(Tx, dt, cfg);
-    };
-    const addFn = solver.add_function?.bind(solver);
-    const addLe = solver.add_less_than_or_equal_to_constraint?.bind(solver);
-    const solve = solver.solve?.bind(solver);
-
-    if (!addFn || !addLe || !solve) {
-      logger.error("[optimizeTs] Alglib solver does not expose required methods.");
-      solver.remove?.();
-      logger.groupEnd?.();
-      return;
-    }
-
-    addFn(costFn);
-
-    // Bounds for first and last interior points
-    addLe((x) => eps - x[0]);
-    addLe((x) => x[interiorCount - 1] - (1 - eps));
-
-    // Monotonic constraints between neighbors
-    for (let i = 1; i < interiorCount; i++) {
-      addLe((x) => x[i - 1] + eps - x[i]);
-    }
-
-    const xGuess = clampMonotonic(T.slice(1, -1), eps);
+    const maxPasses = Number.isFinite(cfg.maxSolverPasses) ? Math.max(1, cfg.maxSolverPasses | 0) : 3;
+    const relTolRepeat = Number.isFinite(cfg.solverPassRelTol) ? Math.max(0, cfg.solverPassRelTol) : 1e-5;
     const maxIterations = Number.isFinite(cfg?.maxIterations) ? cfg.maxIterations : undefined;
 
-    let solution = null;
-    try {
-      const maybe = solve("min", xGuess, [], maxIterations);
-      if (Array.isArray(maybe) && maybe.length === interiorCount) {
-        solution = maybe;
-      } else if (typeof solver.get_results === "function") {
-        const res = solver.get_results();
-        if (Array.isArray(res) && res.length === interiorCount) {
-          solution = res;
-        }
+    let xCurrent = clampMonotonic(T.slice(1, -1), eps);
+    let currentCost = evaluateCost([0, ...xCurrent, 1], dt, cfg);
+    let bestSolution = xCurrent.slice();
+    let bestCost = currentCost;
+    let solverReport = null;
+
+    for (let pass = 0; pass < maxPasses; pass++) {
+      let solver;
+      try {
+        solver = await makeSolver();
+      } catch (err) {
+        logger.error("[optimizeTs] Failed to load Alglib:", err);
+        logger.groupEnd?.();
+        return;
       }
-    } catch (err) {
-      logger.error("[optimizeTs] Solver error:", err);
-    }
 
-    if (!solution) {
-      logger.warn("[optimizeTs] Solver did not return a solution; keeping existing samples.");
+      const gradCache = { key: null, value: null, grad: null };
+      const useAnalyticGrad = typeof evaluateCost.withGradient === "function";
+
+      const evalCost = (x) => {
+        const key = Array.from(x).join("|");
+        if (gradCache.key === key && gradCache.value != null) {
+          return gradCache.value;
+        }
+        const TsFull = [0, ...x, 1];
+        if (useAnalyticGrad) {
+          const res = evaluateCost.withGradient(TsFull, dt, cfg);
+          if (res && typeof res.value === "number" && res.grad) {
+            const gradArr = Array.from(res.grad);
+            if (gradArr.length === TsFull.length) {
+              const interior = gradArr.slice(1, gradArr.length - 1);
+              if (interior.length === x.length) {
+                gradCache.key = key;
+                gradCache.value = res.value;
+                gradCache.grad = interior;
+                return res.value;
+              }
+            }
+          }
+        }
+        const value = evaluateCost(TsFull, dt, cfg);
+        gradCache.key = key;
+        gradCache.value = value;
+        gradCache.grad = null;
+        return value;
+      };
+
+      const gradFn = (x, j) => {
+        const key = Array.from(x).join("|");
+        if (gradCache.key !== key || !gradCache.grad) {
+          evalCost(x);
+        }
+        if (gradCache.grad && gradCache.grad.length === x.length) {
+          return gradCache.grad[j];
+        }
+        const step = 1e-6;
+        const xp = x.slice();
+        const xm = x.slice();
+        xp[j] += step;
+        xm[j] -= step;
+        const xpClamped = clampMonotonic(xp, eps);
+        const xmClamped = clampMonotonic(xm, eps);
+        const fp = evaluateCost([0, ...xpClamped, 1], dt, cfg);
+        const fm = evaluateCost([0, ...xmClamped, 1], dt, cfg);
+        return (fp - fm) / (xpClamped[j] - xmClamped[j] || 1e-9);
+      };
+
+      const costFn = (x) => evalCost(x);
+      const addFn = solver.add_function?.bind(solver);
+      const addJac = solver.add_jacobian?.bind(solver);
+      const addLe = solver.add_less_than_or_equal_to_constraint?.bind(solver);
+      const solve = solver.solve?.bind(solver);
+
+      if (!addFn || !addLe || !solve) {
+        logger.error("[optimizeTs] Alglib solver does not expose required methods.");
+        solver.remove?.();
+        logger.groupEnd?.();
+        return;
+      }
+
+      addFn(costFn);
+      if (addJac) addJac(gradFn);
+
+      const addConstraint = (fn, jac) => {
+        addLe(fn);
+        if (addJac && jac) addJac(jac);
+      };
+
+      addConstraint(
+        (x) => eps - x[0],
+        (_, j) => (j === 0 ? -1 : 0)
+      );
+      addConstraint(
+        (x) => x[interiorCount - 1] - (1 - eps),
+        (_, j) => (j === interiorCount - 1 ? 1 : 0)
+      );
+      for (let i = 1; i < interiorCount; i++) {
+        addConstraint(
+          (x) => x[i - 1] + eps - x[i],
+          (_, j) => (j === i - 1 ? 1 : j === i ? -1 : 0)
+        );
+      }
+
+      let solution = null;
+      try {
+        const maybe = solve("min", xCurrent, [], maxIterations);
+        if (Array.isArray(maybe) && maybe.length === interiorCount) {
+          solution = maybe;
+        } else if (typeof solver.get_results === "function") {
+          const res = solver.get_results();
+          if (Array.isArray(res) && res.length === interiorCount) {
+            solution = res;
+          }
+        }
+        solverReport = solver.get_report?.();
+      } catch (err) {
+        logger.error("[optimizeTs] Solver error:", err);
+      }
+
+      if (!solution) {
+        solver.remove?.();
+        break;
+      }
+
+      const clamped = clampMonotonic(solution, eps);
+      const candidateCost = evaluateCost([0, ...clamped, 1], dt, cfg);
+      bestSolution = clamped;
+      bestCost = candidateCost;
       solver.remove?.();
-      logger.groupEnd?.();
-      return;
+
+      const improvement = currentCost - candidateCost;
+      if (improvement <= Math.max(1, Math.abs(currentCost)) * relTolRepeat) {
+        break;
+      }
+
+      xCurrent = clamped;
+      currentCost = candidateCost;
     }
 
-    const clamped = clampMonotonic(solution, eps);
-    const nextTs = [0, ...clamped, 1];
-    const finalCost = evaluateCost(nextTs, dt, cfg);
-    logger.log("Final cost:", finalCost.toFixed(6));
-    logger.log("Solver status:", solver.get_status?.());
-    logger.log("Solver report:", solver.get_report?.());
-
-    solver.remove?.();
+    const nextTs = [0, ...bestSolution, 1];
+    logger.log("Final cost:", bestCost.toFixed(6));
+    if (solverReport) logger.log("Solver report:", solverReport);
     logger.groupEnd?.();
 
     setTs(nextTs);

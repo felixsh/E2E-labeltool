@@ -28,7 +28,9 @@ window.CONFIG = {
     wJerk: 1.0,
     wVel: 0.10,
     wAcc: 0.10,
-    maxIterations: 10000
+    maxIterations: 10000,
+    maxSolverPasses: 3,
+    solverPassRelTol: 1e-6
   },
 
   // Export dialog options. Keys are emitted as `manouver_type` in the exported JSON payload.
