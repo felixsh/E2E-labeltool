@@ -1260,7 +1260,10 @@ function ensureOptimizedBeforeExport(snapshot) {
       exportWarningOpen = true;
       exportWarnDlg?.showModal?.();
       requestAnimationFrame(() => {
-        exportWarnSkipBtn?.focus?.();
+        const active = document.activeElement;
+        if (active && exportWarnDlg?.contains(active)) {
+          active.blur?.();
+        }
       });
     } catch (err) {
       console.error("Failed to open export warning dialog", err);

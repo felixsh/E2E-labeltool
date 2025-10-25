@@ -155,6 +155,12 @@ export function createExporter({
 
       try {
         dialog.showModal();
+        requestAnimationFrame(() => {
+          const active = document.activeElement;
+          if (active && dialog.contains(active)) {
+            active.blur?.();
+          }
+        });
       } catch (err) {
         console.error("Failed to open manouver selection dialog", err);
         dialog.removeEventListener("close", handleClose);
