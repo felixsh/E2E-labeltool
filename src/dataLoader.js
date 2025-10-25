@@ -63,7 +63,7 @@ export async function loadPointCloudFromFile(file) {
 }
 
 export async function loadPointCloudFromUrl(url) {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText}`);
   }
@@ -89,7 +89,7 @@ export async function loadTrajectoryFromFile(file) {
 }
 
 export async function loadTrajectoryFromUrl(url) {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText}`);
   }
