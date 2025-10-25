@@ -689,8 +689,15 @@ export function makeSplineSystem({
     return points.map(p => [p.x, p.y]);
   }
   function getOptimizerWeights() {
-    const { wJerk, wVel, wAcc, monotonicEps, maxIterations } = OPT;
-    return { wJerk, wVel, wAcc, monotonicEps, maxIterations };
+    const out = {};
+    for (const [key, value] of Object.entries(OPT)) {
+      if (value == null) continue;
+      const type = typeof value;
+      if (type === "number" || type === "boolean" || type === "string") {
+        out[key] = value;
+      }
+    }
+    return out;
   }
 
   function dispose() {
