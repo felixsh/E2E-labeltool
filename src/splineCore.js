@@ -550,18 +550,16 @@ export function makeSplineSystem({
     canvasEl.style.cursor = is2D() ? "crosshair" : "";
   }
 
-  // Hover → pointer cursor near points
-  canvasEl.addEventListener("pointermove", (e) => {
+  const handleCanvasPointerMove = (e) => {
     if (dragging) return;
     const p = screenToGround(e.clientX, e.clientY);
     const samples = getSamples();
     const hitCtrl = pickNearestVec(points, p, CTRL_RADIUS * 2.0);
     const hitSample = showSamples ? pickNearestVec(samples.map(s => new THREE.Vector3(s.x, s.y, 0)), p, SAMPLE_RADIUS * 2.0) : -1;
     setCursor((hitCtrl >= 0 || hitSample >= 0) ? "pointer" : null);
-  });
+  };
 
-  // Down → start drag or add point (2D)
-  canvasEl.addEventListener("pointerdown", (e) => {
+  const handleCanvasPointerDown = (e) => {
     if (e.button === 2) return; // right button used by OrbitControls to pan
     const p = screenToGround(e.clientX, e.clientY);
     const samples = getSamples();
@@ -599,10 +597,9 @@ export function makeSplineSystem({
       }
       dragging = null;
     }
-  });
+  };
 
-  // Move → drag
-  window.addEventListener("pointermove", (e) => {
+  const handleWindowPointerMove = (e) => {
     if (!dragging) return;
     const p = screenToGround(e.clientX, e.clientY);
     if (dragging.kind === "ctrl") {
@@ -628,16 +625,27 @@ export function makeSplineSystem({
       updateSamplesAndCharts();
       samplesOptimized = false;
     }
-  });
+  };
 
-  // Up → end drag
-  window.addEventListener("pointerup", () => {
+  const handleWindowPointerUp = () => {
     if (!dragging) return;
     dragging = null;
     dragUndoCaptured = false;
     setControlsEnabled(true);
     setCursor(null);
-  });
+  };
+
+  // Hover → pointer cursor near points
+  canvasEl.addEventListener("pointermove", handleCanvasPointerMove);
+
+  // Down → start drag or add point (2D)
+  canvasEl.addEventListener("pointerdown", handleCanvasPointerDown);
+
+  // Move → drag
+  window.addEventListener("pointermove", handleWindowPointerMove);
+
+  // Up → end drag
+  window.addEventListener("pointerup", handleWindowPointerUp);
 
   // ===== Public helpers =====
   function addAfterSelected() {
@@ -685,6 +693,53 @@ export function makeSplineSystem({
     return { wJerk, wVel, wAcc, monotonicEps, maxIterations };
   }
 
+  function dispose() {
+    canvasEl?.removeEventListener("pointermove", handleCanvasPointerMove);
+    canvasEl?.removeEventListener("pointerdown", handleCanvasPointerDown);
+    window.removeEventListener("pointermove", handleWindowPointerMove);
+    window.removeEventListener("pointerup", handleWindowPointerUp);
+
+    dragging = null;
+    dragUndoCaptured = false;
+
+    setControlsEnabled?.(true);
+    setCursor(null);
+
+    if (curveObject) {
+      scene.remove(curveObject);
+      curveObject.geometry?.dispose?.();
+      curveObject.material?.dispose?.();
+      curveObject = null;
+    }
+
+    while (ctrlSpheres.length) {
+      const mesh = ctrlSpheres.pop();
+      scene.remove(mesh);
+    }
+
+    while (sampleSpheres.length) {
+      const mesh = sampleSpheres.pop();
+      scene.remove(mesh);
+    }
+
+    while (sampleLabels.length) {
+      const sprite = sampleLabels.pop();
+      scene.remove(sprite);
+      sprite.material?.map?.dispose?.();
+      sprite.material?.dispose?.();
+    }
+
+    labelCache.forEach((tex) => tex?.dispose?.());
+    labelCache.clear();
+
+    ctrlGeom.dispose?.();
+    smplGeom.dispose?.();
+    ctrlMat.dispose?.();
+    ctrlMatSel.dispose?.();
+    smplMat.dispose?.();
+    smplMatSel.dispose?.();
+  }
+
   return {
     setCurveType: (t) => { curveType = t; rebuildEverything(); },
     setAlpha: (a) => { alpha = a; if (curveType === "catmullrom") rebuildEverything(); },
@@ -705,6 +760,7 @@ export function makeSplineSystem({
     addAfterSelected,
     deleteSelectedCtrl,
     undoLastAction,
-    redoLastAction
+    redoLastAction,
+    dispose
   };
 }

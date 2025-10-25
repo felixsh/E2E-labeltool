@@ -897,7 +897,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 
 function applyPointCloud(rawData, name, path) {
   trajectoryHistoryRaw = [];
-  initializeSpline();
+  initializeSpline(true);
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
@@ -964,7 +964,7 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   const histStart = Math.max(0, historySource.length - usableCount);
   trajectoryHistoryRaw = historySource.slice(histStart).map(([x, y]) => [x, y]);
 
-  initializeSpline();
+  initializeSpline(true);
   spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
 
   const trajBounds = computeTrajectoryBounds(trajectoryPoints);
@@ -1063,7 +1063,15 @@ function setSamplesVisible(v) {
   spline?.setShowSamples?.(next);
 }
 
-function initializeSpline() {
+function initializeSpline(force = false) {
+  if (force && spline) {
+    try {
+      spline.dispose?.();
+    } catch (err) {
+      console.error("Failed to dispose existing spline", err);
+    }
+    spline = null;
+  }
   if (spline) return;
   spline = makeSplineSystem({
     THREE, d3, scene,
