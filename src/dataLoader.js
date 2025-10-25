@@ -1,6 +1,5 @@
 import { parsePointCloud } from "./pcdParser.js";
 import { load as loadNpy } from "npyjs";
-import { reshape } from "npyjs/reshape";
 
 function nameFromPath(path, fallback) {
   if (!path) return fallback;
@@ -13,11 +12,14 @@ function parseTrajectory(parsed) {
   if (shape.length !== 2 || shape[1] < 2) {
     throw new Error("expected an array shaped (N, >=2)");
   }
-  const nested = reshape(parsed.data, shape, parsed.fortranOrder);
+  const rows = shape[0];
+  const cols = shape[1];
+  const { data, fortranOrder } = parsed;
   const points = [];
-  for (const row of nested) {
-    const x = row?.[0];
-    const y = row?.[1];
+  const idxFor = (r, c) => (fortranOrder ? r + rows * c : r * cols + c);
+  for (let r = 0; r < rows; r++) {
+    const x = data[idxFor(r, 0)];
+    const y = data[idxFor(r, 1)];
     if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
     points.push([x, y]);
   }
