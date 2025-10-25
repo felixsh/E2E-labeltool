@@ -936,9 +936,6 @@ function rebuildTrajectoryObject(force2D = is2D) {
 }
 
 function applyPointCloud(rawData, name, path) {
-  trajectoryHistoryRaw = [];
-  initializeSpline(true);
-  spline?.setTrajectoryHistory?.(trajectoryHistoryRaw);
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
   const cloudBounds = cloudBoundsCache;
