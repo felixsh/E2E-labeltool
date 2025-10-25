@@ -10,6 +10,14 @@ import {
 import { makeCharts } from "./src/charts.js";
 import { makeSplineSystem } from "./src/splineCore.js";
 import { createExporter } from "./src/exporter.js";
+import {
+  clampAlpha,
+  clampPointSize,
+  loadPreferences,
+  persistPreferences,
+  validColorModes,
+  validCurveTypes
+} from "./src/preferences.js";
 
 // ---------- CONFIG ----------
 const CFG = window.CONFIG || {};
@@ -18,6 +26,22 @@ const DEMO_TRAJECTORY = CFG.demoTrajectory;
 const HISTORY_COUNT = Math.max(1, (CFG.N_PAST | 0) || 1);
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
+
+const preferences = loadPreferences();
+
+const storedPointSize = clampPointSize(preferences.pointSize);
+if (storedPointSize != null) {
+  basePtSize = storedPointSize;
+  CFG.pointSize = storedPointSize;
+}
+
+if (typeof preferences.colorMode === "string" && validColorModes.has(preferences.colorMode)) {
+  CFG.colorMode = preferences.colorMode;
+}
+
+if (typeof preferences.curveType === "string" && validCurveTypes.has(preferences.curveType)) {
+  CFG.defaultCurve = preferences.curveType;
+}
 
 // ---------- DOM ----------
 const container   = document.getElementById("stage3d");
@@ -67,6 +91,22 @@ const exportWarnForm = document.getElementById("exportWarnForm");
 const exportWarnOptimizeBtn = document.getElementById("exportWarnOptimize");
 const exportWarnSkipBtn = document.getElementById("exportWarnSkip");
 const exportWarnCloseBtn = document.getElementById("exportWarnClose");
+
+const initialColorMode =
+  (typeof CFG.colorMode === "string" && validColorModes.has(CFG.colorMode))
+    ? CFG.colorMode
+    : "height";
+if (colorModeSel) {
+  colorModeSel.value = initialColorMode;
+}
+
+const initialCurveType =
+  (typeof CFG.defaultCurve === "string" && validCurveTypes.has(CFG.defaultCurve))
+    ? CFG.defaultCurve
+    : "basis";
+if (curveSel) {
+  curveSel.value = initialCurveType;
+}
 
 function finiteOr(value, fallback) {
   const num = Number(value);
@@ -1182,13 +1222,21 @@ syncAlphaVisibility();
 
 curveSel?.addEventListener("change", e => {
   const v = e.target.value;
+  if (!validCurveTypes.has(v)) return;
   syncAlphaVisibility();
   spline?.setCurveType?.(v);
+  CFG.defaultCurve = v;
+  persistPreferences({ curveType: v });
 });
 alphaInput?.addEventListener("input", e => {
-  const a = +e.target.value || 0;
-  if (alphaVal) alphaVal.textContent = a.toFixed(2);
-  spline?.setAlpha?.(a);
+  const clamped = clampAlpha(e.target.value);
+  if (clamped == null) return;
+  if (alphaInput.value !== clamped.toFixed(2)) {
+    alphaInput.value = clamped.toFixed(2);
+  }
+  if (alphaVal) alphaVal.textContent = clamped.toFixed(2);
+  spline?.setAlpha?.(clamped);
+  CFG.defaultAlpha = clamped;
 });
 samplesBtn?.addEventListener("click", () => {
   setSamplesVisible(!samplesVisible);
@@ -1365,14 +1413,29 @@ helpBtn?.addEventListener("click", () => { helpDlg?.showModal(); });
 helpCloseBtn?.addEventListener("click", () => { helpDlg?.close(); });
 
 // ---------- UI wiring (PCD) ----------
-colorModeSel.addEventListener("change", () => { colorMode = colorModeSel.value; updateLegend(); buildCloud(); });
-ptSizeInput.addEventListener("input", () => {
-  basePtSize = +ptSizeInput.value;
-  ptSizeVal.textContent = `${basePtSize.toFixed(2)} m`;
-  syncPointSize();
+colorModeSel?.addEventListener("change", () => {
+  const nextMode = colorModeSel.value;
+  if (!validColorModes.has(nextMode)) return;
+  colorMode = nextMode;
+  CFG.colorMode = nextMode;
+  persistPreferences({ colorMode: nextMode });
+  updateLegend();
+  buildCloud();
 });
-ptSizeInput.value = basePtSize.toFixed(2);
-ptSizeVal.textContent = `${basePtSize.toFixed(2)} m`;
+ptSizeInput?.addEventListener("input", () => {
+  const clamped = clampPointSize(ptSizeInput.value);
+  if (clamped == null) return;
+  basePtSize = clamped;
+  if (ptSizeInput.value !== clamped.toFixed(2)) {
+    ptSizeInput.value = clamped.toFixed(2);
+  }
+  ptSizeVal.textContent = `${clamped.toFixed(2)} m`;
+  syncPointSize();
+  CFG.pointSize = clamped;
+  persistPreferences({ pointSize: clamped });
+});
+if (ptSizeInput) ptSizeInput.value = basePtSize.toFixed(2);
+if (ptSizeVal) ptSizeVal.textContent = `${basePtSize.toFixed(2)} m`;
 
 viewTopBtn.addEventListener("click", () => { if (!is2D) setTopView3D(); renderOnce(); });
 viewIsoBtn.addEventListener("click", () => { if (!is2D) setIsoView3D(); renderOnce(); });

@@ -1,3 +1,5 @@
+import { getLastManouver, setLastManouver } from "./preferences.js";
+
 const NO_OP = () => {};
 
 function titleize(key = "") {
@@ -113,7 +115,11 @@ export function createExporter({
 } = {}) {
   const options = normalizeManouverTypes(manouverTypes);
   let optionsBuilt = false;
+  const storedManouver = getLastManouver();
   let lastSelectedKey = options[0]?.key ?? null;
+  if (storedManouver && options.some(option => option.key === storedManouver)) {
+    lastSelectedKey = storedManouver;
+  }
   let keyNavAttached = false;
   let dialogClosing = false;
   let exportInFlight = false;
@@ -166,6 +172,8 @@ export function createExporter({
     );
     if (!selected) return false;
     dialogClosing = true;
+    lastSelectedKey = selected.value;
+    setLastManouver(selected.value);
     dialog.returnValue = selected.value;
     dialog.close(selected.value);
     return true;
