@@ -148,17 +148,29 @@
     <div id="statusExtra" aria-live="polite"></div>
   </footer>
 
-  <dialog id="manouverDlg">
-    <form method="dialog" class="dialog-body manouver-dialog" id="manouverForm">
-      <button type="button" class="dialog-close" id="manouverClose" aria-label="Close">×</button>
-      <h3>Select manouver type</h3>
-      <p class="manouver-intro">Choose the label that best describes this export.</p>
-      <div id="manouverOptions" class="manouver-options"></div>
-      <div class="actions">
-        <button type="button" id="manouverConfirm" disabled class="primary">Export</button>
-      </div>
-    </form>
-  </dialog>
+      <dialog id="manouverDlg">
+        <form method="dialog" class="dialog-body manouver-dialog" id="manouverForm">
+          <button type="button" class="dialog-close" id="manouverClose" aria-label="Close">×</button>
+          <h3>Select manouver type</h3>
+          <p class="manouver-intro">Choose the label that best describes this export.</p>
+          <div id="manouverOptions" class="manouver-options"></div>
+          <div class="actions">
+            <button type="button" id="manouverConfirm" disabled class="primary">Export</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="deviationDlg">
+        <form method="dialog" class="dialog-body deviation-dialog" id="deviationForm">
+          <button type="button" class="dialog-close" id="deviationClose" aria-label="Close deviation type dialog">×</button>
+          <h3>Specify deviation type</h3>
+          <p class="deviation-intro">Provide a short note describing the deviation.</p>
+          <input id="deviationInput" type="text" class="deviation-input" name="deviationType" laceholder="you can skip this" required />
+          <div class="actions">
+            <button type="submit" class="primary" id="deviationSubmit">Save</button>
+          </div>
+        </form>
+      </dialog>
 
   <!-- Help dialog -->
   <dialog id="helpDlg">

@@ -108,6 +108,10 @@ export function createExporter({
   optionsContainer,
   cancelButton,
   confirmButton,
+  deviationDialog,
+  deviationForm,
+  deviationInput,
+  deviationCloseButton,
   beforePrompt,
   exportButton,
   onCollectData,
@@ -123,6 +127,7 @@ export function createExporter({
   let keyNavAttached = false;
   let dialogClosing = false;
   let exportInFlight = false;
+  let lastDeviationText = "";
 
   const ensureOptions = () => {
     if (optionsBuilt || !optionsContainer) return;
@@ -270,6 +275,35 @@ export function createExporter({
     });
   };
 
+  const promptDeviationType = async () => {
+    if (!deviationDialog || !deviationInput) return null;
+    deviationDialog.returnValue = typeof lastDeviationText === "string" ? lastDeviationText : "";
+    deviationInput.value = typeof lastDeviationText === "string" ? lastDeviationText : "";
+
+    return new Promise(resolve => {
+      const handleClose = () => {
+        deviationDialog.removeEventListener("close", handleClose);
+        const value = deviationDialog.returnValue ?? "";
+        lastDeviationText = value;
+        resolve(value);
+      };
+
+      deviationDialog.addEventListener("close", handleClose, { once: true });
+
+      try {
+        deviationDialog.showModal();
+        requestAnimationFrame(() => {
+          deviationInput.focus();
+          deviationInput.select?.();
+        });
+      } catch (err) {
+        console.error("Failed to open deviation dialog", err);
+        deviationDialog.removeEventListener("close", handleClose);
+        resolve(null);
+      }
+    });
+  };
+
   confirmButton?.addEventListener("click", evt => {
     evt.preventDefault?.();
     confirmSelection();
@@ -282,6 +316,24 @@ export function createExporter({
   dialog?.addEventListener("cancel", evt => {
     evt.preventDefault();
     dialog.close("");
+  });
+
+  if (deviationForm && deviationInput && deviationDialog) {
+    deviationForm.addEventListener("submit", evt => {
+      evt.preventDefault();
+      const value = deviationInput.value.trim();
+      deviationDialog.returnValue = value;
+      deviationDialog.close(value);
+    });
+  }
+
+  deviationCloseButton?.addEventListener("click", () => {
+    deviationDialog?.close("");
+  });
+
+  deviationDialog?.addEventListener("cancel", evt => {
+    evt.preventDefault();
+    deviationDialog.close("");
   });
 
   const exportAll = async () => {
@@ -311,17 +363,28 @@ export function createExporter({
       }
 
       let manouverKey = null;
+      let deviationNote = null;
       if (options.length > 0) {
         manouverKey = await promptManouver();
         if (!manouverKey) {
           onStatus("Export canceled.");
           return;
         }
+        if (manouverKey === "deviation") {
+          deviationNote = await promptDeviationType();
+          if (deviationNote == null) {
+            onStatus("Export canceled.");
+            return;
+          }
+        }
       }
 
       const payload = { ...snapshot.payload };
       if (manouverKey) {
         payload.manouver_type = manouverKey;
+      }
+      if (typeof deviationNote === "string") {
+        payload.deviation_description = deviationNote;
       }
 
       const filename =

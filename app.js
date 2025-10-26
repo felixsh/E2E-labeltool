@@ -81,6 +81,10 @@ const manouverForm = document.getElementById("manouverForm");
 const manouverCloseBtn = document.getElementById("manouverClose");
 const manouverOptionsEl = document.getElementById("manouverOptions");
 const manouverConfirmBtn = document.getElementById("manouverConfirm");
+const deviationDlg = document.getElementById("deviationDlg");
+const deviationForm = document.getElementById("deviationForm");
+const deviationCloseBtn = document.getElementById("deviationClose");
+const deviationInput = document.getElementById("deviationInput");
 const helpBtn     = document.getElementById("helpBtn");
 const helpDlg     = document.getElementById("helpDlg");
 const helpCloseBtn   = document.getElementById("helpCloseBtn");
@@ -1478,6 +1482,10 @@ const exportController = createExporter({
   optionsContainer: manouverOptionsEl,
   cancelButton: manouverCloseBtn,
   confirmButton: manouverConfirmBtn,
+  deviationDialog: deviationDlg,
+  deviationForm,
+  deviationInput,
+  deviationCloseButton: deviationCloseBtn,
   exportButton: exportBtn,
   beforePrompt: ensureOptimizedBeforeExport,
   onCollectData: collectExportSnapshot,

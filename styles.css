@@ -582,7 +582,8 @@ body.toolbar-collapsed #scenarioInfo {
 /* Dialogs */
 dialog#helpDlg,
 dialog#manouverDlg,
-dialog#exportWarnDlg {
+dialog#exportWarnDlg,
+dialog#deviationDlg {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #111420;
@@ -630,10 +631,33 @@ dialog::backdrop{ background: rgba(0,0,0,0.4); }
   flex-direction: column;
   gap: 12px;
 }
+.deviation-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .manouver-intro {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+.deviation-intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.deviation-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #121622;
+  color: var(--text);
+  font-size: 15px;
+}
+.deviation-input:focus {
+  outline: 2px solid rgba(102, 204, 255, 0.5);
+  border-color: rgba(102, 204, 255, 0.6);
 }
 .manouver-options {
   display: flex;
