@@ -60,6 +60,12 @@ const legendCanvas= document.getElementById("legendCanvas");
 const legendTitle = document.getElementById("legendTitle");
 const legendMin   = document.getElementById("legendMin");
 const legendMax   = document.getElementById("legendMax");
+const menuToggle  = document.getElementById("menuToggle");
+const menuBackdrop = document.getElementById("menuBackdrop");
+const toolbarPanel = document.getElementById("toolbarPanel");
+const bodyEl = document.body;
+const headerEl = document.querySelector("header");
+const BASE_HEADER_HEIGHT = 58;
 
 // Spline-side UI
 const curveSel    = document.getElementById("curveType");
@@ -175,6 +181,73 @@ const weightControls = {
   wVel:  { slider: weightVelInput,  number: weightVelNumber },
   wAcc:  { slider: weightAccInput,  number: weightAccNumber }
 };
+
+function updateToolbarOffset() {
+  if (!headerEl) return;
+  document.documentElement.style.setProperty("--toolbar-offset", `${headerEl.offsetHeight}px`);
+}
+updateToolbarOffset();
+
+function evaluateToolbarCollapse() {
+  if (!toolbarPanel || !headerEl) return;
+  const widthConstraint = window.innerWidth <= 1344;
+  const shouldCollapse = widthConstraint;
+  if (shouldCollapse) {
+    bodyEl.classList.add("toolbar-collapsed");
+  } else {
+    bodyEl.classList.remove("toolbar-collapsed");
+    if (bodyEl.classList.contains("menu-open")) {
+      setMobileMenuOpen(false);
+    }
+  }
+  updateToolbarOffset();
+}
+evaluateToolbarCollapse();
+
+function setMobileMenuOpen(open) {
+  if (!menuToggle) return;
+  updateToolbarOffset();
+  const next = !!open;
+  bodyEl.classList.toggle("menu-open", next);
+  menuToggle.setAttribute("aria-expanded", next ? "true" : "false");
+  menuToggle.setAttribute("aria-label", next ? "Close menu" : "Open menu");
+  if (menuBackdrop) {
+    menuBackdrop.hidden = !next;
+  }
+  if (!next && bodyEl.classList.contains("toolbar-collapsed") && menuToggle.offsetParent) {
+    menuToggle.focus({ preventScroll: true });
+  }
+  updateLegend();
+}
+
+menuToggle?.addEventListener("click", () => {
+  const open = bodyEl.classList.contains("menu-open");
+  setMobileMenuOpen(!open);
+});
+
+menuBackdrop?.addEventListener("click", () => { setMobileMenuOpen(false); });
+
+window.addEventListener("keydown", (evt) => {
+  if (evt.key === "Escape" && bodyEl.classList.contains("menu-open")) {
+    evt.stopPropagation();
+    setMobileMenuOpen(false);
+  }
+}, true);
+
+window.addEventListener("resize", () => {
+  updateToolbarOffset();
+  evaluateToolbarCollapse();
+  if (!bodyEl.classList.contains("toolbar-collapsed") && bodyEl.classList.contains("menu-open")) {
+    setMobileMenuOpen(false);
+  }
+});
+
+if (toolbarPanel && typeof ResizeObserver === "function") {
+  const toolbarObserver = new ResizeObserver(() => {
+    evaluateToolbarCollapse();
+  });
+  toolbarObserver.observe(toolbarPanel);
+}
 
 async function ensureScenarioMetadata() {
   if (scenarioMetadataById) return scenarioMetadataById;
@@ -451,6 +524,47 @@ function setBadge(label) {
   modeBadge.classList.toggle("three", label === "3D");
 }
 
+function toggleModeButtons(){
+  const show2d = is2D === true;
+  const collapsed = bodyEl.classList.contains("toolbar-collapsed");
+  document.querySelectorAll(".mode-btn").forEach((el) => {
+    const element = el;
+    const is2dBtn = element.classList.contains("mode-2d");
+    const is3dBtn = element.classList.contains("mode-3d");
+    if (!collapsed && element.closest(".toolbar-panels")) {
+      element.classList.remove("hidden");
+      return;
+    }
+    if (is2dBtn) {
+      element.classList.toggle("hidden", !show2d);
+    } else if (is3dBtn) {
+      element.classList.toggle("hidden", show2d);
+    }
+  });
+  syncProxyDisabledState();
+}
+
+function syncProxyDisabledState() {
+  document.querySelectorAll("[data-proxy-target]").forEach((btn) => {
+    const targetId = btn.getAttribute("data-proxy-target");
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    btn.disabled = !!target.disabled;
+  });
+}
+
+document.querySelectorAll("[data-proxy-target]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const targetId = btn.getAttribute("data-proxy-target");
+    if (!targetId) return;
+    const target = document.getElementById(targetId);
+    if (!target || target.disabled) return;
+    target.click();
+  });
+});
+syncProxyDisabledState();
+
 // Initialize 3D camera + controls
 camera = perspCam;
 controls = makeControls(camera);
@@ -511,6 +625,7 @@ function enter2D(state = lastState2D) {
 
   is2D = true;
   setBadge("2D");
+  toggleModeButtons();
   syncPointSize();
 
   // spline appears as 2D line in 2D mode
@@ -547,6 +662,7 @@ function enter3D(state = lastState3D) {
 
   is2D = false;
   setBadge("3D");
+  toggleModeButtons();
   syncPointSize();
 
   // spline appears as tube in 3D mode
@@ -954,6 +1070,7 @@ function applyPointCloud(rawData, name, path) {
 
   viewTopBtn.disabled = false;
   viewIsoBtn.disabled = false;
+  syncProxyDisabledState();
 
   spline?.onCloudLoaded?.(center, radius);
   rebuildTrajectoryObject(is2D);
@@ -1011,6 +1128,7 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
 
   viewTopBtn.disabled = false;
   viewIsoBtn.disabled = false;
+  syncProxyDisabledState();
 
   if (is2D) {
     controls.target.copy(center);
@@ -1035,27 +1153,51 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
 
 // ---------- Legend ----------
 function updateLegend() {
+  if (!legendCanvas) return;
+  const collapseActive = bodyEl.classList.contains("toolbar-collapsed");
+  const deviceRatio = window.devicePixelRatio || 1;
+  const clientW = Math.max(16, Math.round(legendCanvas.clientWidth || (collapseActive ? 220 : 16)));
+  const clientH = Math.max(16, Math.round(legendCanvas.clientHeight || (collapseActive ? 20 : 160)));
+  const isHorizontal = collapseActive && clientW >= clientH;
+  const w = Math.max(1, Math.round(clientW * deviceRatio));
+  const h = Math.max(1, Math.round(clientH * deviceRatio));
+  if (legendCanvas.width !== w || legendCanvas.height !== h) {
+    legendCanvas.width = w;
+    legendCanvas.height = h;
+  }
   const ctxL = legendCanvas.getContext("2d");
-  const w = legendCanvas.width, h = legendCanvas.height;
+  if (!ctxL) return;
+  ctxL.save();
+  ctxL.setTransform(deviceRatio, 0, 0, deviceRatio, 0, 0);
+  ctxL.clearRect(0, 0, clientW, clientH);
+
+  const steps = 64;
+  const gradient = isHorizontal
+    ? ctxL.createLinearGradient(0, 0, clientW, 0)
+    : ctxL.createLinearGradient(0, 0, 0, clientH);
+
+  const addColorStop = (pos, color) => {
+    const clampPos = Math.min(1, Math.max(0, pos));
+    gradient.addColorStop(clampPos, color);
+  };
+
+  const toCss = (color) =>
+    `rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`;
+
   let min=0, max=1, stops = turboStops, flip = true;
   if (colorMode === "height") {
     legendTitle.textContent = "Height (m)";
     const zMinFixed = -3, zMaxFixed = 3;
     let min = zMinFixed, max = zMaxFixed;
     const stops = turboStops;
-  
-    ctxL.clearRect(0, 0, w, h);
-    for (let y = 0; y < h; y++) {
-      // y=0 is top → z near max (red), y=h-1 bottom → z near min (light blue)
-      const u = 1 - (y / (h - 1));        // 1 at top, 0 at bottom
-      const t = 0.50 + 0.50 * u;          // match the point color mapping
-      const c = rampColor(stops, t);
-      ctxL.fillStyle = `rgb(${(c.r * 255) | 0},${(c.g * 255) | 0},${(c.b * 255) | 0})`;
-      ctxL.fillRect(0, y, w, 1);
+    for (let i = 0; i <= steps; i++) {
+      const pos = i / steps;
+      const u = isHorizontal ? (1 - pos) : (1 - pos);
+      const t = 0.50 + 0.50 * u;
+      addColorStop(pos, toCss(rampColor(stops, t)));
     }
     legendMin.textContent = min.toFixed(2);
     legendMax.textContent = max.toFixed(2);
-    return;
   } else   if (colorMode === "intensity") {
     legendTitle.textContent = "Intensity";
     min = 0; max = 1; stops = viridisStops; flip = true;
@@ -1065,15 +1207,20 @@ function updateLegend() {
   } else {
     legendTitle.textContent = "Color"; min="—"; max="—";
   }
-  ctxL.clearRect(0,0,w,h);
-  for (let i=0;i<h;i++){
-    const t = i/(h-1);
-    const c = rampColor(stops, flip ? (1 - t) : t);
-    ctxL.fillStyle = `rgb(${(c.r*255)|0},${(c.g*255)|0},${(c.b*255)|0})`;
-    ctxL.fillRect(0, i, w, 1);
+  if (colorMode !== "height") {
+    for (let i = 0; i <= steps; i++) {
+      const pos = i / steps;
+      const gradientPos = pos;
+      const t = flip ? (1 - gradientPos) : gradientPos;
+      addColorStop(pos, toCss(rampColor(stops, t)));
+    }
   }
   legendMin.textContent = (typeof min === "number") ? min.toFixed(2) : String(min);
   legendMax.textContent = (typeof max === "number") ? max.toFixed(2) : String(max);
+
+  ctxL.fillStyle = gradient;
+  ctxL.fillRect(0, 0, clientW, clientH);
+  ctxL.restore();
 }
 
 // ---------- Charts (create BEFORE spline) ----------
@@ -1444,7 +1591,7 @@ modeBadge?.addEventListener("click", (evt) => {
 
 // ---------- Keyboard ----------
 window.addEventListener("keydown", (e) => {
-  if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) return;
+  if (["INPUT","TEXTAREA","SELECT","BUTTON"].includes(document.activeElement.tagName)) return;
   const k = e.key.toLowerCase();
 
   if (k === " ") { e.preventDefault(); toggle2D3D(); return; } // space toggles 2D/3D
@@ -1548,6 +1695,7 @@ function renderOnce(){ renderer.render(scene, camera); }
 // ---------- Helper: update legend initially ----------
 updateLegend();
 setBadge("3D");
+toggleModeButtons();
 setIsoView3D();
 renderOnce();
 exportWarnDlg?.addEventListener("cancel", (evt) => {

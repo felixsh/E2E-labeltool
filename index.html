@@ -9,36 +9,50 @@
 <body>
   <header>
     <div class="toolbar">
-      <!-- LEFT: PCD controls -->
-      <div class="left">
-        <label class="file">
-          <input id="fileInput" type="file" accept=".pcd,.bin,.npy" />
-          Load
-        </label>
-        <button id="demoBtn" type="button">Demo</button>
-
-        <label>
-          Point size
-          <input id="ptSize" type="range" min="0.01" max="0.50" step="0.01" value="0.08" />
-          <span id="ptSizeVal">0.08 m</span>
-        </label>
-
-        <label>
-          Color
-          <select id="colorMode">
-            <option value="height" selected>Height</option>
-            <option value="intensity">Intensity</option>
-            <option value="distance">Distance</option>
-            <option value="solid">Solid</option>
-          </select>
-        </label>
-
-        <button id="viewTopBtn" disabled>Top</button>
-        <button id="viewIsoBtn" disabled>Iso</button>
+      <div class="toolbar-mobile">
+        <button type="button" data-proxy-target="fileInput" class="mode-btn mode-3d">Load</button>
+        <button type="button" data-proxy-target="demoBtn" class="mode-btn mode-3d">Demo</button>
+        <button type="button" data-proxy-target="viewTopBtn" class="mode-btn mode-3d">Top</button>
+        <button type="button" data-proxy-target="viewIsoBtn" class="mode-btn mode-3d">Iso</button>
+        <button type="button" data-proxy-target="optimizeBtn" class="mode-btn mode-2d">Optimize</button>
+        <button type="button" data-proxy-target="exportSamplesBtn" class="mode-btn mode-2d">Export</button>
       </div>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="toolbarPanel">
+        <span class="menu-icon" aria-hidden="true"></span>
+      </button>
+      <div class="toolbar-panels" id="toolbarPanel">
+        <!-- LEFT: PCD controls -->
+        <div class="left">
+          <div class="pcd-main">
+            <label class="file mode-btn mode-3d">
+              <input id="fileInput" type="file" accept=".pcd,.bin,.npy" />
+              Load
+            </label>
+            <button id="demoBtn" type="button" class="mode-btn mode-3d">Demo</button>
+            <label>
+              Point size
+              <input id="ptSize" type="range" min="0.01" max="0.50" step="0.01" value="0.08" />
+              <span id="ptSizeVal">0.08 m</span>
+            </label>
 
-      <!-- RIGHT: Spline controls -->
-      <div class="right">
+            <label>
+              Color
+              <select id="colorMode">
+                <option value="height" selected>Height</option>
+                <option value="intensity">Intensity</option>
+                <option value="distance">Distance</option>
+                <option value="solid">Solid</option>
+              </select>
+            </label>
+          </div>
+          <div class="pcd-views">
+            <button id="viewTopBtn" disabled class="mode-btn mode-3d">Top</button>
+            <button id="viewIsoBtn" disabled class="mode-btn mode-3d">Iso</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Spline controls -->
+        <div class="right">
         <label>
           Curve
           <select id="curveType">
@@ -59,13 +73,14 @@
         <button id="samplesBtn" type="button" class="toggle-btn" title="Toggle samples & charts (S)" aria-pressed="true">Samples</button>
 
         <button id="weightsBtn" type="button" class="toggle-btn" title="Adjust optimization weights (W)">Weights</button>
-        <button id="optimizeBtn" title="Optimize sampling (jerk/limits)">Optimize</button>
-        <button id="exportSamplesBtn" title="Export JSON">Export</button>
-
+        <button id="optimizeBtn" class="mode-btn mode-2d" title="Optimize sampling (jerk/limits)">Optimize</button>
+        <button id="exportSamplesBtn" class="mode-btn mode-2d" title="Export JSON">Export</button>
         <button id="helpBtn" title="Keyboard shortcuts">Help</button>
+        </div>
       </div>
     </div>
   </header>
+  <div id="menuBackdrop" class="menu-backdrop" hidden></div>
 
   <main>
     <div id="stage3d">
