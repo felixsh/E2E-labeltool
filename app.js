@@ -1410,8 +1410,8 @@ function collectExportSnapshot() {
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
   const scenarioName = currentScenarioName || null;
   const currentMetadata = currentScenarioMetadata || null;
-  const instruction = currentMetadata?.instruction || null;
-  const specialNote = currentMetadata?.specialNote || null;
+  const instruction = currentMetadata?.instruction ?? "";
+  const specialNote = currentMetadata?.specialNote ?? "";
 
   const payload = {
     pointcloud_path: pointCloudPath,
@@ -1426,12 +1426,8 @@ function collectExportSnapshot() {
     trajectory_raw: trajectoryRaw
   };
 
-  if (instruction) {
-    payload.instruction = instruction;
-  }
-  if (specialNote) {
-    payload.special_note = specialNote;
-  }
+  payload.instruction = instruction || "";
+  payload.special_note = specialNote || "";
 
   if (curveType === "catmullrom" && alpha != null) {
     payload.alpha = alpha;
