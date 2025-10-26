@@ -1139,6 +1139,7 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
     camera.position.set(center.x, center.y, camera.position.z);
     controls.update();
     syncPointSize();
+    snapshot2D();
     rebuildTrajectoryObject(true);
   } else {
     setIsoView3D();
