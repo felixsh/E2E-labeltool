@@ -631,6 +631,7 @@ function enter2D(state = lastState2D) {
   setBadge("2D");
   toggleModeButtons();
   syncPointSize();
+  snapshot2D();
 
   // spline appears as 2D line in 2D mode
   spline?.rebuildCurveObject(true);
@@ -1067,7 +1068,7 @@ function applyPointCloud(rawData, name, path) {
   buildCloud();
 
   if (is2D) {
-    enter2D();
+    enter2D(null);
   } else {
     setIsoView3D();
   }
