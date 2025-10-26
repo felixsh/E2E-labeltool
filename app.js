@@ -1436,6 +1436,11 @@ if (ptSizeVal) ptSizeVal.textContent = `${basePtSize.toFixed(2)} m`;
 
 viewTopBtn.addEventListener("click", () => { if (!is2D) setTopView3D(); renderOnce(); });
 viewIsoBtn.addEventListener("click", () => { if (!is2D) setIsoView3D(); renderOnce(); });
+modeBadge?.addEventListener("click", (evt) => {
+  evt.preventDefault();
+  evt.stopPropagation();
+  toggle2D3D();
+});
 
 // ---------- Keyboard ----------
 window.addEventListener("keydown", (e) => {

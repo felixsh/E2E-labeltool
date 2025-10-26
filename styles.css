@@ -264,7 +264,8 @@ footer {
   position: absolute; left: 12px; top: 12px;
   padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 15px;
   background: rgba(0,0,0,0.8); border: 1px solid var(--border); color: var(--text);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 .badge.two { background: rgba(0, 90, 255, 0.8); }
 .badge.three { background: rgba(0, 180, 120, 0.8); }
