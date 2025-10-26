@@ -1442,6 +1442,12 @@ function collectExportSnapshot() {
     : "labels";
   const fname = `${base}.json`;
 
+  if (is2D && camera?.isOrthographicCamera) {
+    lastState2D.pos.copy(camera.position);
+    lastState2D.target.copy(controls.target);
+    lastState2D.zoom = camera.zoom;
+  }
+
   return { payload, filename: fname };
 }
 
