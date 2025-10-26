@@ -111,15 +111,25 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     const h = node.clientHeight || 100;
     svgSel.attr("viewBox", `0 0 ${w} ${h}`); svgSel.selectAll("*").remove();
 
-    const margin = { top: 20, right: 12, bottom: 26, left: 44 };
+    const sizeScale = Math.max(0.6, Math.min(1.3, Math.min(w / 320, h / 200)));
+    const margin = {
+      top: Math.round(34 * sizeScale),
+      right: Math.round(14 * sizeScale),
+      bottom: Math.round(30 * sizeScale),
+      left: Math.round(46 * sizeScale)
+    };
+    const titleFont = Math.max(10, Math.round(12 * sizeScale));
+    const axisFont = Math.max(8, Math.round(10 * sizeScale));
+    const tickStroke = Math.max(0.6, 0.8 * sizeScale);
+    const tickLength = Math.max(3, Math.round(4 * sizeScale));
     const innerWidth = w - margin.left - margin.right;
     const innerHeight = h - margin.top - margin.bottom;
     svgSel.append("text")
       .attr("x", margin.left)
-      .attr("y", margin.top - 6)
+      .attr("y", margin.top - Math.round(6 * sizeScale))
       .text(title)
       .attr("fill", "#cfd3dc")
-      .attr("font-size", 12);
+      .attr("font-size", titleFont);
     if (innerWidth <= 0 || innerHeight <= 0) return;
     if (X.length < 2) return;
 
@@ -141,7 +151,9 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     const maxAbs = Math.max(Math.abs(yMin), Math.abs(yMax)) || 1;
     const fmt = maxAbs >= 100 ? d3.format(".0f") : (maxAbs >= 10 ? d3.format(".1f") : d3.format(".2f"));
     const yTicks = y.ticks(4);
-    yTicks.forEach(t => {
+    const minYSpacing = axisFont * 1.6;
+    let lastLabelY = -Infinity;
+    yTicks.forEach((t, idx) => {
       const yt = y(t);
       if (!Number.isFinite(yt)) return;
       svgSel.append("line")
@@ -150,45 +162,68 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
         .attr("y1", yt)
         .attr("y2", yt)
         .attr("stroke", t === 0 ? "#3b4153" : "#2b3244")
-        .attr("stroke-width", t === 0 ? 1 : 0.6)
+        .attr("stroke-width", t === 0 ? Math.max(1, tickStroke) : tickStroke)
         .attr("opacity", t === 0 ? 1 : 0.6);
       svgSel.append("line")
-        .attr("x1", left - 6)
+        .attr("x1", left - tickLength * 1.5)
         .attr("x2", left)
         .attr("y1", yt)
         .attr("y2", yt)
         .attr("stroke", "#3b4153")
-        .attr("stroke-width", 0.8);
-      svgSel.append("text")
-        .attr("x", left - 8)
-        .attr("y", yt + 4)
-        .attr("text-anchor", "end")
-        .attr("fill", "#cfd3dc")
-        .attr("font-size", 10)
-        .text(fmt(t));
+        .attr("stroke-width", tickStroke);
+      const isZero = Math.abs(t) < 1e-9;
+      const needsLabel = idx === 0 || idx === yTicks.length - 1 || isZero || Math.abs(yt - lastLabelY) >= minYSpacing;
+      if (needsLabel) {
+        svgSel.append("text")
+          .attr("x", left - Math.round(8 * sizeScale))
+          .attr("y", yt + Math.round(4 * sizeScale))
+          .attr("text-anchor", "end")
+          .attr("fill", "#cfd3dc")
+          .attr("font-size", axisFont)
+          .text(fmt(t));
+        lastLabelY = yt;
+      }
     });
 
     svgSel.append("path").attr("d", d3.line().x(d => x(d[0])).y(d => y(d[1]))(xy))
       .attr("fill", "none").attr("stroke", "#9fb3ff").attr("stroke-width", 1.5);
 
     const iStart = Math.ceil(xMin - 1e-9), iEnd = Math.floor(xMax + 1e-9);
+    const minXSpacing = Math.max(28, Math.round(32 * sizeScale));
+    let lastLabelX = -Infinity;
     for (let i = iStart; i <= iEnd; i++) {
       const xi = x(i);
-      svgSel.append("line").attr("x1", xi).attr("x2", xi).attr("y1", bottom).attr("y2", bottom + 4).attr("stroke", "#3b4153");
-      svgSel.append("text").attr("x", xi).attr("y", bottom + 16).attr("text-anchor", "middle").attr("fill", "#cfd3dc").attr("font-size", 10).text(i);
+      svgSel.append("line")
+        .attr("x1", xi)
+        .attr("x2", xi)
+        .attr("y1", bottom)
+        .attr("y2", bottom + tickLength)
+        .attr("stroke", "#3b4153")
+        .attr("stroke-width", tickStroke);
+      const needsLabel = (i === iStart || i === iEnd || i === 0 || xi - lastLabelX >= minXSpacing);
+      if (needsLabel) {
+        svgSel.append("text")
+          .attr("x", xi)
+          .attr("y", bottom + axisFont + Math.round(6 * sizeScale))
+          .attr("text-anchor", "middle")
+          .attr("fill", "#cfd3dc")
+          .attr("font-size", axisFont)
+          .text(i);
+        lastLabelX = xi;
+      }
     }
 
     const vals = xy.map(d => opts.absMax ? Math.abs(d[1]) : d[1]); let k = 0, v = -Infinity;
     for (let i = 0; i < vals.length; i++) if (vals[i] > v) { v = vals[i]; k = i; }
     const xmax = xy[k][0], ymaxv = xy[k][1];
-    svgSel.append("circle").attr("cx", x(xmax)).attr("cy", y(ymaxv)).attr("r", 3).attr("fill", "#cfd3dc");
+    svgSel.append("circle").attr("cx", x(xmax)).attr("cy", y(ymaxv)).attr("r", Math.max(2.5, 3 * sizeScale)).attr("fill", "#cfd3dc");
     const maxValue = (opts.absMax ? Math.abs(ymaxv) : ymaxv);
     const label = `max ${maxValue.toFixed(2)}${opts.units ? ` ${opts.units}` : ""}`;
     const maxText = svgSel.append("text")
       .attr("x", right)
-      .attr("y", margin.top - 6)
+      .attr("y", margin.top - Math.round(6 * sizeScale))
       .attr("text-anchor", "end")
-      .attr("font-size", 12)
+      .attr("font-size", titleFont)
       .text(label);
     const color = colorForThreshold(maxValue, opts.thresholds);
     if (color) {
