@@ -36,6 +36,8 @@ function colorForThreshold(value, thresholds) {
 
 export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, dt, d3, limits = {} }) {
   chartsDiv?.classList?.add("hidden");
+  let lastSamples = null;
+  let resizeRaf = null;
 
   function computeKinematics(samplePts){
     if (!samplePts || samplePts.length < 2) {
@@ -212,8 +214,9 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     }
   }
 
-  function render(samples){
-    if (!samples || !samples.length){
+  function redraw() {
+    const samples = lastSamples;
+    if (!samples || !samples.length) {
       chartsDiv?.classList?.add("hidden");
       velChartSel.selectAll("*").remove();
       accChartSel.selectAll("*").remove();
@@ -225,6 +228,30 @@ export function makeCharts({ velChartSel, accChartSel, jerkChartSel, chartsDiv, 
     drawMiniChart(velChartSel, iVel, v_kmh, "velocity (km/h)", { absMax: false, units: "km/h" });
     drawMiniChart(accChartSel, iAcc, aTotal, "acceleration total (m/s²)", { absMax: true, units: "m/s²", thresholds: limits.acceleration });
     drawMiniChart(jerkChartSel, iJerk, jerkTotal, "jerk total (m/s³)", { absMax: true, units: "m/s³", thresholds: limits.jerk });
+  }
+
+  function render(samples) {
+    lastSamples = Array.isArray(samples) ? samples : null;
+    redraw();
+  }
+
+  if (chartsDiv) {
+    // Redraw charts when the container resizes to keep them full-width.
+    const handleResize = () => {
+      if (!lastSamples || !lastSamples.length) return;
+      if (resizeRaf != null) return;
+      resizeRaf = window.requestAnimationFrame(() => {
+        resizeRaf = null;
+        redraw();
+      });
+    };
+
+    if (typeof ResizeObserver === "function") {
+      const ro = new ResizeObserver(handleResize);
+      ro.observe(chartsDiv);
+    } else {
+      window.addEventListener("resize", handleResize);
+    }
   }
 
   return { render };
