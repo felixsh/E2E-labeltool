@@ -399,6 +399,18 @@ function toggleWeightsPanel() {
   }
 }
 
+function center2DViewOnOrigin() {
+  if (!is2D || !camera?.isOrthographicCamera || !controls) return;
+  const targetZ = Math.max(1, radius * 2.0);
+  controls.target.set(0, 0, 0);
+  camera.position.set(0, 0, targetZ);
+  camera.lookAt(controls.target);
+  camera.updateProjectionMatrix();
+  controls.update();
+  syncPointSize();
+  snapshot2D();
+}
+
 syncWeightControls();
 setWeightsVisible(false);
 
@@ -474,10 +486,10 @@ function makeOrthoCamera() {
   const aspect = Math.max(1e-6, w / h);
   const worldHalfH = (radius || 10) * 1.2;
   const worldHalfW = worldHalfH * aspect;
-  const c = center || new THREE.Vector3(0,0,0);
 
   const cam = new THREE.OrthographicCamera(-worldHalfW, worldHalfW, worldHalfH, -worldHalfH, 0.1, 5000);
-  cam.position.set(c.x, c.y, c.z + 200); // top-down
+  const c = center || new THREE.Vector3(0,0,0);
+  cam.position.set(c.x, c.y, c.z + Math.max(1, radius * 2.0));
   cam.up.set(0, 1, 0);
   cam.lookAt(c.x, c.y, c.z);
   cam.zoom = DEFAULT_ORTHO_ZOOM;
@@ -614,14 +626,17 @@ function enter2D(state = lastState2D) {
     controls.target.copy(state.target);
     camera.zoom = Math.max(1e-6, state.zoom);
     camera.updateProjectionMatrix();
-    camera.lookAt(controls.target);
-  } else {
+  }
+  if (!state) {
     updateCenterAndRadius();
-    camera.position.set(center.x, center.y, center.z + Math.max(1, radius*2.0));
-    controls.target.copy(center);
-    camera.lookAt(center);
+    const c = center || new THREE.Vector3(0,0,0);
+    camera.position.set(c.x, c.y, c.z + Math.max(1, radius*2.0));
+    controls.target.copy(c);
+    camera.lookAt(c);
     camera.zoom = DEFAULT_ORTHO_ZOOM;
     camera.updateProjectionMatrix();
+  } else {
+    camera.lookAt(controls.target);
   }
   controls.update();
 
@@ -1068,7 +1083,7 @@ function applyPointCloud(rawData, name, path) {
   buildCloud();
 
   if (is2D) {
-    enter2D(null);
+    center2DViewOnOrigin();
   } else {
     setIsoView3D();
   }
@@ -1136,11 +1151,7 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   syncProxyDisabledState();
 
   if (is2D) {
-    controls.target.copy(center);
-    camera.position.set(center.x, center.y, camera.position.z);
-    controls.update();
-    syncPointSize();
-    snapshot2D();
+    center2DViewOnOrigin();
     rebuildTrajectoryObject(true);
   } else {
     setIsoView3D();
