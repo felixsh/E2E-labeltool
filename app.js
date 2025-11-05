@@ -1111,7 +1111,6 @@ const extraClouds = [];
 function addExtraPointCloud(rawData, name, path) {
   if (!rawData) return;
 
-  // build geometry exactly like buildCloud() does, but don't touch `cloud`
   const hasI = rawData.xyzIdx.i >= 0;
   const dim = hasI ? 4 : 3;
   const total = Math.min(Math.floor(rawData.points.length / dim), maxPoints | 0);
@@ -1119,7 +1118,6 @@ function addExtraPointCloud(rawData, name, path) {
   const pos = new Float32Array(total * 3);
   const col = new Float32Array(total * 3);
 
-  // just reuse current colorMode
   for (let p = 0, k = 0; p < total; p++, k += dim) {
     const x = rawData.points[k + 0];
     const y = rawData.points[k + 1];
@@ -1128,7 +1126,6 @@ function addExtraPointCloud(rawData, name, path) {
     pos[p * 3 + 1] = y;
     pos[p * 3 + 2] = z;
 
-    // simple color (blue-ish) — you can match main logic if you want
     const c = new THREE.Color(0x6fb1ff);
     col[p * 3 + 0] = c.r;
     col[p * 3 + 1] = c.g;
@@ -1150,13 +1147,11 @@ function addExtraPointCloud(rawData, name, path) {
   scene.add(extra);
   extraClouds.push(extra);
 
-  // update bounds so camera fits everything
   const extraBounds = computeBounds(rawData.points, rawData.xyzIdx);
   bounds = mergeBounds(bounds, extraBounds);
   updateCenterAndRadius();
   renderOnce();
 
-  // we don't overwrite currentPCDName here on purpose
 }
 
 function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
