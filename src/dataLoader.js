@@ -1,5 +1,6 @@
 import { parsePointCloud } from "./pcdParser.js";
 import { load as loadNpy } from "npyjs";
+import {applyTransformToPointCloudBuffer } from "./align.js";
 
 function nameFromPath(path, fallback) {
   if (!path) return fallback;
@@ -84,4 +85,44 @@ export async function loadDemoDataset({ cloudUrl, trajectoryUrl } = {}) {
     result.trajectory = await loadTrajectoryFromUrl(trajectoryUrl);
   }
   return result;
+}
+
+export async function loadAndAlignFutureCloud({
+  futureCloudFile,
+  gtTrajectory,
+}) {
+  if (!gtTrajectory || !gtTrajectory.points) {
+    throw new Error("Need a ground-truth trajectory to align future cloud.");
+  }
+
+  // load future cloud
+  const futureCloud = await loadPointCloudFromFile(futureCloudFile);
+
+  // Rotate and translate it
+  const pts = gtTrajectory.points;
+
+  const current = pts[pts.length - 2];
+  const last    = pts[pts.length - 1];
+
+  // angle from current -> final
+  const dx = last[0] - current[0];
+  const dy = last[1] - current[1];
+  const yaw = Math.atan2(dy, dx);
+
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+
+  // Rotation arround Z
+  const R = [
+    [ c, -s, 0],
+    [ s,  c, 0],
+    [ 0,  0, 1],
+  ];
+
+  // Apply translation
+  const t = [last[0], last[1], 0];
+
+  applyTransformToPointCloudBuffer(futureCloud.raw.points, R, t);
+
+  return futureCloud;
 }
