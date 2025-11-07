@@ -5,6 +5,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import {
   loadPointCloudFromFile,
   loadTrajectoryFromFile,
+  loadAndAlignFutureCloud,
   loadDemoDataset
 } from "./src/dataLoader.js";
 import { makeCharts } from "./src/charts.js";
@@ -1105,6 +1106,54 @@ function applyPointCloud(rawData, name, path) {
   spline?.markSamplesOptimized?.(false);
 }
 
+const extraClouds = [];
+
+function addExtraPointCloud(rawData, name, path) {
+  if (!rawData) return;
+
+  const hasI = rawData.xyzIdx.i >= 0;
+  const dim = hasI ? 4 : 3;
+  const total = Math.min(Math.floor(rawData.points.length / dim), maxPoints | 0);
+
+  const pos = new Float32Array(total * 3);
+  const col = new Float32Array(total * 3);
+
+  for (let p = 0, k = 0; p < total; p++, k += dim) {
+    const x = rawData.points[k + 0];
+    const y = rawData.points[k + 1];
+    const z = rawData.points[k + 2];
+    pos[p * 3 + 0] = x;
+    pos[p * 3 + 1] = y;
+    pos[p * 3 + 2] = z;
+
+    const c = new THREE.Color(0x6fb1ff);
+    col[p * 3 + 0] = c.r;
+    col[p * 3 + 1] = c.g;
+    col[p * 3 + 2] = c.b;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  geo.computeBoundingSphere();
+
+  const mat = new THREE.PointsMaterial({
+    size: basePtSize * 1.5,
+    sizeAttenuation: true,
+    vertexColors: true,
+  });
+
+  const extra = new THREE.Points(geo, mat);
+  scene.add(extra);
+  extraClouds.push(extra);
+
+  const extraBounds = computeBounds(rawData.points, rawData.xyzIdx);
+  bounds = mergeBounds(bounds, extraBounds);
+  updateCenterAndRadius();
+  renderOnce();
+
+}
+
 function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   if (!Array.isArray(pointPairs) || pointPairs.length === 0) return;
 
@@ -1650,12 +1699,27 @@ fileInput.addEventListener("change", async (e) => {
   if (!file) return;
   try {
     const lower = (file.name || "").toLowerCase();
+
     if (lower.endsWith(".npy")) {
       const { points, name, path: sourcePath } = await loadTrajectoryFromFile(file);
       applyTrajectoryPoints(points, name, sourcePath);
     } else {
-      const { raw: rawData, name, path: sourcePath } = await loadPointCloudFromFile(file);
-      applyPointCloud(rawData, name, sourcePath);
+      const alreadyHasCloud = !!raw;
+      const hasGT = Array.isArray(trajectoryRawPoints) && trajectoryRawPoints.length >= 2;
+      if (!alreadyHasCloud) {
+        const { raw: rawData, name, path: sourcePath } = await loadPointCloudFromFile(file);
+        applyPointCloud(rawData, name, sourcePath);
+      } else if (hasGT) {
+        const futureCloud = await loadAndAlignFutureCloud({
+          futureCloudFile: file,
+          gtTrajectory: { points: trajectoryRawPoints },
+          futureTrajectoryFile: null,
+        });
+        addExtraPointCloud(futureCloud.raw, futureCloud.name, futureCloud.path);
+      } else {
+        const { raw: rawData, name, path: sourcePath } = await loadPointCloudFromFile(file);
+        addExtraPointCloud(rawData, name, sourcePath);
+      }
     }
   } catch (err) {
     console.error(err);
