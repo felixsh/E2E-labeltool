@@ -810,8 +810,7 @@ function updateCenterAndRadius() {
   );
   const dx = (bounds.xmax - bounds.xmin);
   const dy = (bounds.ymax - bounds.ymin);
-  const dz = (bounds.zmax - bounds.zmin);
-  radius = Math.max(dx, dy, dz) * 0.5 || 10;
+  radius = Math.max(dx, dy) * 0.5 || 10;
 }
 
 let colorMode = (CFG.colorMode || "height");
