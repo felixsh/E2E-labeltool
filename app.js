@@ -186,6 +186,13 @@ const weightControls = {
   wAcc:  { slider: weightAccInput,  number: weightAccNumber }
 };
 
+function isTypingContext(el) {
+  if (!el) return false;
+  if (weightsPanel && weightsPanel.contains(el)) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON";
+}
+
 function updateToolbarOffset() {
   if (!headerEl) return;
   document.documentElement.style.setProperty("--toolbar-offset", `${headerEl.offsetHeight}px`);
@@ -1520,7 +1527,7 @@ const exportController = createExporter({
 window.addEventListener("keydown", (e) => {
   if (exportWarningOpen) return;
   if (maneuverDlg?.open) return;
-  if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) return;
+  if (isTypingContext(document.activeElement)) return;
   if (e.key.toLowerCase() === "e") {
     e.preventDefault();
     void exportController?.exportAll?.();
@@ -1624,7 +1631,7 @@ modeBadge?.addEventListener("click", (evt) => {
 
 // ---------- Keyboard ----------
 window.addEventListener("keydown", (e) => {
-  if (["INPUT","TEXTAREA","SELECT","BUTTON"].includes(document.activeElement.tagName)) return;
+  if (isTypingContext(document.activeElement)) return;
   const k = e.key.toLowerCase();
 
   if (k === " ") { e.preventDefault(); toggle2D3D(); return; } // space toggles 2D/3D
