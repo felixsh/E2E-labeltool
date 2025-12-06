@@ -581,7 +581,7 @@ body.toolbar-collapsed #scenarioInfo {
 
 /* Dialogs */
 dialog#helpDlg,
-dialog#manouverDlg,
+dialog#maneuverDlg,
 dialog#exportWarnDlg,
 dialog#deviationDlg {
   border: 1px solid var(--border);
@@ -626,7 +626,7 @@ dialog#deviationDlg {
 }
 dialog::backdrop{ background: rgba(0,0,0,0.4); }
 
-.manouver-dialog {
+.maneuver-dialog {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -636,7 +636,7 @@ dialog::backdrop{ background: rgba(0,0,0,0.4); }
   flex-direction: column;
   gap: 12px;
 }
-.manouver-intro {
+.maneuver-intro {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
@@ -659,12 +659,12 @@ dialog::backdrop{ background: rgba(0,0,0,0.4); }
   outline: 2px solid rgba(102, 204, 255, 0.5);
   border-color: rgba(102, 204, 255, 0.6);
 }
-.manouver-options {
+.maneuver-options {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.manouver-option {
+.maneuver-option {
   display: flex;
   gap: 12px;
   padding: 10px 12px;
@@ -674,31 +674,31 @@ dialog::backdrop{ background: rgba(0,0,0,0.4); }
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
-.manouver-option:hover {
+.maneuver-option:hover {
   border-color: rgba(102, 204, 255, 0.6);
 }
-.manouver-option.selected {
+.maneuver-option.selected {
   border-color: rgba(102, 204, 255, 0.9);
   background: rgba(40, 80, 120, 0.35);
 }
-.manouver-option input[type="radio"] {
+.maneuver-option input[type="radio"] {
   margin-top: 4px;
 }
-.manouver-details {
+.maneuver-details {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.manouver-title {
+.maneuver-title {
   font-weight: 600;
   color: var(--text);
 }
-.manouver-desc {
+.maneuver-desc {
   font-size: 13px;
   color: var(--muted);
   max-width: 420px;
 }
-.manouver-dialog .actions {
+.maneuver-dialog .actions {
   gap: 8px;
 }
 

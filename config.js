@@ -34,8 +34,8 @@ window.CONFIG = {
     solverPassRelTol: 1e-6
   },
 
-  // Export dialog options. Keys are emitted as `manouver_type` in the exported JSON payload.
-  manouverTypes: {
+  // Export dialog options. Keys are emitted as `maneuver_type` in the exported JSON payload.
+  maneuverTypes: {
     offroad: {
       title: "Offroad",
       description: "offroad but no crash"

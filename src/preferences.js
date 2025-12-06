@@ -1,7 +1,8 @@
 const PREF_KEY = "labeltool:prefs";
 const POINT_SIZE_MIN = 0.01;
 const POINT_SIZE_MAX = 0.5;
-const LAST_MANOUVER_FIELD = "lastManouverType";
+const LAST_MANEUVER_FIELD = "lastManeuverType";
+const LEGACY_LAST_MANOUVER_FIELD = "lastManouverType";
 const validColorModes = new Set(["height", "intensity", "distance", "solid"]);
 const validCurveTypes = new Set(["basis", "natural", "catmullrom"]);
 
@@ -58,26 +59,26 @@ function getPreferencesSnapshot() {
   return { ...cachedPrefs };
 }
 
-function getLastManouver() {
-  const value = cachedPrefs[LAST_MANOUVER_FIELD];
+function getLastManeuver() {
+  const value = cachedPrefs[LAST_MANEUVER_FIELD] ?? cachedPrefs[LEGACY_LAST_MANOUVER_FIELD];
   return typeof value === "string" && value.length ? value : null;
 }
 
-function setLastManouver(key) {
+function setLastManeuver(key) {
   if (typeof key !== "string" || !key.length) {
-    persistPreferences({ [LAST_MANOUVER_FIELD]: null });
+    persistPreferences({ [LAST_MANEUVER_FIELD]: null, [LEGACY_LAST_MANOUVER_FIELD]: null });
     return;
   }
-  persistPreferences({ [LAST_MANOUVER_FIELD]: key });
+  persistPreferences({ [LAST_MANEUVER_FIELD]: key, [LEGACY_LAST_MANOUVER_FIELD]: key });
 }
 
 export {
   clampAlpha,
   clampPointSize,
-  getLastManouver,
+  getLastManeuver,
   getPreferencesSnapshot,
   persistPreferences,
-  setLastManouver,
+  setLastManeuver,
   validColorModes,
   validCurveTypes,
   loadPreferences

@@ -76,11 +76,11 @@ const samplesBtn  = document.getElementById("samplesBtn");
 const optimizeBtn = document.getElementById("optimizeBtn");
 const weightsBtn  = document.getElementById("weightsBtn");
 const exportBtn   = document.getElementById("exportSamplesBtn");
-const manouverDlg = document.getElementById("manouverDlg");
-const manouverForm = document.getElementById("manouverForm");
-const manouverCloseBtn = document.getElementById("manouverClose");
-const manouverOptionsEl = document.getElementById("manouverOptions");
-const manouverConfirmBtn = document.getElementById("manouverConfirm");
+const maneuverDlg = document.getElementById("maneuverDlg");
+const maneuverForm = document.getElementById("maneuverForm");
+const maneuverCloseBtn = document.getElementById("maneuverClose");
+const maneuverOptionsEl = document.getElementById("maneuverOptions");
+const maneuverConfirmBtn = document.getElementById("maneuverConfirm");
 const deviationDlg = document.getElementById("deviationDlg");
 const deviationForm = document.getElementById("deviationForm");
 const deviationCloseBtn = document.getElementById("deviationClose");
@@ -131,7 +131,7 @@ const weightState = {
 };
 let weightsVisible = false;
 
-const manouverTypes = CFG.manouverTypes || {};
+const maneuverTypes = CFG.maneuverTypes || {};
 
 const SCENARIO_METADATA_PATH = CFG.scenarioMetadataUrl;
 let scenarioMetadataById = null;
@@ -1507,12 +1507,12 @@ function ensureOptimizedBeforeExport(snapshot) {
 }
 
 const exportController = createExporter({
-  manouverTypes,
-  dialog: manouverDlg,
-  form: manouverForm,
-  optionsContainer: manouverOptionsEl,
-  cancelButton: manouverCloseBtn,
-  confirmButton: manouverConfirmBtn,
+  maneuverTypes,
+  dialog: maneuverDlg,
+  form: maneuverForm,
+  optionsContainer: maneuverOptionsEl,
+  cancelButton: maneuverCloseBtn,
+  confirmButton: maneuverConfirmBtn,
   deviationDialog: deviationDlg,
   deviationForm,
   deviationInput,
@@ -1525,7 +1525,7 @@ const exportController = createExporter({
 
 window.addEventListener("keydown", (e) => {
   if (exportWarningOpen) return;
-  if (manouverDlg?.open) return;
+  if (maneuverDlg?.open) return;
   if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) return;
   if (e.key.toLowerCase() === "e") {
     e.preventDefault();
@@ -1586,8 +1586,8 @@ document.addEventListener("keydown", (evt) => {
   }
 }, true);
 
-manouverCloseBtn?.addEventListener("click", () => {
-  manouverDlg?.close();
+maneuverCloseBtn?.addEventListener("click", () => {
+  maneuverDlg?.close();
 });
 
 

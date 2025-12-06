@@ -1,4 +1,4 @@
-import { getLastManouver, setLastManouver } from "./preferences.js";
+import { getLastManeuver, setLastManeuver } from "./preferences.js";
 
 const NO_OP = () => {};
 const DEVIATION_MAX_LEN = 280;
@@ -9,7 +9,7 @@ function titleize(key = "") {
     .replace(/\b\w/g, ch => ch.toUpperCase());
 }
 
-function normalizeManouverTypes(map) {
+function normalizeManeuverTypes(map) {
   if (!map || typeof map !== "object") return [];
   return Object.keys(map).map(key => {
     const entry = map[key];
@@ -29,12 +29,12 @@ function normalizeManouverTypes(map) {
 
 function updateSelectionState(container, confirmBtn, selectedKey) {
   if (!container) return;
-  const radios = container.querySelectorAll('input[name="manouverOption"]');
+  const radios = container.querySelectorAll('input[name="maneuverOption"]');
   let found = false;
   radios.forEach(radio => {
     const matched = selectedKey && radio.value === selectedKey;
     radio.checked = matched;
-    radio.closest(".manouver-option")?.classList.toggle("selected", matched);
+    radio.closest(".maneuver-option")?.classList.toggle("selected", matched);
     if (matched) found = true;
   });
   if (confirmBtn) confirmBtn.disabled = !found;
@@ -52,25 +52,25 @@ function buildOptionElements({
   container.innerHTML = "";
   options.forEach(({ key, title, description }) => {
     const label = document.createElement("label");
-    label.className = "manouver-option";
+    label.className = "maneuver-option";
     label.dataset.key = key;
 
     const radio = document.createElement("input");
     radio.type = "radio";
-    radio.name = "manouverOption";
+    radio.name = "maneuverOption";
     radio.value = key;
 
     const details = document.createElement("div");
-    details.className = "manouver-details";
+    details.className = "maneuver-details";
 
     const titleEl = document.createElement("div");
-    titleEl.className = "manouver-title";
+    titleEl.className = "maneuver-title";
     titleEl.textContent = title;
     details.append(titleEl);
 
     if (description) {
       const descEl = document.createElement("div");
-      descEl.className = "manouver-desc";
+      descEl.className = "maneuver-desc";
       descEl.textContent = description;
       details.append(descEl);
     }
@@ -103,7 +103,7 @@ function downloadJson(payload, filename) {
 }
 
 export function createExporter({
-  manouverTypes,
+  maneuverTypes,
   dialog,
   form,
   optionsContainer,
@@ -118,12 +118,12 @@ export function createExporter({
   onCollectData,
   onStatus = NO_OP
 } = {}) {
-  const options = normalizeManouverTypes(manouverTypes);
+  const options = normalizeManeuverTypes(maneuverTypes);
   let optionsBuilt = false;
-  const storedManouver = getLastManouver();
+  const storedManeuver = getLastManeuver();
   let lastSelectedKey = options[0]?.key ?? null;
-  if (storedManouver && options.some(option => option.key === storedManouver)) {
-    lastSelectedKey = storedManouver;
+  if (storedManeuver && options.some(option => option.key === storedManeuver)) {
+    lastSelectedKey = storedManeuver;
   }
   let keyNavAttached = false;
   let dialogClosing = false;
@@ -148,7 +148,7 @@ export function createExporter({
   const getOptionRadios = () => {
     if (!optionsContainer) return [];
     return Array.from(
-      optionsContainer.querySelectorAll('input[name="manouverOption"]')
+      optionsContainer.querySelectorAll('input[name="maneuverOption"]')
     );
   };
 
@@ -174,12 +174,12 @@ export function createExporter({
   const confirmSelection = () => {
     if (!optionsContainer || !dialog?.open || dialogClosing) return false;
     const selected = optionsContainer.querySelector(
-      'input[name="manouverOption"]:checked'
+      'input[name="maneuverOption"]:checked'
     );
     if (!selected) return false;
     dialogClosing = true;
     lastSelectedKey = selected.value;
-    setLastManouver(selected.value);
+    setLastManeuver(selected.value);
     dialog.returnValue = selected.value;
     dialog.close(selected.value);
     return true;
@@ -232,7 +232,7 @@ export function createExporter({
     keyNavAttached = false;
   };
 
-  const promptManouver = async () => {
+  const promptManeuver = async () => {
     if (!dialog || !optionsContainer || options.length === 0) {
       return null;
     }
@@ -267,7 +267,7 @@ export function createExporter({
         });
         enableKeyNav();
       } catch (err) {
-        console.error("Failed to open manouver selection dialog", err);
+        console.error("Failed to open maneuver selection dialog", err);
         dialog.removeEventListener("close", handleClose);
         disableKeyNav();
         dialogClosing = false;
@@ -365,15 +365,15 @@ export function createExporter({
         }
       }
 
-      let manouverKey = null;
+      let maneuverKey = null;
       let deviationNote = null;
       if (options.length > 0) {
-        manouverKey = await promptManouver();
-        if (!manouverKey) {
+        maneuverKey = await promptManeuver();
+        if (!maneuverKey) {
           onStatus("Export canceled.");
           return;
         }
-        if (manouverKey === "deviation") {
+        if (maneuverKey === "deviation") {
           deviationNote = await promptDeviationType();
           if (deviationNote == null) {
             onStatus("Export canceled.");
@@ -383,8 +383,8 @@ export function createExporter({
       }
 
       const payload = { ...snapshot.payload };
-      if (manouverKey) {
-        payload.manouver_type = manouverKey;
+      if (maneuverKey) {
+        payload.maneuver_type = maneuverKey;
       }
       if (typeof deviationNote === "string") {
         payload.deviation_description = deviationNote;
