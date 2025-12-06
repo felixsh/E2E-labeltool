@@ -1,6 +1,7 @@
 import { getLastManouver, setLastManouver } from "./preferences.js";
 
 const NO_OP = () => {};
+const DEVIATION_MAX_LEN = 280;
 
 function titleize(key = "") {
   return key
@@ -277,13 +278,15 @@ export function createExporter({
 
   const promptDeviationType = async () => {
     if (!deviationDialog || !deviationInput) return null;
-    deviationDialog.returnValue = typeof lastDeviationText === "string" ? lastDeviationText : "";
-    deviationInput.value = typeof lastDeviationText === "string" ? lastDeviationText : "";
+    const initialText = typeof lastDeviationText === "string" ? lastDeviationText : "";
+    const clampedInitial = initialText.slice(0, DEVIATION_MAX_LEN);
+    deviationDialog.returnValue = clampedInitial;
+    deviationInput.value = clampedInitial;
 
     return new Promise(resolve => {
       const handleClose = () => {
         deviationDialog.removeEventListener("close", handleClose);
-        const value = deviationDialog.returnValue ?? "";
+        const value = (deviationDialog.returnValue ?? "").slice(0, DEVIATION_MAX_LEN);
         lastDeviationText = value;
         resolve(value);
       };
@@ -321,7 +324,7 @@ export function createExporter({
   if (deviationForm && deviationInput && deviationDialog) {
     deviationForm.addEventListener("submit", evt => {
       evt.preventDefault();
-      const value = deviationInput.value.trim();
+      const value = deviationInput.value.slice(0, DEVIATION_MAX_LEN).trim();
       deviationDialog.returnValue = value;
       deviationDialog.close(value);
     });
