@@ -1708,7 +1708,7 @@ new ResizeObserver(() => {
   // Ortho: rebuild frustum around current center/zoom when in 2D
   if (is2D && camera && camera.isOrthographicCamera) {
     const aspect = Math.max(1e-6, w/h);
-    const halfH = (radius || 10) * 1.2 / camera.zoom;
+    const halfH = (radius || 10) * 1.2;
     const halfW = halfH * aspect;
     const cx = controls?.target?.x ?? center.x;
     const cy = controls?.target?.y ?? center.y;
