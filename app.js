@@ -133,7 +133,7 @@ let weightsVisible = false;
 
 const manouverTypes = CFG.manouverTypes || {};
 
-const SCENARIO_METADATA_PATH = "e2e_scenarios.csv";
+const SCENARIO_METADATA_PATH = CFG.scenarioMetadataUrl;
 let scenarioMetadataById = null;
 let scenarioMetadataPromise = null;
 let currentScenarioMetadata = null;
@@ -256,6 +256,12 @@ if (toolbarPanel && typeof ResizeObserver === "function") {
 async function ensureScenarioMetadata() {
   if (scenarioMetadataById) return scenarioMetadataById;
   if (!scenarioMetadataPromise) {
+    if (!SCENARIO_METADATA_PATH) {
+      console.error("scenarioMetadataUrl is not configured; skipping scenario metadata load.");
+      scenarioMetadataById = {};
+      scenarioMetadataPromise = Promise.resolve(scenarioMetadataById);
+      return scenarioMetadataPromise;
+    }
     scenarioMetadataPromise = d3
       .csv(SCENARIO_METADATA_PATH)
       .then((rows) => {
@@ -277,7 +283,7 @@ async function ensureScenarioMetadata() {
         return scenarioMetadataById;
       })
       .catch((err) => {
-        console.error("Unable to load scenario metadata:", err);
+        console.error(`Unable to load scenario metadata from ${SCENARIO_METADATA_PATH}:`, err);
         scenarioMetadataById = {};
         return scenarioMetadataById;
       });

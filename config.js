@@ -2,6 +2,7 @@ window.CONFIG = {
   // Demo files
   demoPCD: "demo/pointcloud.bin",
   demoTrajectory: "demo/trajectory.npy",
+  scenarioMetadataUrl: "https://raw.githubusercontent.com/KIT-MRT/long-tail-driving-scenarios/refs/heads/main/e2e_scenarios.csv?token=GHSAT0AAAAAADMV5AZPK3YPTJZBUEZTWL3G2JUG36Q",
   
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom
