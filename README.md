@@ -22,8 +22,9 @@ Then visit <http://localhost:8000/index.html> in a WebGL-capable browser.
 
 ## Load data
 
-- **Load** button: choose a point cloud (`.pcd`/`.bin`) and/or trajectory (`.npy`).
-- **Demo** button: loads an example scenario with point cloud and trajectory.
+- **Load** button: choose a scenario `.zip` containing a trajectory `.npy`, one or two point clouds (`.pcd`/`.bin`), an optional `transformation_matrices.npy`, and an optional front-facing `.jpg`.
+- If two clouds are present, the second is transformed by the selected 4×4 matrix row (set `transformationIndex` in `config.js`) and can be toggled independently.
+- **Demo** button: loads the bundled sample `.zip`.
 
 ## Edit & optimise
 
@@ -57,7 +58,7 @@ Current point cloud / trajectory names are shown in the footer.
 
 ## Config
 
-`config.js` holds defaults for point size, curve type, trajectory length (`N_FUTURE`, `N_PAST`), optimisation weights, and other viewer settings.
+`config.js` holds defaults for point size, curve type, trajectory length (`N_FUTURE`, `N_PAST`), optimisation weights, transform row (`transformationIndex`), and second-cloud color/visibility defaults.
 
 Happy labelling!
 
