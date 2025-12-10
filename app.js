@@ -58,6 +58,7 @@ const ptSizeInput = document.getElementById("ptSize");
 const ptSizeVal   = document.getElementById("ptSizeVal");
 const viewTopBtn  = document.getElementById("viewTopBtn");
 const viewIsoBtn  = document.getElementById("viewIsoBtn");
+const viewChaseBtn = document.getElementById("viewChaseBtn");
 const modeBadge   = document.getElementById("modeBadge");
 
 const legendCanvas= document.getElementById("legendCanvas");
@@ -614,6 +615,15 @@ function setIsoView3D() {
   perspCam.up.set(0,0,1); // Z up
   perspCam.position.set(-20, -20, 15);
   controls.target.set(0, 0, 0);
+  perspCam.lookAt(controls.target);
+  controls.update();
+  snapshot3D();
+}
+
+function setChaseView3D() {
+  perspCam.up.set(0,0,1); // Z up
+  perspCam.position.set(-15, 0, 10);
+  controls.target.set(30, 0, 0);
   perspCam.lookAt(controls.target);
   controls.update();
   snapshot3D();
@@ -1329,6 +1339,7 @@ function applyPointCloud(rawData, name, path) {
 
   viewTopBtn.disabled = false;
   viewIsoBtn.disabled = false;
+  viewChaseBtn.disabled = false;
   syncProxyDisabledState();
 
   spline?.onCloudLoaded?.(center, radius);
@@ -1911,6 +1922,7 @@ if (ptSizeVal) ptSizeVal.textContent = `${basePtSize.toFixed(2)} m`;
 
 viewTopBtn.addEventListener("click", () => { if (!is2D) setTopView3D(); renderOnce(); });
 viewIsoBtn.addEventListener("click", () => { if (!is2D) setIsoView3D(); renderOnce(); });
+viewChaseBtn?.addEventListener("click", () => { if (!is2D) setChaseView3D(); renderOnce(); });
 modeBadge?.addEventListener("click", (evt) => {
   evt.preventDefault();
   evt.stopPropagation();
@@ -2161,9 +2173,9 @@ function renderOnce(){ renderer.render(scene, camera); }
 updateLegend();
 setBadge("3D");
 toggleModeButtons();
-setIsoView3D();
-renderOnce();
-exportWarnDlg?.addEventListener("cancel", (evt) => {
+  setIsoView3D();
+  renderOnce();
+  exportWarnDlg?.addEventListener("cancel", (evt) => {
   evt.preventDefault();
   exportWarnDlg?.close?.();
   resolveExportWarningDecision(false, "Export canceled.");
