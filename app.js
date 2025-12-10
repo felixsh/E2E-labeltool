@@ -1838,6 +1838,19 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
   observer.observe(frontImagePanel);
 }
 
+function enterFrontImageFullscreen() {
+  if (!frontImageEl) return;
+  if (document.fullscreenElement) return;
+  frontImageEl.requestFullscreen?.().catch((err) => {
+    console.warn("Failed to enter fullscreen for front image", err);
+  });
+}
+
+frontImageEl?.addEventListener("dblclick", (evt) => {
+  evt.preventDefault();
+  enterFrontImageFullscreen();
+});
+
 // ---------- File/open ----------
 fileInput.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
