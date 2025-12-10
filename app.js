@@ -737,6 +737,7 @@ let currentTrajectoryPath = null;
 let currentScenarioName = null;
 let pointCloudScenarioName = null;
 let trajectoryScenarioName = null;
+let currentZipName = null;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -766,10 +767,8 @@ function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
-  const cloudLabel = currentPCDName ? currentPCDName : "no point cloud";
-  const cloud2Label = currentSecondPCDName ? ` (+2nd ${currentSecondPCDName})` : "";
-  const trajLabel = currentTrajectoryName ? currentTrajectoryName : "no trajectory";
-  status(`Loaded ${cloudLabel}${cloud2Label}, ${trajLabel}`);
+  const label = currentZipName || currentPCDName || "no dataset";
+  status(`Loaded ${label}`);
 }
 
 function cssVar(name) {
@@ -2035,6 +2034,7 @@ fileInput.addEventListener("change", async (e) => {
   if (!file) return;
   try {
     const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
+    currentZipName = file?.name || null;
     transformationInfo = dataset.transformation || null;
     setSecondaryPointCloud(
       dataset.secondaryCloud?.raw,
@@ -2068,6 +2068,7 @@ demoBtn?.addEventListener("click", async () => {
   demoBtn.disabled = true;
   try {
     const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
+    currentZipName = DEMO_ZIP;
     transformationInfo = result.transformation || null;
     setSecondaryPointCloud(
       result.secondaryCloud?.raw,
