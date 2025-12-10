@@ -195,23 +195,6 @@ body.optimizing-cursor {
   resize: both;
   overflow: hidden;
 }
-.front-image-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  background: #111420;
-  border-bottom: 1px solid var(--border);
-  cursor: grab;
-}
-.front-image-header:active { cursor: grabbing; }
-.front-image-header span { font-weight: 600; color: var(--text); }
-.front-image-actions button {
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border-radius: 6px;
-}
 .front-image-body {
   position: relative;
   width: 100%;

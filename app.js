@@ -104,7 +104,6 @@ const exportWarnSkipBtn = document.getElementById("exportWarnSkip");
 const exportWarnCloseBtn = document.getElementById("exportWarnClose");
 const frontImagePanel = document.getElementById("frontImagePanel");
 const frontImageEl = document.getElementById("frontImageEl");
-const frontImageHeader = document.getElementById("frontImageHeader");
 const frontImgToggle = document.getElementById("frontImgToggle");
 
 const initialColorMode =
@@ -1765,7 +1764,7 @@ frontImgToggle?.addEventListener("click", () => {
   toggleFrontImageVisibility();
 });
 
-if (frontImagePanel && frontImageHeader) {
+if (frontImagePanel) {
   let dragging = false;
   let dragStart = { x: 0, y: 0 };
   let panelStart = { x: 0, y: 0 };
@@ -1787,13 +1786,19 @@ if (frontImagePanel && frontImageHeader) {
     document.removeEventListener("pointerup", onUp);
     persistFrontImageLayout(frontImageLayout);
   };
-  frontImageHeader.addEventListener("pointerdown", (evt) => {
+  frontImagePanel.addEventListener("pointerdown", (evt) => {
     if (evt.button !== 0) return;
+    const rect = frontImagePanel.getBoundingClientRect();
+    const resizeZone = 22;
+    const nearRight = (rect.right - evt.clientX) <= resizeZone;
+    const nearBottom = (rect.bottom - evt.clientY) <= resizeZone;
+    if (nearRight && nearBottom) {
+      return; // let native resize handle take over
+    }
     evt.preventDefault();
     dragging = true;
     frontImageDragging = true;
     dragStart = { x: evt.clientX, y: evt.clientY };
-    const rect = frontImagePanel.getBoundingClientRect();
     panelStart = { x: rect.left, y: rect.top };
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
