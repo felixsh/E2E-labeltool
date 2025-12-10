@@ -164,13 +164,22 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
     cloudEntries.primary.async("arraybuffer"),
     loadFrontImage(entries, zip, file?.name)
   ];
-  if (cloudEntries.secondary) {
+  const hasSecondary = !!cloudEntries.secondary;
+  if (hasSecondary) {
     promises.push(cloudEntries.secondary.async("arraybuffer"));
   }
+  const hasTransform = !!transformEntry;
+  const transformPosition = promises.length;
   if (transformEntry) {
     promises.push(transformEntry.async("arraybuffer"));
   }
-  const [trajBuffer, cloudBuffer, cloudBuffer2, frontImage, transformBuffer] = await Promise.all(promises);
+  const results = await Promise.all(promises);
+  let ri = 0;
+  const trajBuffer = results[ri++];
+  const cloudBuffer = results[ri++];
+  const frontImage = results[ri++];
+  const cloudBuffer2 = hasSecondary ? results[ri++] : null;
+  const transformBuffer = hasTransform ? results[transformPosition] : null;
 
   const trajectoryParsed = await loadNpy(trajBuffer);
   const trajectoryPoints = parseTrajectory(trajectoryParsed);
