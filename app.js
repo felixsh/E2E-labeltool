@@ -1942,9 +1942,9 @@ window.addEventListener("keydown", (e) => {
   if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
   if (k === "a") { e.preventDefault(); if (!secondCloudToggle?.disabled && rawSecondary) setSecondCloudVisible(!secondCloudVisible); return; }
   if (k === "f") { e.preventDefault(); if (!frontImgToggle?.disabled) toggleFrontImageVisibility(); return; }
-  if (k === "1") { e.preventDefault(); if (!is2D) { setTopView3D(); renderOnce(); } return; }
-  if (k === "2") { e.preventDefault(); if (!is2D) { setIsoView3D(); renderOnce(); } return; }
-  if (k === "3") { e.preventDefault(); if (!is2D) { setChaseView3D(); renderOnce(); } return; }
+  if (k === "1") { e.preventDefault(); if (is2D) enter3D(); setTopView3D(); renderOnce(); return; }
+  if (k === "2") { e.preventDefault(); if (is2D) enter3D(); setIsoView3D(); renderOnce(); return; }
+  if (k === "3") { e.preventDefault(); if (is2D) enter3D(); setChaseView3D(); renderOnce(); return; }
   if (k === "arrowup") { e.preventDefault(); spline?.nudgeSelected?.(0, e.shiftKey ? 0.2 : 0.01); renderOnce(); return; }
   if (k === "arrowdown") { e.preventDefault(); spline?.nudgeSelected?.(0, -(e.shiftKey ? 0.2 : 0.01)); renderOnce(); return; }
   if (k === "arrowleft") { e.preventDefault(); spline?.nudgeSelected?.(-(e.shiftKey ? 0.2 : 0.01), 0); renderOnce(); return; }
