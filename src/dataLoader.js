@@ -72,6 +72,10 @@ function ensureAncillaryFiles(entries) {
   }
 }
 
+function selectTransformEntry(entries) {
+  return entries.find((entry) => normalizeEntryName(entry.name).toLowerCase().endsWith("transformation_matrices.npy")) || null;
+}
+
 async function loadFrontImage(entries, zip, zipName) {
   const entry = entries.find((e) => {
     const lower = normalizeEntryName(e.name).toLowerCase();
@@ -92,7 +96,42 @@ async function loadFrontImage(entries, zip, zipName) {
   };
 }
 
-export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}) {
+function parseTransformMatrix(parsed, index = 0) {
+  const shape = parsed?.shape || [];
+  if (shape.length !== 3 || shape[1] !== 4 || shape[2] !== 4) {
+    throw new Error("transformation_matrices.npy must have shape (N,4,4)");
+  }
+  const n = shape[0];
+  if (n < 1) {
+    throw new Error("transformation_matrices.npy is empty");
+  }
+  const clampedIdx = Math.min(n - 1, Math.max(0, index | 0));
+  const { data, fortranOrder } = parsed;
+  const idx3 = (i, j, k) => {
+    if (fortranOrder) {
+      return i + shape[0] * (j + shape[1] * k);
+    }
+    return (i * shape[1] + j) * shape[2] + k;
+  };
+  const mat = [];
+  for (let r = 0; r < 4; r++) {
+    const row = [];
+    for (let c = 0; c < 4; c++) {
+      row.push(data[idx3(clampedIdx, r, c)]);
+    }
+    mat.push(row);
+  }
+  const lastRow = mat[3];
+  const okLastRow = Math.abs(lastRow[0]) < 1e-6 && Math.abs(lastRow[1]) < 1e-6 && Math.abs(lastRow[2]) < 1e-6 && Math.abs(lastRow[3] - 1) < 1e-6;
+  if (!okLastRow) {
+    console.warn("Transformation matrix last row is not [0 0 0 1]");
+  }
+  const rotation3x3 = mat.slice(0, 3).map((row) => row.slice(0, 3));
+  const translation = [mat[0][3], mat[1][3], mat[2][3]];
+  return { matrix4x4: mat, rotation3x3, translation, index: clampedIdx };
+}
+
+export async function loadDatasetFromZip(file, { preferFirstCloud = false, transformIndex = 0 } = {}) {
   const zipBuffer = await file.arrayBuffer();
   const zip = await JSZip.loadAsync(zipBuffer);
   const entries = Object.values(zip.files || {}).filter((f) => !f.dir);
@@ -112,15 +151,23 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}
     throw new Error("zip is missing point cloud (.bin/.pcd) files");
   }
 
-  const [trajBuffer, cloudBuffer, frontImage] = await Promise.all([
+  const transformEntry = selectTransformEntry(entries);
+  if (!transformEntry) {
+    throw new Error('zip is missing "transformation_matrices.npy"');
+  }
+
+  const [trajBuffer, cloudBuffer, frontImage, transformBuffer] = await Promise.all([
     trajEntry.async("arraybuffer"),
     cloudEntry.async("arraybuffer"),
-    loadFrontImage(entries, zip, file?.name)
+    loadFrontImage(entries, zip, file?.name),
+    transformEntry.async("arraybuffer")
   ]);
 
   const trajectoryParsed = await loadNpy(trajBuffer);
   const trajectoryPoints = parseTrajectory(trajectoryParsed);
   const cloudRaw = parsePointCloud(cloudBuffer, normalizeEntryName(cloudEntry.name));
+  const transformParsed = await loadNpy(transformBuffer);
+  const transformResult = parseTransformMatrix(transformParsed, transformIndex);
 
   return {
     trajectory: {
@@ -129,6 +176,7 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}
       name: normalizeEntryName(trajEntry.name),
       path: makeZipPath(file?.name, trajEntry.name)
     },
+    transformation: transformResult,
     frontImage,
     cloud: {
       raw: cloudRaw,
@@ -184,7 +232,7 @@ export async function loadTrajectoryFromUrl(url) {
   return { points, raw: parsed, name, path: url };
 }
 
-export async function loadDemoDataset({ zipUrl, cloudUrl, trajectoryUrl, preferFirstCloud = false } = {}) {
+export async function loadDemoDataset({ zipUrl, cloudUrl, trajectoryUrl, preferFirstCloud = false, transformIndex = 0 } = {}) {
   const url = zipUrl || cloudUrl || trajectoryUrl;
   if (!url) {
     throw new Error("zipUrl is required for demo loading");
@@ -201,5 +249,5 @@ export async function loadDemoDataset({ zipUrl, cloudUrl, trajectoryUrl, preferF
     name: nameFromPath(url, "demo.zip"),
     arrayBuffer: async () => buffer
   };
-  return loadDatasetFromZip(pseudoFile, { preferFirstCloud });
+  return loadDatasetFromZip(pseudoFile, { preferFirstCloud, transformIndex });
 }

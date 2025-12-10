@@ -27,6 +27,7 @@ const HISTORY_COUNT = Math.max(1, (CFG.N_PAST | 0) || 1);
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 const USE_FIRST_PCD = !!CFG.useFirstPointCloud;
+const TRANSFORM_INDEX = Number.isInteger(CFG.transformationIndex) ? CFG.transformationIndex : 0;
 
 const preferences = loadPreferences();
 
@@ -1856,7 +1857,7 @@ fileInput.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
   try {
-    const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD });
+    const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
     if (dataset.trajectory) {
       applyTrajectoryPoints(
         dataset.trajectory.points,
@@ -1883,7 +1884,7 @@ demoBtn?.addEventListener("click", async () => {
   }
   demoBtn.disabled = true;
   try {
-    const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD });
+    const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
     if (result.cloud) {
       applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
     }

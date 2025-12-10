@@ -5,6 +5,9 @@ window.CONFIG = {
   // Point cloud selection from dataset zip
   // false = use the second (later) point cloud; true = use the first
   useFirstPointCloud: false,
+
+  // Transformation matrix selection (row index in transformation_matrices.npy)
+  transformationIndex: 0,
   
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom
