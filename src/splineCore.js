@@ -330,19 +330,9 @@ export function makeSplineSystem({
     const ctx = c.getContext("2d");
     ctx.clearRect(0,0,size,size);
 
-    // rounded bg
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    const r = 10;
-    ctx.beginPath();
-    ctx.moveTo(r,0); ctx.lineTo(size-r,0); ctx.quadraticCurveTo(size,0,size,r);
-    ctx.lineTo(size,size-r); ctx.quadraticCurveTo(size,size,size-r,size);
-    ctx.lineTo(r,size); ctx.quadraticCurveTo(0,size,0,size-r);
-    ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
-    ctx.closePath(); ctx.fill();
-
     // text
-    ctx.fillStyle = "#e6e8ef";
-    ctx.font = "bold 32px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+    ctx.fillStyle = "#444444";
+    ctx.font = "bold 42px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, size/2, size/2);
@@ -358,13 +348,13 @@ export function makeSplineSystem({
     while (sampleLabels.length < count) {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: getLabelTexture(String(sampleLabels.length)),
-        depthTest: true,
+        depthTest: false,
         transparent: true
       }));
       sprite.renderOrder = 30;           // topmost
       sprite.material.depthTest  = false;
       sprite.material.depthWrite = false;
-      sprite.scale.set(0.35, 0.35, 1);
+      sprite.scale.set(0.32, 0.32, 1);
       scene.add(sprite);
       sampleLabels.push(sprite);
     }
@@ -446,7 +436,7 @@ export function makeSplineSystem({
       lab.material.map = getLabelTexture(String(s.idx));
       lab.material.needsUpdate = true;
       lab.visible = !!showSamples;
-      lab.position.set(s.x + 0.16, s.y + 0.16, 0.02);
+      lab.position.set(s.x, s.y, 0.05);
     });
   }
 
