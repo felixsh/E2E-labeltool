@@ -63,13 +63,33 @@ function selectPointCloudEntry(entries, preferFirstCloud = false) {
 function ensureAncillaryFiles(entries) {
   const lowerNames = entries.map((e) => normalizeEntryName(e.name).toLowerCase());
   const hasTransform = lowerNames.some((name) => name.endsWith("transformation_matrices.npy"));
-  const hasImage = lowerNames.some((name) => name.endsWith(".jpg") || name.endsWith(".jpeg"));
+  const hasImage = lowerNames.some((name) => (name.endsWith(".jpg") || name.endsWith(".jpeg")) && name.includes("front"));
   if (!hasTransform) {
     throw new Error('zip is missing "transformation_matrices.npy"');
   }
   if (!hasImage) {
-    throw new Error("zip is missing a .jpg image");
+    throw new Error('zip is missing a front-facing .jpg image (filename must include "front")');
   }
+}
+
+async function loadFrontImage(entries, zip, zipName) {
+  const entry = entries.find((e) => {
+    const lower = normalizeEntryName(e.name).toLowerCase();
+    return (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) && lower.includes("front");
+  });
+  if (!entry) return null;
+  const blob = await entry.async("blob");
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(blob);
+  });
+  return {
+    dataUrl,
+    name: normalizeEntryName(entry.name),
+    path: makeZipPath(zipName, entry.name)
+  };
 }
 
 export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}) {
@@ -92,9 +112,10 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}
     throw new Error("zip is missing point cloud (.bin/.pcd) files");
   }
 
-  const [trajBuffer, cloudBuffer] = await Promise.all([
+  const [trajBuffer, cloudBuffer, frontImage] = await Promise.all([
     trajEntry.async("arraybuffer"),
-    cloudEntry.async("arraybuffer")
+    cloudEntry.async("arraybuffer"),
+    loadFrontImage(entries, zip, file?.name)
   ]);
 
   const trajectoryParsed = await loadNpy(trajBuffer);
@@ -108,6 +129,7 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}
       name: normalizeEntryName(trajEntry.name),
       path: makeZipPath(file?.name, trajEntry.name)
     },
+    frontImage,
     cloud: {
       raw: cloudRaw,
       name: normalizeEntryName(cloudEntry.name),

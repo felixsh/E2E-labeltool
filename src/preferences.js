@@ -3,6 +3,7 @@ const POINT_SIZE_MIN = 0.01;
 const POINT_SIZE_MAX = 0.5;
 const LAST_MANEUVER_FIELD = "lastManeuverType";
 const LEGACY_LAST_MANOUVER_FIELD = "lastManouverType";
+const FRONT_IMAGE_LAYOUT_FIELD = "frontImageLayout";
 const validColorModes = new Set(["height", "intensity", "distance", "solid"]);
 const validCurveTypes = new Set(["basis", "natural", "catmullrom"]);
 
@@ -72,13 +73,38 @@ function setLastManeuver(key) {
   persistPreferences({ [LAST_MANEUVER_FIELD]: key, [LEGACY_LAST_MANOUVER_FIELD]: key });
 }
 
+function sanitizeFrontImageLayout(layout) {
+  if (!layout || typeof layout !== "object") return null;
+  const toNum = (v) => (Number.isFinite(v) ? v : null);
+  const x = toNum(layout.x);
+  const y = toNum(layout.y);
+  const width = toNum(layout.width);
+  const height = toNum(layout.height);
+  const visible = !!layout.visible;
+  return { x, y, width, height, visible };
+}
+
+function getFrontImageLayout() {
+  const value = sanitizeFrontImageLayout(cachedPrefs[FRONT_IMAGE_LAYOUT_FIELD]);
+  if (!value) return { x: null, y: null, width: null, height: null, visible: false };
+  return value;
+}
+
+function setFrontImageLayout(layout) {
+  const cleaned = sanitizeFrontImageLayout(layout);
+  if (!cleaned) return;
+  persistPreferences({ [FRONT_IMAGE_LAYOUT_FIELD]: cleaned });
+}
+
 export {
   clampAlpha,
   clampPointSize,
   getLastManeuver,
+  getFrontImageLayout,
   getPreferencesSnapshot,
   persistPreferences,
   setLastManeuver,
+  setFrontImageLayout,
   validColorModes,
   validCurveTypes,
   loadPreferences

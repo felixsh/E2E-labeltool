@@ -29,6 +29,7 @@
               Load
             </label>
             <button id="demoBtn" type="button" class="mode-btn mode-3d">Demo</button>
+            <button id="frontImgToggle" type="button" class="toggle-btn" aria-pressed="false">Front</button>
             <label>
               Point size
               <input id="ptSize" type="range" min="0.01" max="0.50" step="0.01" value="0.08" />
@@ -87,6 +88,12 @@
       <!-- Mode badge -->
       <div id="modeBadge" class="badge three">3D</div>
       <div id="scenarioInfo" aria-live="polite"></div>
+      <div id="frontImagePanel" class="front-image hidden">
+        <div class="front-image-header" id="frontImageHeader"></div>
+        <div class="front-image-body">
+          <img id="frontImageEl" alt="Front view" />
+        </div>
+      </div>
 
       <dialog id="exportWarnDlg">
         <form method="dialog" class="dialog-body maneuver-dialog export-warn-dialog" id="exportWarnForm">
@@ -192,6 +199,7 @@
         <span class="help-key"><kbd>S</kbd></span><span class="help-desc">Toggle samples & mini charts</span>
         <span class="help-key"><kbd>O</kbd></span><span class="help-desc">Run optimization</span>
         <span class="help-key"><kbd>W</kbd></span><span class="help-desc">Toggle optimizer weights panel</span>
+        <span class="help-key"><kbd>F</kbd></span><span class="help-desc">Toggle front image panel</span>
         <span class="help-key"><kbd>L</kbd></span><span class="help-desc">Open the Load dialog</span>
         <span class="help-key"><kbd>E</kbd></span><span class="help-desc">Export JSON (controls, samples, status)</span>
       </div>

@@ -174,6 +174,60 @@ body.optimizing-cursor {
   display: none;
 }
 
+.front-image {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30vw;
+  max-width: 95vw;
+  max-height: 90vh;
+  min-width: 220px;
+  background: #0c0f18;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+  z-index: 3800;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+  resize: both;
+  overflow: hidden;
+}
+.front-image-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #111420;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+.front-image-header:active { cursor: grabbing; }
+.front-image-header span { font-weight: 600; color: var(--text); }
+.front-image-actions button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+}
+.front-image-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #0b0e16;
+}
+.front-image-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.front-image.hidden {
+  display: none;
+}
+
 #optimizeBtn {
   position: relative;
   transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;

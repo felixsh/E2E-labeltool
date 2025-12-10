@@ -12,8 +12,10 @@ import { createExporter } from "./src/exporter.js";
 import {
   clampAlpha,
   clampPointSize,
+  getFrontImageLayout,
   loadPreferences,
   persistPreferences,
+  setFrontImageLayout,
   validColorModes,
   validCurveTypes
 } from "./src/preferences.js";
@@ -100,6 +102,10 @@ const exportWarnForm = document.getElementById("exportWarnForm");
 const exportWarnOptimizeBtn = document.getElementById("exportWarnOptimize");
 const exportWarnSkipBtn = document.getElementById("exportWarnSkip");
 const exportWarnCloseBtn = document.getElementById("exportWarnClose");
+const frontImagePanel = document.getElementById("frontImagePanel");
+const frontImageEl = document.getElementById("frontImageEl");
+const frontImageHeader = document.getElementById("frontImageHeader");
+const frontImgToggle = document.getElementById("frontImgToggle");
 
 const initialColorMode =
   (typeof CFG.colorMode === "string" && validColorModes.has(CFG.colorMode))
@@ -249,6 +255,11 @@ window.addEventListener("resize", () => {
   evaluateToolbarCollapse();
   if (!bodyEl.classList.contains("toolbar-collapsed") && bodyEl.classList.contains("menu-open")) {
     setMobileMenuOpen(false);
+  }
+  if (frontImageLayout) {
+    frontImageLayout = clampFrontImageLayout(frontImageLayout);
+    updateFrontImageStyles();
+    persistFrontImageLayout(frontImageLayout);
   }
 });
 
@@ -731,6 +742,10 @@ let trajectoryFutureSphereRadius = 0;
 let trajectoryFutureSphereMat = null;
 let trajectoryHistoryRaw = [];
 let trajectoryRawPoints = [];
+let frontImageData = null;
+let frontImageLayout = getFrontImageLayout();
+let frontImageAspect = 16/9;
+let frontImageDragging = false;
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
@@ -757,6 +772,100 @@ function cssColor(name, fallback = "#ffffff") {
   } catch {
     return new THREE.Color(fallback);
   }
+}
+
+function updateFrontImageStyles() {
+  if (!frontImagePanel) return;
+  const layout = clampFrontImageLayout(frontImageLayout);
+  if (!layout) return;
+  frontImagePanel.style.width = `${layout.width}px`;
+  frontImagePanel.style.height = `${layout.height}px`;
+  frontImagePanel.style.left = `${layout.x}px`;
+  frontImagePanel.style.top = `${layout.y}px`;
+  frontImagePanel.style.transform = "none";
+}
+
+function persistFrontImageLayout(extra = {}) {
+  const layout = clampFrontImageLayout({ ...frontImageLayout, ...extra });
+  if (!layout) return;
+  frontImageLayout = layout;
+  setFrontImageLayout(layout);
+}
+
+function setFrontImageVisible(visible) {
+  if (!frontImagePanel || !frontImgToggle) return;
+  const next = !!visible;
+  frontImagePanel.classList.toggle("hidden", !next);
+  frontImgToggle.setAttribute("aria-pressed", next ? "true" : "false");
+  if (!next) {
+    persistFrontImageLayout({ visible: false });
+  } else {
+    persistFrontImageLayout({ visible: true });
+  }
+}
+
+function applyFrontImageData(data) {
+  frontImageData = data;
+  if (!frontImageEl || !frontImagePanel || !frontImgToggle) return;
+  if (!data || !data.dataUrl) {
+    frontImageEl.removeAttribute("src");
+    frontImagePanel.classList.add("hidden");
+    frontImgToggle.disabled = true;
+    persistFrontImageLayout({ visible: false });
+    return;
+  }
+  frontImgToggle.disabled = false;
+  frontImageEl.onload = () => {
+    const w = frontImageEl.naturalWidth || 1;
+    const h = frontImageEl.naturalHeight || 1;
+    frontImageAspect = w / h;
+    const layout = clampFrontImageLayout({ ...frontImageLayout, visible: true });
+    frontImageLayout = layout;
+    updateFrontImageStyles();
+    setFrontImageVisible(true);
+    persistFrontImageLayout(layout);
+  };
+  frontImageEl.src = data.dataUrl;
+}
+
+function toggleFrontImageVisibility() {
+  const next = !(frontImageLayout?.visible);
+  setFrontImageVisible(next);
+}
+
+// Initialize front image panel state
+frontImageLayout = clampFrontImageLayout(frontImageLayout);
+updateFrontImageStyles();
+if (frontImgToggle) {
+  frontImgToggle.disabled = true;
+  frontImgToggle.setAttribute("aria-pressed", "false");
+}
+setFrontImageVisible(false);
+persistFrontImageLayout({ visible: false });
+
+function defaultFrontImageWidth() {
+  const w = Math.max(220, window.innerWidth * 0.3);
+  return Math.min(window.innerWidth * 0.9, w);
+}
+
+function clampFrontImageLayout(layout) {
+  if (!layout) return null;
+  const out = { ...layout };
+  if (!Number.isFinite(out.width) || out.width <= 0) out.width = defaultFrontImageWidth();
+  out.width = Math.min(Math.max(180, out.width), Math.max(240, window.innerWidth * 0.98));
+  if (Number.isFinite(frontImageAspect) && frontImageAspect > 0) {
+    out.height = out.width / frontImageAspect;
+  } else if (!Number.isFinite(out.height) || out.height <= 0) {
+    out.height = out.width * 0.75;
+  }
+  const maxX = Math.max(0, window.innerWidth - out.width - 12);
+  const maxY = Math.max(0, window.innerHeight - out.height - 12);
+  if (!Number.isFinite(out.x)) out.x = Math.round((window.innerWidth - out.width) / 2);
+  if (!Number.isFinite(out.y)) out.y = 12;
+  out.x = Math.min(Math.max(6, out.x), maxX);
+  out.y = Math.min(Math.max(6 + (headerEl?.offsetHeight || 0), out.y), maxY);
+  out.visible = !!out.visible;
+  return out;
 }
 
 // ---------- Color ramps ----------
@@ -1637,6 +1746,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
+  if (k === "f") { e.preventDefault(); if (!frontImgToggle?.disabled) toggleFrontImageVisibility(); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
   if (k === "l") {
@@ -1648,6 +1758,80 @@ window.addEventListener("keydown", (e) => {
   }
   if (k === "e") { e.preventDefault(); void exportController?.exportAll?.(); return; }
 });
+
+// ---------- Front image controls ----------
+frontImgToggle?.addEventListener("click", () => {
+  if (frontImgToggle.disabled) return;
+  toggleFrontImageVisibility();
+});
+
+if (frontImagePanel && frontImageHeader) {
+  let dragging = false;
+  let dragStart = { x: 0, y: 0 };
+  let panelStart = { x: 0, y: 0 };
+  const onMove = (evt) => {
+    if (!dragging) return;
+    const dx = evt.clientX - dragStart.x;
+    const dy = evt.clientY - dragStart.y;
+    const nextX = panelStart.x + dx;
+    const nextY = panelStart.y + dy;
+    frontImageLayout = { ...frontImageLayout, x: nextX, y: nextY };
+    frontImageLayout = clampFrontImageLayout(frontImageLayout);
+    updateFrontImageStyles();
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    frontImageDragging = false;
+    document.removeEventListener("pointermove", onMove);
+    document.removeEventListener("pointerup", onUp);
+    persistFrontImageLayout(frontImageLayout);
+  };
+  frontImageHeader.addEventListener("pointerdown", (evt) => {
+    if (evt.button !== 0) return;
+    evt.preventDefault();
+    dragging = true;
+    frontImageDragging = true;
+    dragStart = { x: evt.clientX, y: evt.clientY };
+    const rect = frontImagePanel.getBoundingClientRect();
+    panelStart = { x: rect.left, y: rect.top };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  });
+}
+
+if (frontImagePanel && typeof ResizeObserver === "function") {
+  let resizeRaf = null;
+  const observer = new ResizeObserver((entries) => {
+    if (frontImageDragging) return;
+    for (const entry of entries) {
+      if (entry.target !== frontImagePanel) continue;
+      const width = entry.contentRect?.width;
+      if (!Number.isFinite(width)) continue;
+      const nextH = Number.isFinite(frontImageAspect) && frontImageAspect > 0
+        ? width / frontImageAspect
+        : entry.contentRect?.height;
+      if (Number.isFinite(nextH)) {
+        const currentH = frontImagePanel.getBoundingClientRect().height;
+        if (Math.abs(nextH - currentH) > 0.5) {
+          frontImagePanel.style.height = `${nextH}px`;
+        }
+      }
+      frontImageLayout = clampFrontImageLayout({
+        ...frontImageLayout,
+        width,
+        height: Number.isFinite(nextH) ? nextH : frontImagePanel.getBoundingClientRect().height
+      });
+      if (!resizeRaf) {
+        resizeRaf = requestAnimationFrame(() => {
+          persistFrontImageLayout(frontImageLayout);
+          resizeRaf = null;
+        });
+      }
+    }
+  });
+  observer.observe(frontImagePanel);
+}
 
 // ---------- File/open ----------
 fileInput.addEventListener("change", async (e) => {
@@ -1665,6 +1849,7 @@ fileInput.addEventListener("change", async (e) => {
     if (dataset.cloud) {
       applyPointCloud(dataset.cloud.raw, dataset.cloud.name, dataset.cloud.path);
     }
+    applyFrontImageData(dataset.frontImage || null);
   } catch (err) {
     console.error(err);
     status(`Failed to load ${file.name}: ${err.message || err}`);
@@ -1687,6 +1872,7 @@ demoBtn?.addEventListener("click", async () => {
     if (result.trajectory) {
       applyTrajectoryPoints(result.trajectory.points, result.trajectory.name, result.trajectory.path);
     }
+    applyFrontImageData(result.frontImage || null);
     pointCloudScenarioName = "demo";
     trajectoryScenarioName = "demo";
     recomputeScenarioName();

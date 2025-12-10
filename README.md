@@ -43,6 +43,7 @@ Then visit <http://localhost:8000/index.html> in a WebGL-capable browser.
 | `S` | Toggle samples & charts |
 | `O` | Run optimisation |
 | `W` | Toggle optimizer weights panel |
+| `F` | Toggle front image panel |
 | `L` | Open the Load dialog |
 | `E` | Export JSON |
 | Mouse wheel | Zoom |
