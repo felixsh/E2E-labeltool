@@ -199,7 +199,8 @@ function isTypingContext(el) {
   if (!el) return false;
   if (weightsPanel && weightsPanel.contains(el)) return false;
   const tag = el.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON";
+  if (el.isContentEditable) return true;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 }
 
 function updateToolbarOffset() {
