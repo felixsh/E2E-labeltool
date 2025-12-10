@@ -28,6 +28,8 @@ let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 const USE_FIRST_PCD = !!CFG.useFirstPointCloud;
 const TRANSFORM_INDEX = Number.isInteger(CFG.transformationIndex) ? CFG.transformationIndex : 0;
+const SECOND_SOLID_COLOR = !!CFG.secondCloudSolidColor;
+const SECOND_SOLID_HEX = typeof CFG.secondCloudColorHex === "string" ? CFG.secondCloudColorHex : "#8ec5ff";
 
 const preferences = loadPreferences();
 
@@ -106,6 +108,7 @@ const exportWarnCloseBtn = document.getElementById("exportWarnClose");
 const frontImagePanel = document.getElementById("frontImagePanel");
 const frontImageEl = document.getElementById("frontImageEl");
 const frontImgToggle = document.getElementById("frontImgToggle");
+const secondCloudToggle = document.getElementById("secondCloudToggle");
 
 const initialColorMode =
   (typeof CFG.colorMode === "string" && validColorModes.has(CFG.colorMode))
@@ -548,6 +551,9 @@ function snapshot2D() {
 function syncPointSize() {
   if (!cloudMat) return;
   cloudMat.size = is2D ? (basePtSize * camera.zoom) : basePtSize;
+  if (cloudSecondaryMat) {
+    cloudSecondaryMat.size = cloudMat.size;
+  }
 }
 
 function setBadge(label) {
@@ -720,6 +726,12 @@ let center = new THREE.Vector3();
 let radius = 10;
 let currentPCDName = ""; // used for export filename
 let currentPCDPath = null;
+let cloudSecondary = null;
+let cloudSecondaryMat = null;
+let rawSecondary = null;
+let cloudSecondaryBoundsCache = null;
+let currentSecondPCDName = "";
+let currentSecondPCDPath = null;
 let currentTrajectoryName = "";
 let currentTrajectoryPath = null;
 let currentScenarioName = null;
@@ -746,14 +758,18 @@ let frontImageData = null;
 let frontImageLayout = getFrontImageLayout();
 let frontImageAspect = 16/9;
 let frontImageDragging = false;
+let transformationInfo = null;
+let secondCloudVisible = true;
+let secondCloudToggleAvailable = false;
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
   const cloudLabel = currentPCDName ? currentPCDName : "no point cloud";
+  const cloud2Label = currentSecondPCDName ? ` (+2nd ${currentSecondPCDName})` : "";
   const trajLabel = currentTrajectoryName ? currentTrajectoryName : "no trajectory";
-  status(`Loaded ${cloudLabel}, ${trajLabel}`);
+  status(`Loaded ${cloudLabel}${cloud2Label}, ${trajLabel}`);
 }
 
 function cssVar(name) {
@@ -842,6 +858,10 @@ if (frontImgToggle) {
 }
 setFrontImageVisible(false);
 persistFrontImageLayout({ visible: false });
+if (secondCloudToggle) {
+  secondCloudToggle.disabled = true;
+  secondCloudToggle.setAttribute("aria-pressed", "false");
+}
 
 function defaultFrontImageWidth() {
   const w = Math.max(220, window.innerWidth * 0.3);
@@ -991,6 +1011,78 @@ function buildCloud() {
   renderOnce();
 }
 
+function buildSecondCloud() {
+  if (cloudSecondary) { scene.remove(cloudSecondary); cloudSecondary.geometry.dispose(); cloudSecondary.material.dispose(); cloudSecondary = cloudSecondaryMat = null; }
+  if (!rawSecondary || !secondCloudVisible) return;
+
+  const hasI = rawSecondary.xyzIdx.i >= 0;
+  const dim = hasI ? 4 : 3;
+  const total = Math.min(Math.floor(rawSecondary.points.length / dim), maxPoints|0);
+
+  const pos = new Float32Array(total * 3);
+  const col = new Float32Array(total * 3);
+
+  const zmin = cloudSecondaryBoundsCache?.zmin ?? 0;
+  const zmax = cloudSecondaryBoundsCache?.zmax ?? 1;
+  let imin=Infinity, imax=-Infinity;
+  if (hasI) {
+    for (let k=3, used=0; k<rawSecondary.points.length && used<total; k+=dim, used++){
+      const v = rawSecondary.points[k]; if (v<imin) imin=v; if (v>imax) imax=v;
+    }
+    if (imax <= 1.0) { imin = 0; }
+    else if (imax <= 255) { imin = 0; imax=255; }
+  }
+
+  const solidColor = SECOND_SOLID_COLOR ? new THREE.Color(SECOND_SOLID_HEX) : null;
+
+  for (let p=0, k=0; p<total; p++, k+=dim) {
+    const x = rawSecondary.points[k+0], y = rawSecondary.points[k+1], z = rawSecondary.points[k+2];
+    pos[p*3+0] = x; pos[p*3+1] = y; pos[p*3+2] = z;
+
+    let c;
+    if (solidColor) {
+      c = solidColor;
+    } else if (colorMode === "height") {
+      const zMinFixed = -3, zMaxFixed = 3;
+      const u = Math.min(1, Math.max(0, (z - zMinFixed) / (zMaxFixed - zMinFixed)));
+      const t = 0.50 + 0.50 * u;
+      c = rampColor(turboStops, t);
+    } else if (colorMode === "intensity" && hasI) {
+      const v = rawSecondary.points[k+3];
+      let t;
+      if (imax <= 1.0) t = v;
+      else if (imax <= 255) t = v/255;
+      else t = (v - imin) / Math.max(1e-6, (imax - imin));
+      c = rampColor(viridisStops, t);
+    } else if (colorMode === "distance") {
+      const r = Math.sqrt(x*x + y*y + z*z);
+      const t = Math.min(1, r / (radius || 1));
+      c = rampColor(viridisStops, t);
+    } else {
+      c = new THREE.Color(0x9fb3ff);
+    }
+    col[p*3+0] = c.r; col[p*3+1] = c.g; col[p*3+2] = c.b;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color",    new THREE.BufferAttribute(col, 3));
+  geo.computeBoundingSphere();
+
+  cloudSecondaryMat = new THREE.PointsMaterial({
+    size: basePtSize,
+    sizeAttenuation: true,
+    vertexColors: true,
+    opacity: 0.85,
+    transparent: true
+  });
+
+  cloudSecondary = new THREE.Points(geo, cloudSecondaryMat);
+  cloudSecondary.renderOrder = -9;
+  scene.add(cloudSecondary);
+  syncPointSize();
+}
+
 function computeTrajectoryBounds(points) {
   if (!points || points.length === 0) return null;
   let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
@@ -1013,6 +1105,33 @@ function mergeBounds(a, b) {
     ymax: Math.max(a.ymax, b.ymax),
     zmin: Math.min(a.zmin, b.zmin),
     zmax: Math.max(a.zmax, b.zmax)
+  };
+}
+
+function transformPointCloud(rawInput, rotation3x3, translation) {
+  if (!rawInput || !rotation3x3 || !translation) return null;
+  const hasI = rawInput.xyzIdx.i >= 0;
+  const dim = hasI ? 4 : 3;
+  const count = Math.floor(rawInput.points.length / dim);
+  const outPoints = new Float32Array(count * dim);
+  for (let i = 0; i < count; i++) {
+    const k = i * dim;
+    const x = rawInput.points[k + 0];
+    const y = rawInput.points[k + 1];
+    const z = rawInput.points[k + 2];
+    const rx = rotation3x3[0][0]*x + rotation3x3[0][1]*y + rotation3x3[0][2]*z + translation[0];
+    const ry = rotation3x3[1][0]*x + rotation3x3[1][1]*y + rotation3x3[1][2]*z + translation[1];
+    const rz = rotation3x3[2][0]*x + rotation3x3[2][1]*y + rotation3x3[2][2]*z + translation[2];
+    outPoints[k + 0] = rx;
+    outPoints[k + 1] = ry;
+    outPoints[k + 2] = rz;
+    if (hasI) {
+      outPoints[k + 3] = rawInput.points[k + 3];
+    }
+  }
+  return {
+    ...rawInput,
+    points: outPoints
   };
 }
 
@@ -1189,12 +1308,18 @@ function applyPointCloud(rawData, name, path) {
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
   const cloudBounds = cloudBoundsCache;
+  if (rawSecondary) {
+    cloudSecondaryBoundsCache = computeBounds(rawSecondary.points, rawSecondary.xyzIdx);
+  } else {
+    cloudSecondaryBoundsCache = null;
+  }
   const trajBounds = trajectoryPoints ? computeTrajectoryBounds(trajectoryPoints) : null;
-  bounds = mergeBounds(cloudBounds, trajBounds);
+  bounds = mergeBounds(mergeBounds(cloudBounds, cloudSecondaryBoundsCache), trajBounds);
 
   updateCenterAndRadius();
   updateLegend();
   buildCloud();
+  buildSecondCloud();
 
   if (is2D) {
     center2DViewOnOrigin();
@@ -1217,6 +1342,53 @@ function applyPointCloud(rawData, name, path) {
   recomputeScenarioName();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
+}
+
+function setSecondaryPointCloud(rawData, name, path) {
+  if (cloudSecondary) {
+    scene.remove(cloudSecondary);
+    cloudSecondary.geometry.dispose();
+    cloudSecondary.material.dispose();
+    cloudSecondary = cloudSecondaryMat = null;
+  }
+  if (!rawData || !transformationInfo) {
+    rawSecondary = null;
+    cloudSecondaryBoundsCache = null;
+    currentSecondPCDName = "";
+    currentSecondPCDPath = null;
+    secondCloudVisible = false;
+    secondCloudToggleAvailable = false;
+    if (secondCloudToggle) {
+      secondCloudToggle.disabled = true;
+      secondCloudToggle.setAttribute("aria-pressed", "false");
+    }
+    return;
+  }
+  rawSecondary = transformPointCloud(rawData, transformationInfo.rotation3x3, transformationInfo.translation);
+  cloudSecondaryBoundsCache = computeBounds(rawSecondary.points, rawSecondary.xyzIdx);
+  currentSecondPCDName = name || "";
+  currentSecondPCDPath = path || null;
+  secondCloudVisible = true;
+  secondCloudToggleAvailable = true;
+  if (secondCloudToggle) {
+    secondCloudToggle.disabled = false;
+    secondCloudToggle.setAttribute("aria-pressed", "true");
+  }
+}
+
+function setSecondCloudVisible(v) {
+  if (!rawSecondary) return;
+  const next = !!v && !!rawSecondary;
+  secondCloudVisible = next;
+  if (secondCloudToggle) {
+    secondCloudToggle.setAttribute("aria-pressed", next ? "true" : "false");
+  }
+  if (cloudSecondary) {
+    cloudSecondary.visible = next;
+  } else if (next) {
+    buildSecondCloud();
+  }
+  renderOnce();
 }
 
 function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
@@ -1704,15 +1876,16 @@ helpBtn?.addEventListener("click", () => { helpDlg?.showModal(); });
 helpCloseBtn?.addEventListener("click", () => { helpDlg?.close(); });
 
 // ---------- UI wiring (PCD) ----------
-colorModeSel?.addEventListener("change", () => {
-  const nextMode = colorModeSel.value;
-  if (!validColorModes.has(nextMode)) return;
-  colorMode = nextMode;
-  CFG.colorMode = nextMode;
-  persistPreferences({ colorMode: nextMode });
-  updateLegend();
-  buildCloud();
-});
+  colorModeSel?.addEventListener("change", () => {
+    const nextMode = colorModeSel.value;
+    if (!validColorModes.has(nextMode)) return;
+    colorMode = nextMode;
+    CFG.colorMode = nextMode;
+    persistPreferences({ colorMode: nextMode });
+    updateLegend();
+    buildCloud();
+    buildSecondCloud();
+  });
 ptSizeInput?.addEventListener("input", () => {
   const clamped = clampPointSize(ptSizeInput.value);
   if (clamped == null) return;
@@ -1746,6 +1919,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
+  if (k === "a") { e.preventDefault(); if (!secondCloudToggle?.disabled && rawSecondary) setSecondCloudVisible(!secondCloudVisible); return; }
   if (k === "f") { e.preventDefault(); if (!frontImgToggle?.disabled) toggleFrontImageVisibility(); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
@@ -1763,6 +1937,11 @@ window.addEventListener("keydown", (e) => {
 frontImgToggle?.addEventListener("click", () => {
   if (frontImgToggle.disabled) return;
   toggleFrontImageVisibility();
+});
+
+secondCloudToggle?.addEventListener("click", () => {
+  if (secondCloudToggle.disabled) return;
+  setSecondCloudVisible(!secondCloudVisible);
 });
 
 if (frontImagePanel) {
@@ -1858,6 +2037,12 @@ fileInput.addEventListener("change", async (e) => {
   if (!file) return;
   try {
     const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
+    transformationInfo = dataset.transformation || null;
+    setSecondaryPointCloud(
+      dataset.secondaryCloud?.raw,
+      dataset.secondaryCloud?.name,
+      dataset.secondaryCloud?.path
+    );
     if (dataset.trajectory) {
       applyTrajectoryPoints(
         dataset.trajectory.points,
@@ -1885,6 +2070,12 @@ demoBtn?.addEventListener("click", async () => {
   demoBtn.disabled = true;
   try {
     const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
+    transformationInfo = result.transformation || null;
+    setSecondaryPointCloud(
+      result.secondaryCloud?.raw,
+      result.secondaryCloud?.name,
+      result.secondaryCloud?.path
+    );
     if (result.cloud) {
       applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
     }

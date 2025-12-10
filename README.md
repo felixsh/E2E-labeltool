@@ -44,6 +44,7 @@ Then visit <http://localhost:8000/index.html> in a WebGL-capable browser.
 | `O` | Run optimisation |
 | `W` | Toggle optimizer weights panel |
 | `F` | Toggle front image panel |
+| `A` | Toggle second point cloud |
 | `L` | Open the Load dialog |
 | `E` | Export JSON |
 | Mouse wheel | Zoom |

@@ -47,7 +47,7 @@ function selectTrajectoryEntry(entries) {
   }) || null;
 }
 
-function selectPointCloudEntry(entries, preferFirstCloud = false) {
+function selectPointCloudEntries(entries, preferFirstCloud = false) {
   const candidates = entries.filter((entry) => {
     const lower = normalizeEntryName(entry.name).toLowerCase();
     return lower.endsWith(".bin") || lower.endsWith(".pcd");
@@ -57,7 +57,9 @@ function selectPointCloudEntry(entries, preferFirstCloud = false) {
     throw new Error("zip must contain at least two point cloud (.bin/.pcd) files");
   }
   const sorted = candidates.slice().sort((a, b) => normalizeEntryName(a.name).localeCompare(normalizeEntryName(b.name)));
-  return preferFirstCloud ? sorted[0] : sorted[sorted.length - 1];
+  const primary = preferFirstCloud ? sorted[0] : sorted[sorted.length - 1];
+  const secondary = preferFirstCloud ? sorted[sorted.length - 1] : sorted[0];
+  return { primary, secondary };
 }
 
 function ensureAncillaryFiles(entries) {
@@ -146,8 +148,8 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
   if (!trajEntry) {
     throw new Error('zip is missing a trajectory .npy file');
   }
-  const cloudEntry = selectPointCloudEntry(entries, preferFirstCloud);
-  if (!cloudEntry) {
+  const cloudEntries = selectPointCloudEntries(entries, preferFirstCloud);
+  if (!cloudEntries?.primary || !cloudEntries?.secondary) {
     throw new Error("zip is missing point cloud (.bin/.pcd) files");
   }
 
@@ -156,16 +158,18 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
     throw new Error('zip is missing "transformation_matrices.npy"');
   }
 
-  const [trajBuffer, cloudBuffer, frontImage, transformBuffer] = await Promise.all([
+  const [trajBuffer, cloudBuffer, cloudBuffer2, frontImage, transformBuffer] = await Promise.all([
     trajEntry.async("arraybuffer"),
-    cloudEntry.async("arraybuffer"),
+    cloudEntries.primary.async("arraybuffer"),
+    cloudEntries.secondary.async("arraybuffer"),
     loadFrontImage(entries, zip, file?.name),
     transformEntry.async("arraybuffer")
   ]);
 
   const trajectoryParsed = await loadNpy(trajBuffer);
   const trajectoryPoints = parseTrajectory(trajectoryParsed);
-  const cloudRaw = parsePointCloud(cloudBuffer, normalizeEntryName(cloudEntry.name));
+  const cloudRaw = parsePointCloud(cloudBuffer, normalizeEntryName(cloudEntries.primary.name));
+  const cloudRawSecondary = parsePointCloud(cloudBuffer2, normalizeEntryName(cloudEntries.secondary.name));
   const transformParsed = await loadNpy(transformBuffer);
   const transformResult = parseTransformMatrix(transformParsed, transformIndex);
 
@@ -180,8 +184,13 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
     frontImage,
     cloud: {
       raw: cloudRaw,
-      name: normalizeEntryName(cloudEntry.name),
-      path: makeZipPath(file?.name, cloudEntry.name)
+      name: normalizeEntryName(cloudEntries.primary.name),
+      path: makeZipPath(file?.name, cloudEntries.primary.name)
+    },
+    secondaryCloud: {
+      raw: cloudRawSecondary,
+      name: normalizeEntryName(cloudEntries.secondary.name),
+      path: makeZipPath(file?.name, cloudEntries.secondary.name)
     }
   };
 }

@@ -8,6 +8,10 @@ window.CONFIG = {
 
   // Transformation matrix selection (row index in transformation_matrices.npy)
   transformationIndex: 0,
+
+  // Second point cloud display options
+  secondCloudSolidColor: false,      // if true, render second cloud in a uniform color
+  secondCloudColorHex: "#8ec5ff",    // used when solid color is enabled
   
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom
