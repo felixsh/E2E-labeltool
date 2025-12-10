@@ -1941,6 +1941,9 @@ window.addEventListener("keydown", (e) => {
   if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
   if (k === "a") { e.preventDefault(); if (!secondCloudToggle?.disabled && rawSecondary) setSecondCloudVisible(!secondCloudVisible); return; }
   if (k === "f") { e.preventDefault(); if (!frontImgToggle?.disabled) toggleFrontImageVisibility(); return; }
+  if (k === "1") { e.preventDefault(); if (!is2D) { setTopView3D(); renderOnce(); } return; }
+  if (k === "2") { e.preventDefault(); if (!is2D) { setIsoView3D(); renderOnce(); } return; }
+  if (k === "3") { e.preventDefault(); if (!is2D) { setChaseView3D(); renderOnce(); } return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
   if (k === "l") {
