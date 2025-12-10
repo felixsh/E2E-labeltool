@@ -53,12 +53,14 @@ function selectPointCloudEntries(entries, preferFirstCloud = false) {
     return lower.endsWith(".bin") || lower.endsWith(".pcd");
   });
   if (!candidates.length) return null;
-  if (candidates.length < 2) {
-    throw new Error("zip must contain at least two point cloud (.bin/.pcd) files");
-  }
   const sorted = candidates.slice().sort((a, b) => normalizeEntryName(a.name).localeCompare(normalizeEntryName(b.name)));
   const primary = preferFirstCloud ? sorted[0] : sorted[sorted.length - 1];
-  const secondary = preferFirstCloud ? sorted[sorted.length - 1] : sorted[0];
+  const secondary = sorted.length >= 2
+    ? (preferFirstCloud ? sorted[sorted.length - 1] : sorted[0])
+    : null;
+  if (!secondary) {
+    console.warn("Only one point cloud found in zip; secondary cloud will be empty.");
+  }
   return { primary, secondary };
 }
 
@@ -149,7 +151,7 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
     throw new Error('zip is missing a trajectory .npy file');
   }
   const cloudEntries = selectPointCloudEntries(entries, preferFirstCloud);
-  if (!cloudEntries?.primary || !cloudEntries?.secondary) {
+  if (!cloudEntries?.primary) {
     throw new Error("zip is missing point cloud (.bin/.pcd) files");
   }
 
@@ -158,18 +160,23 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
     throw new Error('zip is missing "transformation_matrices.npy"');
   }
 
-  const [trajBuffer, cloudBuffer, cloudBuffer2, frontImage, transformBuffer] = await Promise.all([
+  const promises = [
     trajEntry.async("arraybuffer"),
     cloudEntries.primary.async("arraybuffer"),
-    cloudEntries.secondary.async("arraybuffer"),
     loadFrontImage(entries, zip, file?.name),
     transformEntry.async("arraybuffer")
-  ]);
+  ];
+  if (cloudEntries.secondary) {
+    promises.splice(2, 0, cloudEntries.secondary.async("arraybuffer"));
+  }
+  const [trajBuffer, cloudBuffer, cloudBuffer2, frontImage, transformBuffer] = await Promise.all(promises);
 
   const trajectoryParsed = await loadNpy(trajBuffer);
   const trajectoryPoints = parseTrajectory(trajectoryParsed);
   const cloudRaw = parsePointCloud(cloudBuffer, normalizeEntryName(cloudEntries.primary.name));
-  const cloudRawSecondary = parsePointCloud(cloudBuffer2, normalizeEntryName(cloudEntries.secondary.name));
+  const cloudRawSecondary = cloudEntries.secondary && cloudBuffer2
+    ? parsePointCloud(cloudBuffer2, normalizeEntryName(cloudEntries.secondary.name))
+    : null;
   const transformParsed = await loadNpy(transformBuffer);
   const transformResult = parseTransformMatrix(transformParsed, transformIndex);
 
@@ -187,11 +194,11 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
       name: normalizeEntryName(cloudEntries.primary.name),
       path: makeZipPath(file?.name, cloudEntries.primary.name)
     },
-    secondaryCloud: {
+    secondaryCloud: cloudRawSecondary ? {
       raw: cloudRawSecondary,
       name: normalizeEntryName(cloudEntries.secondary.name),
       path: makeZipPath(file?.name, cloudEntries.secondary.name)
-    }
+    } : null
   };
 }
 

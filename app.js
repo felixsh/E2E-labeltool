@@ -1357,7 +1357,6 @@ function setSecondaryPointCloud(rawData, name, path) {
     currentSecondPCDName = "";
     currentSecondPCDPath = null;
     secondCloudVisible = false;
-    secondCloudToggleAvailable = false;
     if (secondCloudToggle) {
       secondCloudToggle.disabled = true;
       secondCloudToggle.setAttribute("aria-pressed", "false");
@@ -1369,7 +1368,6 @@ function setSecondaryPointCloud(rawData, name, path) {
   currentSecondPCDName = name || "";
   currentSecondPCDPath = path || null;
   secondCloudVisible = true;
-  secondCloudToggleAvailable = true;
   if (secondCloudToggle) {
     secondCloudToggle.disabled = false;
     secondCloudToggle.setAttribute("aria-pressed", "true");
