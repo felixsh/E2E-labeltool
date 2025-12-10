@@ -410,7 +410,8 @@ export function makeSplineSystem({
     }
     for (let tsIndex = 1; tsIndex < Ts.length; tsIndex++) {
       const p = paramToPoint(Ts[tsIndex]);
-      samples.push({ idx: tsIndex, tsIndex, t: Ts[tsIndex], x: p.x, y: p.y, fixed: false });
+      const isLast = tsIndex === Ts.length - 1;
+      samples.push({ idx: tsIndex, tsIndex, t: Ts[tsIndex], x: p.x, y: p.y, fixed: isLast });
     }
     return samples;
   }
@@ -536,13 +537,13 @@ export function makeSplineSystem({
     const p = new THREE.Vector3(); raycaster.ray.intersectPlane(planeZ0, p);
     return p;
   }
-  function pickNearestVec(arr, p, r) {
+  function pickNearestWithDist(arr, p, r) {
     let best = -1, d2min = r * r;
     for (let i = 0; i < arr.length; i++) {
       const a = arr[i]; const dx = a.x - p.x, dy = a.y - p.y; const d2 = dx * dx + dy * dy;
       if (d2 <= d2min) { d2min = d2; best = i; }
     }
-    return best;
+    return { idx: best, dist2: d2min };
   }
 
   function setCursor(c) {
@@ -554,36 +555,46 @@ export function makeSplineSystem({
     if (dragging) return;
     const p = screenToGround(e.clientX, e.clientY);
     const samples = getSamples();
-    const hitCtrl = pickNearestVec(points, p, CTRL_RADIUS * 2.0);
-    const hitSample = showSamples ? pickNearestVec(samples.map(s => new THREE.Vector3(s.x, s.y, 0)), p, SAMPLE_RADIUS * 2.0) : -1;
-    setCursor((hitCtrl >= 0 || hitSample >= 0) ? "pointer" : null);
+    const ctrlHit = pickNearestWithDist(points, p, CTRL_RADIUS * 3.0);
+    const sampleVecs = samples.map(s => new THREE.Vector3(s.x, s.y, 0));
+    const sampleHit = showSamples ? pickNearestWithDist(sampleVecs, p, SAMPLE_RADIUS * 2.0) : { idx: -1, dist2: Infinity };
+    const hasHit = (sampleHit.idx >= 0) || (ctrlHit.idx >= 0);
+    setCursor(hasHit ? "pointer" : null);
   };
 
   const handleCanvasPointerDown = (e) => {
     if (e.button === 2) return; // right button used by OrbitControls to pan
     const p = screenToGround(e.clientX, e.clientY);
     const samples = getSamples();
-    const hitCtrl = pickNearestVec(points, p, CTRL_RADIUS * 2.0);
-    const hitSample = showSamples ? pickNearestVec(samples.map(s => new THREE.Vector3(s.x, s.y, 0)), p, SAMPLE_RADIUS * 2.0) : -1;
+    const ctrlHit = pickNearestWithDist(points, p, CTRL_RADIUS * 3.0);
+    const sampleVecs = samples.map(s => new THREE.Vector3(s.x, s.y, 0));
+    const sampleHit = showSamples ? pickNearestWithDist(sampleVecs, p, SAMPLE_RADIUS * 2.0) : { idx: -1, dist2: Infinity };
 
-    if (hitCtrl >= 0) {
-      selectedCtrl = hitCtrl; selectedSample = null;
-      dragging = { kind: "ctrl", i: hitCtrl };
-      dragUndoCaptured = false;
-      setControlsEnabled(false);
-      setCursor("grabbing");
-      syncCtrlMeshes(); requestRender();
-      samplesOptimized = false;
-    } else if (hitSample >= 0) {
-      const sample = samples[hitSample];
-      if (sample?.fixed) { return; }
-      selectedSample = hitSample; selectedCtrl = null;
-      dragging = { kind: "sample", i: hitSample, tsIndex: sample.tsIndex };
-      dragUndoCaptured = false;
-      setControlsEnabled(false);
-      setCursor("grabbing");
-      syncSampleMeshes(samples); requestRender();
-      samplesOptimized = false;
+    if (sampleHit.idx >= 0 || ctrlHit.idx >= 0) {
+      const pickSample = sampleHit.idx >= 0 && sampleHit.dist2 <= ctrlHit.dist2;
+      const pickCtrl = ctrlHit.idx >= 0 && (!pickSample);
+      if (pickSample) {
+        const sample = samples[sampleHit.idx];
+        if (sample?.fixed) { return; }
+        selectedSample = sampleHit.idx; selectedCtrl = null;
+        dragging = { kind: "sample", i: sampleHit.idx, tsIndex: sample.tsIndex };
+        dragUndoCaptured = false;
+        setControlsEnabled(false);
+        setCursor("grabbing");
+        syncSampleMeshes(samples); syncCtrlMeshes(); requestRender();
+        samplesOptimized = false;
+        return;
+      }
+      if (pickCtrl) {
+        selectedCtrl = ctrlHit.idx; selectedSample = null;
+        dragging = { kind: "ctrl", i: ctrlHit.idx };
+        dragUndoCaptured = false;
+        setControlsEnabled(false);
+        setCursor("grabbing");
+        syncCtrlMeshes(); syncSampleMeshes(samples); requestRender();
+        samplesOptimized = false;
+        return;
+      }
     } else {
       // 2D left click adds a control point
       if (is2D() && e.button === 0) {
