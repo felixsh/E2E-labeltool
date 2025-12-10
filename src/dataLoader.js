@@ -72,7 +72,7 @@ function ensureAncillaryFiles(entries) {
     throw new Error('zip is missing "transformation_matrices.npy"');
   }
   if (!hasImage) {
-    throw new Error('zip is missing a front-facing .jpg image (filename must include "front")');
+    console.warn('Front-facing .jpg image (filename including "front") not found; continuing without front image.');
   }
 }
 
