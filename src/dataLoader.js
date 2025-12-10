@@ -1,5 +1,6 @@
 import { parsePointCloud } from "./pcdParser.js";
 import { load as loadNpy } from "npyjs";
+import JSZip from "jszip";
 
 function nameFromPath(path, fallback) {
   if (!path) return fallback;
@@ -27,6 +28,92 @@ function parseTrajectory(parsed) {
     throw new Error("trajectory requires at least two finite points");
   }
   return points;
+}
+
+function normalizeEntryName(entryName = "") {
+  return entryName.split("/").filter(Boolean).join("/").trim();
+}
+
+function makeZipPath(zipName, entryName) {
+  const cleanZip = zipName || "dataset.zip";
+  const cleanEntry = normalizeEntryName(entryName) || "file";
+  return `${cleanZip}::${cleanEntry}`;
+}
+
+function selectTrajectoryEntry(entries) {
+  return entries.find((entry) => {
+    const lower = normalizeEntryName(entry.name).toLowerCase();
+    return lower.endsWith(".npy") && lower.includes("trajectory");
+  }) || null;
+}
+
+function selectPointCloudEntry(entries, preferFirstCloud = false) {
+  const candidates = entries.filter((entry) => {
+    const lower = normalizeEntryName(entry.name).toLowerCase();
+    return lower.endsWith(".bin") || lower.endsWith(".pcd");
+  });
+  if (!candidates.length) return null;
+  if (candidates.length < 2) {
+    throw new Error("zip must contain at least two point cloud (.bin/.pcd) files");
+  }
+  const sorted = candidates.slice().sort((a, b) => normalizeEntryName(a.name).localeCompare(normalizeEntryName(b.name)));
+  return preferFirstCloud ? sorted[0] : sorted[sorted.length - 1];
+}
+
+function ensureAncillaryFiles(entries) {
+  const lowerNames = entries.map((e) => normalizeEntryName(e.name).toLowerCase());
+  const hasTransform = lowerNames.some((name) => name.endsWith("transformation_matrices.npy"));
+  const hasImage = lowerNames.some((name) => name.endsWith(".jpg") || name.endsWith(".jpeg"));
+  if (!hasTransform) {
+    throw new Error('zip is missing "transformation_matrices.npy"');
+  }
+  if (!hasImage) {
+    throw new Error("zip is missing a .jpg image");
+  }
+}
+
+export async function loadDatasetFromZip(file, { preferFirstCloud = false } = {}) {
+  const zipBuffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(zipBuffer);
+  const entries = Object.values(zip.files || {}).filter((f) => !f.dir);
+
+  if (!entries.length) {
+    throw new Error("zip is empty");
+  }
+
+  ensureAncillaryFiles(entries);
+
+  const trajEntry = selectTrajectoryEntry(entries);
+  if (!trajEntry) {
+    throw new Error('zip is missing a trajectory .npy file');
+  }
+  const cloudEntry = selectPointCloudEntry(entries, preferFirstCloud);
+  if (!cloudEntry) {
+    throw new Error("zip is missing point cloud (.bin/.pcd) files");
+  }
+
+  const [trajBuffer, cloudBuffer] = await Promise.all([
+    trajEntry.async("arraybuffer"),
+    cloudEntry.async("arraybuffer")
+  ]);
+
+  const trajectoryParsed = await loadNpy(trajBuffer);
+  const trajectoryPoints = parseTrajectory(trajectoryParsed);
+  const cloudRaw = parsePointCloud(cloudBuffer, normalizeEntryName(cloudEntry.name));
+
+  return {
+    trajectory: {
+      points: trajectoryPoints,
+      raw: trajectoryParsed,
+      name: normalizeEntryName(trajEntry.name),
+      path: makeZipPath(file?.name, trajEntry.name)
+    },
+    cloud: {
+      raw: cloudRaw,
+      name: normalizeEntryName(cloudEntry.name),
+      path: makeZipPath(file?.name, cloudEntry.name)
+    }
+  };
 }
 
 export async function loadPointCloudFromFile(file) {
@@ -75,13 +162,22 @@ export async function loadTrajectoryFromUrl(url) {
   return { points, raw: parsed, name, path: url };
 }
 
-export async function loadDemoDataset({ cloudUrl, trajectoryUrl } = {}) {
-  const result = {};
-  if (cloudUrl) {
-    result.cloud = await loadPointCloudFromUrl(cloudUrl);
+export async function loadDemoDataset({ zipUrl, cloudUrl, trajectoryUrl, preferFirstCloud = false } = {}) {
+  const url = zipUrl || cloudUrl || trajectoryUrl;
+  if (!url) {
+    throw new Error("zipUrl is required for demo loading");
   }
-  if (trajectoryUrl) {
-    result.trajectory = await loadTrajectoryFromUrl(trajectoryUrl);
+  if (!zipUrl) {
+    console.warn("loadDemoDataset: cloudUrl/trajectoryUrl are deprecated; use zipUrl instead.");
   }
-  return result;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  const buffer = await response.arrayBuffer();
+  const pseudoFile = {
+    name: nameFromPath(url, "demo.zip"),
+    arrayBuffer: async () => buffer
+  };
+  return loadDatasetFromZip(pseudoFile, { preferFirstCloud });
 }

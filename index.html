@@ -25,7 +25,7 @@
         <div class="left">
           <div class="pcd-main">
             <label class="file mode-btn mode-3d">
-              <input id="fileInput" type="file" accept=".pcd,.bin,.npy" />
+              <input id="fileInput" type="file" accept=".zip" />
               Load
             </label>
             <button id="demoBtn" type="button" class="mode-btn mode-3d">Demo</button>
@@ -144,7 +144,7 @@
   </main>
 
   <footer>
-    <div id="status">Load a .bin, .pcd, or .npy file, or try the Demo</div>
+    <div id="status">Load a scenario .zip or try the Demo</div>
     <div id="statusExtra" aria-live="polite"></div>
   </footer>
 
@@ -179,7 +179,7 @@
       <h3>Help</h3>
       <h4>Buttons</h4>
       <div class="help-grid">
-        <span class="help-key">Load</span><span class="help-desc">Choose a point cloud (.pcd/.bin) and/or trajectory (.npy)</span>
+        <span class="help-key">Load</span><span class="help-desc">Choose a scenario .zip (trajectory, two point clouds, image, transforms)</span>
         <span class="help-key">Demo</span><span class="help-desc">Load the bundled sample dataset</span>
         <span class="help-key">Top / Iso</span><span class="help-desc">Camera presets (3D only)</span>
       </div>
@@ -211,7 +211,8 @@
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-      "npyjs": "https://cdn.jsdelivr.net/npm/npyjs@1.0.4/dist/index.js"
+      "npyjs": "https://cdn.jsdelivr.net/npm/npyjs@1.0.4/dist/index.js",
+      "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
     }
   }
   </script>

@@ -1,7 +1,10 @@
 window.CONFIG = {
   // Demo files
-  demoPCD: "demo/pointcloud.bin",
-  demoTrajectory: "demo/trajectory.npy",
+  demoZip: "demo/demo.zip",
+
+  // Point cloud selection from dataset zip
+  // false = use the second (later) point cloud; true = use the first
+  useFirstPointCloud: false,
   
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom

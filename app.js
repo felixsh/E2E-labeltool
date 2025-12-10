@@ -3,8 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 import {
-  loadPointCloudFromFile,
-  loadTrajectoryFromFile,
+  loadDatasetFromZip,
   loadDemoDataset
 } from "./src/dataLoader.js";
 import { makeCharts } from "./src/charts.js";
@@ -21,11 +20,11 @@ import {
 
 // ---------- CONFIG ----------
 const CFG = window.CONFIG || {};
-const DEMO_PCD = CFG.demoPCD;
-const DEMO_TRAJECTORY = CFG.demoTrajectory;
+const DEMO_ZIP = CFG.demoZip;
 const HISTORY_COUNT = Math.max(1, (CFG.N_PAST | 0) || 1);
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
+const USE_FIRST_PCD = !!CFG.useFirstPointCloud;
 
 const preferences = loadPreferences();
 
@@ -1644,7 +1643,7 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     fileInput?.focus?.();
     fileInput?.click?.();
-    statusOptim("Select a point cloud or trajectory to load.");
+    statusOptim("Select a scenario .zip to load.");
     return;
   }
   if (k === "e") { e.preventDefault(); void exportController?.exportAll?.(); return; }
@@ -1655,13 +1654,16 @@ fileInput.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
   try {
-    const lower = (file.name || "").toLowerCase();
-    if (lower.endsWith(".npy")) {
-      const { points, name, path: sourcePath } = await loadTrajectoryFromFile(file);
-      applyTrajectoryPoints(points, name, sourcePath);
-    } else {
-      const { raw: rawData, name, path: sourcePath } = await loadPointCloudFromFile(file);
-      applyPointCloud(rawData, name, sourcePath);
+    const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD });
+    if (dataset.trajectory) {
+      applyTrajectoryPoints(
+        dataset.trajectory.points,
+        dataset.trajectory.name,
+        dataset.trajectory.path
+      );
+    }
+    if (dataset.cloud) {
+      applyPointCloud(dataset.cloud.raw, dataset.cloud.name, dataset.cloud.path);
     }
   } catch (err) {
     console.error(err);
@@ -1672,13 +1674,13 @@ fileInput.addEventListener("change", async (e) => {
 });
 
 demoBtn?.addEventListener("click", async () => {
-  if (!DEMO_PCD && !DEMO_TRAJECTORY) {
-    status("Demo paths are not configured in config.js.");
+  if (!DEMO_ZIP) {
+    status("Demo zip path is not configured in config.js.");
     return;
   }
   demoBtn.disabled = true;
   try {
-    const result = await loadDemoDataset({ cloudUrl: DEMO_PCD, trajectoryUrl: DEMO_TRAJECTORY });
+    const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD });
     if (result.cloud) {
       applyPointCloud(result.cloud.raw, result.cloud.name, result.cloud.path);
     }
