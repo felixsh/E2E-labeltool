@@ -68,12 +68,10 @@ function ensureAncillaryFiles(entries) {
   const lowerNames = entries.map((e) => normalizeEntryName(e.name).toLowerCase());
   const hasTransform = lowerNames.some((name) => name.endsWith("transformation_matrices.npy"));
   const hasImage = lowerNames.some((name) => (name.endsWith(".jpg") || name.endsWith(".jpeg")) && name.includes("front"));
-  if (!hasTransform) {
-    throw new Error('zip is missing "transformation_matrices.npy"');
-  }
   if (!hasImage) {
     console.warn('Front-facing .jpg image (filename including "front") not found; continuing without front image.');
   }
+  return { hasTransform };
 }
 
 function selectTransformEntry(entries) {
@@ -144,7 +142,7 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
     throw new Error("zip is empty");
   }
 
-  ensureAncillaryFiles(entries);
+  const ancillary = ensureAncillaryFiles(entries);
 
   const trajEntry = selectTrajectoryEntry(entries);
   if (!trajEntry) {
@@ -156,18 +154,21 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
   }
 
   const transformEntry = selectTransformEntry(entries);
-  if (!transformEntry) {
-    throw new Error('zip is missing "transformation_matrices.npy"');
+  const needsTransform = !!cloudEntries.secondary;
+  if (needsTransform && !transformEntry) {
+    throw new Error('zip is missing "transformation_matrices.npy" required for the second point cloud');
   }
 
   const promises = [
     trajEntry.async("arraybuffer"),
     cloudEntries.primary.async("arraybuffer"),
-    loadFrontImage(entries, zip, file?.name),
-    transformEntry.async("arraybuffer")
+    loadFrontImage(entries, zip, file?.name)
   ];
   if (cloudEntries.secondary) {
-    promises.splice(2, 0, cloudEntries.secondary.async("arraybuffer"));
+    promises.push(cloudEntries.secondary.async("arraybuffer"));
+  }
+  if (transformEntry) {
+    promises.push(transformEntry.async("arraybuffer"));
   }
   const [trajBuffer, cloudBuffer, cloudBuffer2, frontImage, transformBuffer] = await Promise.all(promises);
 
@@ -177,8 +178,8 @@ export async function loadDatasetFromZip(file, { preferFirstCloud = false, trans
   const cloudRawSecondary = cloudEntries.secondary && cloudBuffer2
     ? parsePointCloud(cloudBuffer2, normalizeEntryName(cloudEntries.secondary.name))
     : null;
-  const transformParsed = await loadNpy(transformBuffer);
-  const transformResult = parseTransformMatrix(transformParsed, transformIndex);
+  const transformParsed = transformBuffer ? await loadNpy(transformBuffer) : null;
+  const transformResult = transformParsed ? parseTransformMatrix(transformParsed, transformIndex) : null;
 
   return {
     trajectory: {
