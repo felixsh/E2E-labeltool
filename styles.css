@@ -83,6 +83,11 @@ header {
   gap: 12px;
   flex-wrap: wrap;
 }
+.toolbar-divider {
+  color: var(--muted);
+  opacity: 0.75;
+  user-select: none;
+}
 .toolbar-panels .pcd-views {
   display: flex;
   gap: 8px;
