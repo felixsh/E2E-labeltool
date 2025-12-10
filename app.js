@@ -738,6 +738,7 @@ let currentScenarioName = null;
 let pointCloudScenarioName = null;
 let trajectoryScenarioName = null;
 let currentZipName = null;
+let currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -1699,8 +1700,6 @@ function collectExportSnapshot() {
   const trajectoryRaw = trajectoryRawPoints.slice();
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
-  const pointCloudPath = currentPCDPath || null;
-  const trajectoryPath = currentTrajectoryPath || null;
   const curveType = spline?.getCurveType ? spline.getCurveType() : null;
   const deltaT = spline?.getDeltaT ? spline.getDeltaT() : null;
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
@@ -1710,8 +1709,6 @@ function collectExportSnapshot() {
   const specialNote = currentMetadata?.specialNote ?? "";
 
   const payload = {
-    pointcloud_path: pointCloudPath,
-    trajectory_path: trajectoryPath,
     scenario_name: scenarioName,
     curve_type: curveType,
     delta_t: deltaT,
@@ -1719,7 +1716,13 @@ function collectExportSnapshot() {
     optimizer:      weights,
     control_points: controlPts,
     sample_points:  samplePtsFull,
-    trajectory_raw: trajectoryRaw
+    trajectory_raw: trajectoryRaw,
+    files: {
+      zip: currentZipName || null,
+      trajectory: currentZipFiles?.trajectory || null,
+      pointclouds: Array.isArray(currentZipFiles?.pointclouds) ? currentZipFiles.pointclouds.slice() : [],
+      front_image: currentZipFiles?.frontImage || null
+    }
   };
 
   payload.instruction = instruction || "";
@@ -1727,6 +1730,14 @@ function collectExportSnapshot() {
 
   if (curveType === "catmullrom" && alpha != null) {
     payload.alpha = alpha;
+  }
+
+  if (transformationInfo) {
+    payload.transformation = {
+      index: transformationInfo.index ?? null,
+      rotation: transformationInfo.rotation3x3,
+      translation: transformationInfo.translation
+    };
   }
 
   const base = scenarioName
@@ -2035,6 +2046,15 @@ fileInput.addEventListener("change", async (e) => {
   try {
     const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
     currentZipName = file?.name || null;
+    currentZipFiles = {
+      zip: currentZipName,
+      trajectory: dataset.trajectory?.name || null,
+      pointclouds: [
+        dataset.cloud?.name || null,
+        dataset.secondaryCloud?.name || null
+      ].filter(Boolean),
+      frontImage: dataset.frontImage?.name || null
+    };
     transformationInfo = dataset.transformation || null;
     setSecondaryPointCloud(
       dataset.secondaryCloud?.raw,
@@ -2069,6 +2089,15 @@ demoBtn?.addEventListener("click", async () => {
   try {
     const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
     currentZipName = DEMO_ZIP;
+    currentZipFiles = {
+      zip: currentZipName,
+      trajectory: result.trajectory?.name || null,
+      pointclouds: [
+        result.cloud?.name || null,
+        result.secondaryCloud?.name || null
+      ].filter(Boolean),
+      frontImage: result.frontImage?.name || null
+    };
     transformationInfo = result.transformation || null;
     setSecondaryPointCloud(
       result.secondaryCloud?.raw,
