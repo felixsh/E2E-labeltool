@@ -681,6 +681,41 @@ export function makeSplineSystem({
     updateSamplesAndCharts();
   }
 
+  function nudgeSelected(dx = 0, dy = 0) {
+    const moveX = Number(dx) || 0;
+    const moveY = Number(dy) || 0;
+    if (!moveX && !moveY) return false;
+
+    // Move control point
+    if (selectedCtrl != null && points[selectedCtrl]) {
+      pushUndoState();
+      points[selectedCtrl].x += moveX;
+      points[selectedCtrl].y += moveY;
+      rebuildEverything();
+      samplesOptimized = false;
+      return true;
+    }
+
+    // Move sample point
+    if (selectedSample != null) {
+      const samples = getSamples();
+      const sample = samples[selectedSample];
+      if (!sample || sample.fixed) return false;
+      const tsIndex = sample.tsIndex;
+      if (tsIndex == null) return false;
+      pushUndoState();
+      const target = new THREE.Vector3(sample.x + moveX, sample.y + moveY, 0);
+      const eps = OPT.monotonicEps ?? 1e-4;
+      const left = tsIndex > 0 ? Ts[tsIndex - 1] + eps : 0;
+      const right = tsIndex < Ts.length - 1 ? Ts[tsIndex + 1] - eps : 1;
+      Ts[tsIndex] = Math.min(right, Math.max(left, projectPointToParam(target)));
+      updateSamplesAndCharts();
+      samplesOptimized = false;
+      return true;
+    }
+    return false;
+  }
+
   // ===== Init =====
   rebuildEverything();
 
@@ -768,6 +803,7 @@ export function makeSplineSystem({
     deleteSelectedCtrl,
     undoLastAction,
     redoLastAction,
+    nudgeSelected,
     dispose
   };
 }

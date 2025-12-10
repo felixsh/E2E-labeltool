@@ -46,6 +46,7 @@ Then visit <http://localhost:8000/index.html> in a WebGL-capable browser.
 | `F` | Toggle front image panel |
 | `A` | Toggle second point cloud |
 | `1` / `2` / `3` | Top / Iso / 3rd-person views |
+| Arrow keys | Nudge selected control/sample (hold Shift for larger step) |
 | `L` | Open the Load dialog |
 | `E` | Export JSON |
 | Mouse wheel | Zoom |
