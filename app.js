@@ -750,6 +750,9 @@ let pointCloudScenarioName = null;
 let trajectoryScenarioName = null;
 let currentZipName = null;
 let currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
+let frontFsCloseBtn = null;
+let frontImageFullViewport = false;
+let frontImageLayoutBeforeFull = null;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -858,6 +861,33 @@ function applyFrontImageData(data) {
 function toggleFrontImageVisibility() {
   const next = !(frontImageLayout?.visible);
   setFrontImageVisible(next);
+}
+
+function setFrontImageFullViewport(on) {
+  if (!frontImagePanel) return;
+  const enable = !!on;
+  frontImageFullViewport = enable;
+  if (enable) {
+    frontImageLayoutBeforeFull = clampFrontImageLayout(frontImageLayout);
+    frontImagePanel.classList.add("fullscreen-like");
+    frontImagePanel.style.left = "0px";
+    frontImagePanel.style.top = "0px";
+    frontImagePanel.style.right = "0px";
+    frontImagePanel.style.bottom = "0px";
+    frontImagePanel.style.width = "100%";
+    frontImagePanel.style.height = "100%";
+    document.body.classList.add("front-image-full");
+    if (frontFsCloseBtn) frontFsCloseBtn.style.display = "block";
+  } else {
+    frontImagePanel.classList.remove("fullscreen-like");
+    document.body.classList.remove("front-image-full");
+    if (frontFsCloseBtn) frontFsCloseBtn.style.display = "none";
+    frontImagePanel.style.right = "";
+    frontImagePanel.style.bottom = "";
+    frontImageLayout = clampFrontImageLayout(frontImageLayoutBeforeFull || frontImageLayout);
+    updateFrontImageStyles();
+  }
+  renderOnce();
 }
 
 // Initialize front image panel state
@@ -2017,6 +2047,7 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
   let resizeRaf = null;
   const observer = new ResizeObserver((entries) => {
     if (frontImageDragging) return;
+    if (frontImageFullViewport) return;
     for (const entry of entries) {
       if (entry.target !== frontImagePanel) continue;
       const width = entry.contentRect?.width;
@@ -2046,17 +2077,25 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
   observer.observe(frontImagePanel);
 }
 
-function enterFrontImageFullscreen() {
-  if (!frontImageEl) return;
-  if (document.fullscreenElement) return;
-  frontImageEl.requestFullscreen?.().catch((err) => {
-    console.warn("Failed to enter fullscreen for front image", err);
+function ensureFrontFsCloseBtn() {
+  if (frontFsCloseBtn) return frontFsCloseBtn;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "front-fs-close";
+  btn.textContent = "×";
+  btn.setAttribute("aria-label", "Exit image fullscreen");
+  btn.addEventListener("click", () => {
+    setFrontImageFullViewport(false);
   });
+  document.body.appendChild(btn);
+  frontFsCloseBtn = btn;
+  return btn;
 }
+ensureFrontFsCloseBtn();
 
 frontImageEl?.addEventListener("dblclick", (evt) => {
   evt.preventDefault();
-  enterFrontImageFullscreen();
+  setFrontImageFullViewport(!frontImageFullViewport);
 });
 
 // ---------- File/open ----------
