@@ -750,7 +750,6 @@ let pointCloudScenarioName = null;
 let trajectoryScenarioName = null;
 let currentZipName = null;
 let currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
-let frontFsCloseBtn = null;
 let frontImageFullViewport = false;
 let frontImageLayoutBeforeFull = null;
 
@@ -877,15 +876,17 @@ function setFrontImageFullViewport(on) {
     frontImagePanel.style.width = "100%";
     frontImagePanel.style.height = "100%";
     document.body.classList.add("front-image-full");
-    if (frontFsCloseBtn) frontFsCloseBtn.style.display = "block";
   } else {
     frontImagePanel.classList.remove("fullscreen-like");
     document.body.classList.remove("front-image-full");
-    if (frontFsCloseBtn) frontFsCloseBtn.style.display = "none";
     frontImagePanel.style.right = "";
     frontImagePanel.style.bottom = "";
     frontImageLayout = clampFrontImageLayout(frontImageLayoutBeforeFull || frontImageLayout);
+    frontImageLayoutBeforeFull = null;
     updateFrontImageStyles();
+    persistFrontImageLayout(frontImageLayout);
+    renderOnce();
+    return;
   }
   renderOnce();
 }
@@ -1979,6 +1980,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "arrowdown") { e.preventDefault(); spline?.nudgeSelected?.(0, -(e.shiftKey ? 0.2 : 0.01)); renderOnce(); return; }
   if (k === "arrowleft") { e.preventDefault(); spline?.nudgeSelected?.(-(e.shiftKey ? 0.2 : 0.01), 0); renderOnce(); return; }
   if (k === "arrowright") { e.preventDefault(); spline?.nudgeSelected?.(e.shiftKey ? 0.2 : 0.01, 0); renderOnce(); return; }
+  if (k === "escape" && frontImageFullViewport) { e.preventDefault(); setFrontImageFullViewport(false); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
   if (k === "l") {
@@ -2076,22 +2078,6 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
   });
   observer.observe(frontImagePanel);
 }
-
-function ensureFrontFsCloseBtn() {
-  if (frontFsCloseBtn) return frontFsCloseBtn;
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "front-fs-close";
-  btn.textContent = "×";
-  btn.setAttribute("aria-label", "Exit image fullscreen");
-  btn.addEventListener("click", () => {
-    setFrontImageFullViewport(false);
-  });
-  document.body.appendChild(btn);
-  frontFsCloseBtn = btn;
-  return btn;
-}
-ensureFrontFsCloseBtn();
 
 frontImageEl?.addEventListener("dblclick", (evt) => {
   evt.preventDefault();
