@@ -946,16 +946,49 @@ function persistFrontImageLayout(extra = {}) {
   setFrontImageLayout(layout);
 }
 
-function setFrontImageVisible(visible) {
+function applyFrontImageLayoutState({ visible, fullViewport } = {}) {
   if (!frontImagePanel || !frontImgToggle) return;
-  const next = !!visible;
-  frontImagePanel.classList.toggle("hidden", !next);
-  frontImgToggle.setAttribute("aria-pressed", next ? "true" : "false");
-  if (!next) {
-    persistFrontImageLayout({ visible: false });
+  const nextVisible = typeof visible === "boolean" ? visible : !!frontImageLayout?.visible;
+  const wantsFull = nextVisible && (typeof fullViewport === "boolean" ? fullViewport : frontImageFullViewport);
+  const baseLayout = clampFrontImageLayout({ ...frontImageLayout, visible: nextVisible });
+  if (!baseLayout) return;
+  frontImageLayout = baseLayout;
+
+  // Visibility and aria
+  frontImagePanel.classList.toggle("hidden", !nextVisible);
+  frontImgToggle.setAttribute("aria-pressed", nextVisible ? "true" : "false");
+
+  if (wantsFull) {
+    if (!frontImageLayoutBeforeFull) {
+      frontImageLayoutBeforeFull = baseLayout;
+    }
+    frontImageFullViewport = true;
+    frontImagePanel.classList.add("fullscreen-like");
+    frontImagePanel.style.left = "0px";
+    frontImagePanel.style.top = "0px";
+    frontImagePanel.style.right = "0px";
+    frontImagePanel.style.bottom = "0px";
+    frontImagePanel.style.width = "100%";
+    frontImagePanel.style.height = "100%";
+    document.body.classList.add("front-image-full");
+    setFrontImageLayout(baseLayout);
   } else {
-    persistFrontImageLayout({ visible: true });
+    frontImagePanel.classList.remove("fullscreen-like");
+    document.body.classList.remove("front-image-full");
+    frontImagePanel.style.right = "";
+    frontImagePanel.style.bottom = "";
+    frontImageFullViewport = false;
+    frontImageLayout = clampFrontImageLayout(frontImageLayoutBeforeFull || baseLayout);
+    frontImageLayoutBeforeFull = null;
+    updateFrontImageStyles();
+    persistFrontImageLayout(frontImageLayout);
   }
+
+  renderOnce();
+}
+
+function setFrontImageVisible(visible) {
+  applyFrontImageLayoutState({ visible: !!visible, fullViewport: false });
 }
 
 function applyFrontImageData(data) {
@@ -964,11 +997,9 @@ function applyFrontImageData(data) {
   if (!frontImageEl || !frontImagePanel || !frontImgToggle) return;
   if (!data || !data.dataUrl) {
     frontImageEl.removeAttribute("src");
-    frontImagePanel.classList.add("hidden");
     frontImgToggle.disabled = true;
-    frontImgToggle.setAttribute("aria-pressed", "false");
     frontImageAvailable = false;
-    persistFrontImageLayout({ visible: false });
+    applyFrontImageLayoutState({ visible: false, fullViewport: false });
     updateStatus();
     return;
   }
@@ -979,11 +1010,8 @@ function applyFrontImageData(data) {
     const w = frontImageEl.naturalWidth || 1;
     const h = frontImageEl.naturalHeight || 1;
     frontImageAspect = w / h;
-    const layout = clampFrontImageLayout({ ...frontImageLayout, visible: true });
-    frontImageLayout = layout;
-    updateFrontImageStyles();
-    setFrontImageVisible(true);
-    persistFrontImageLayout(layout);
+    frontImageLayout = clampFrontImageLayout({ ...frontImageLayout, visible: true });
+    applyFrontImageLayoutState({ visible: true, fullViewport: false });
   };
   frontImageEl.src = data.dataUrl;
 }
@@ -994,43 +1022,16 @@ function toggleFrontImageVisibility() {
 }
 
 function setFrontImageFullViewport(on) {
-  if (!frontImagePanel) return;
-  const enable = !!on;
-  frontImageFullViewport = enable;
-  if (enable) {
-    frontImageLayoutBeforeFull = clampFrontImageLayout(frontImageLayout);
-    frontImagePanel.classList.add("fullscreen-like");
-    frontImagePanel.style.left = "0px";
-    frontImagePanel.style.top = "0px";
-    frontImagePanel.style.right = "0px";
-    frontImagePanel.style.bottom = "0px";
-    frontImagePanel.style.width = "100%";
-    frontImagePanel.style.height = "100%";
-    document.body.classList.add("front-image-full");
-  } else {
-    frontImagePanel.classList.remove("fullscreen-like");
-    document.body.classList.remove("front-image-full");
-    frontImagePanel.style.right = "";
-    frontImagePanel.style.bottom = "";
-    frontImageLayout = clampFrontImageLayout(frontImageLayoutBeforeFull || frontImageLayout);
-    frontImageLayoutBeforeFull = null;
-    updateFrontImageStyles();
-    persistFrontImageLayout(frontImageLayout);
-    renderOnce();
-    return;
-  }
-  renderOnce();
+  applyFrontImageLayoutState({ visible: true, fullViewport: !!on });
 }
 
 // Initialize front image panel state
 frontImageLayout = clampFrontImageLayout(frontImageLayout);
-updateFrontImageStyles();
 if (frontImgToggle) {
   frontImgToggle.disabled = true;
   frontImgToggle.setAttribute("aria-pressed", "false");
 }
-setFrontImageVisible(false);
-persistFrontImageLayout({ visible: false });
+applyFrontImageLayoutState({ visible: false, fullViewport: false });
 if (secondCloudToggle) {
   secondCloudToggle.disabled = true;
   secondCloudToggle.setAttribute("aria-pressed", "false");
