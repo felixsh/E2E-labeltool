@@ -756,6 +756,7 @@ let frontImageAvailable = false;
 let frontImageAttempted = false;
 let secondCloudAttempted = false;
 let secondCloudAvailable = false;
+let lastLoadErrorNote = "";
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -786,7 +787,7 @@ function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || "";
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
   const label = currentZipName || currentPCDName || "no dataset";
-  const notes = [getFrontImageNote(), getSecondCloudNote()].filter(Boolean);
+  const notes = [getFrontImageNote(), getSecondCloudNote(), getLoadErrorNote()].filter(Boolean);
   const sep = "\u00a0\u00a0|\u00a0\u00a0"; // keep spacing visible in text render
   const line = notes.length ? `Loaded ${label}${sep}${notes.join(sep)}` : `Loaded ${label}`;
   status(line);
@@ -803,7 +804,11 @@ function getSecondCloudNote() {
   return secondCloudAvailable ? "" : "Second point cloud missing in zip.";
 }
 
-function clearScenario() {
+function getLoadErrorNote() {
+  return lastLoadErrorNote ? `Load error: ${lastLoadErrorNote}` : "";
+}
+
+function clearScenario(keepError = false) {
   // Clouds
   if (cloud) {
     scene.remove(cloud);
@@ -843,6 +848,7 @@ function clearScenario() {
   currentTrajectoryPath = null;
   trajectoryScenarioName = null;
   pointCloudScenarioName = null;
+  renderScenarioInfo();
 
   // Toggles/buttons
   viewTopBtn.disabled = true;
@@ -868,12 +874,18 @@ function clearScenario() {
 
   currentZipName = null;
   currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
+  if (!keepError) {
+    lastLoadErrorNote = "";
+  }
 
   // Spline/control state
   spline?.dispose?.();
   spline = null;
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
+
+  // Charts + info boxes
+  charts?.render?.([]);
 
   updateLegend();
   updateStatus();
@@ -2197,6 +2209,7 @@ fileInput.addEventListener("change", async (e) => {
   try {
     const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
     currentZipName = file?.name || null;
+    lastLoadErrorNote = "";
     currentZipFiles = {
       zip: currentZipName,
       trajectory: dataset.trajectory?.name || null,
@@ -2226,8 +2239,13 @@ fileInput.addEventListener("change", async (e) => {
     updateStatus();
   } catch (err) {
     console.error(err);
-    status(`Failed to load ${file.name}: ${err.message || err}`);
-    clearScenario();
+    const msg = err?.message || err || "Unknown error";
+    lastLoadErrorNote = /transformation/i.test(String(msg))
+      ? "Required transformation matrix missing or invalid for second point cloud."
+      : String(msg);
+    status(`Failed to load ${file.name}: ${msg}`);
+    statusOptim(lastLoadErrorNote);
+    clearScenario(true);
   } finally {
     e.target.value = "";
   }
@@ -2242,6 +2260,7 @@ demoBtn?.addEventListener("click", async () => {
   try {
     const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
     currentZipName = DEMO_ZIP;
+    lastLoadErrorNote = "";
     currentZipFiles = {
       zip: currentZipName,
       trajectory: result.trajectory?.name || null,
@@ -2270,8 +2289,13 @@ demoBtn?.addEventListener("click", async () => {
     updateStatus();
   } catch (err) {
     console.error(err);
-    status(`Failed to load demo: ${err.message || err}`);
-    clearScenario();
+    const msg = err?.message || err || "Unknown error";
+    lastLoadErrorNote = /transformation/i.test(String(msg))
+      ? "Required transformation matrix missing or invalid for second point cloud."
+      : String(msg);
+    status(`Failed to load demo: ${msg}`);
+    statusOptim(lastLoadErrorNote);
+    clearScenario(true);
   } finally {
     demoBtn.disabled = false;
   }
