@@ -787,9 +787,10 @@ function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
   const label = currentZipName || currentPCDName || "no dataset";
   const notes = [getFrontImageNote(), getSecondCloudNote()].filter(Boolean);
-  const line = notes.length ? `Loaded ${label}  |  ${notes.join("  |  ")}` : `Loaded ${label}`;
+  const sep = "\u00a0\u00a0|\u00a0\u00a0"; // keep spacing visible in text render
+  const line = notes.length ? `Loaded ${label}${sep}${notes.join(sep)}` : `Loaded ${label}`;
   status(line);
-  statusOptim(notes.join("  |  "));
+  statusOptim(notes.join(sep));
 }
 
 function getFrontImageNote() {
