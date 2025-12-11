@@ -223,7 +223,7 @@ e2e_2025-07-01-16-50-07_8_0,turn right,0,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-50-07_8_1,drive straight on,343,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-51-33_9_0,drive straight on,14,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-51-33_9_1,u-turn,167,1 heavy rain,nan,nan,train
-e2e_2025-07-01-16-51-33_9_2,turn right,371,1 heavy rain,nan,Frame drop in future part,train
+e2e_2025-07-01-16-51-33_9_2,drive straight on,371,1 heavy rain,nan,Frame drop in future part,train
 e2e_2025-07-01-16-55-02_1_0,turn right,5,1 heavy rain,nan,Frame drop in future part,train
 e2e_2025-07-01-16-55-02_1_1,u-turn,318,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-55-02_1_2,turn right,424,1 heavy rain,nan,nan,train
