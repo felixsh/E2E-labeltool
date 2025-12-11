@@ -142,7 +142,6 @@ let weightsVisible = false;
 const maneuverTypes = CFG.maneuverTypes || {};
 
 const SCENARIO_METADATA_PATH = "e2e_scenarios.csv";
-let scenarioMetadataById = null;
 let scenarioMetadataPromise = null;
 let currentScenarioMetadata = null;
 
@@ -275,34 +274,30 @@ if (toolbarPanel && typeof ResizeObserver === "function") {
 }
 
 async function ensureScenarioMetadata() {
-  if (scenarioMetadataById) return scenarioMetadataById;
-  if (!scenarioMetadataPromise) {
-    scenarioMetadataPromise = d3
-      .csv(SCENARIO_METADATA_PATH)
-      .then((rows) => {
-        const map = {};
-        if (rows && Array.isArray(rows)) {
-          for (const row of rows) {
-            const id = row?.ID ?? row?.id;
-            if (!id) continue;
-            let note = row?.["special note"] ?? row?.specialNote ?? null;
-            if (!note || /^nan$/i.test(String(note))) note = null;
-            map[id] = {
-              id,
-              instruction: row?.["high-level instruction"] ?? row?.instruction ?? "",
-              specialNote: note
-            };
-          }
+  if (scenarioMetadataPromise) return scenarioMetadataPromise;
+  scenarioMetadataPromise = d3
+    .csv(SCENARIO_METADATA_PATH)
+    .then((rows) => {
+      const map = {};
+      if (rows && Array.isArray(rows)) {
+        for (const row of rows) {
+          const id = row?.ID ?? row?.id;
+          if (!id) continue;
+          let note = row?.["special note"] ?? row?.specialNote ?? null;
+          if (!note || /^nan$/i.test(String(note))) note = null;
+          map[id] = {
+            id,
+            instruction: row?.["high-level instruction"] ?? row?.instruction ?? "",
+            specialNote: note
+          };
         }
-        scenarioMetadataById = map;
-        return scenarioMetadataById;
-      })
-      .catch((err) => {
-        console.error("Unable to load scenario metadata:", err);
-        scenarioMetadataById = {};
-        return scenarioMetadataById;
-      });
-  }
+      }
+      return map;
+    })
+    .catch((err) => {
+      console.error("Unable to load scenario metadata:", err);
+      return {};
+    });
   return scenarioMetadataPromise;
 }
 
