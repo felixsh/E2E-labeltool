@@ -400,9 +400,7 @@ function setWeightsVisible(v) {
     weightsPanel.classList.toggle("open", weightsVisible);
     weightsPanel.setAttribute("aria-hidden", weightsVisible ? "false" : "true");
   }
-  if (weightsBtn) {
-    weightsBtn.setAttribute("aria-pressed", weightsVisible ? "true" : "false");
-  }
+  setToggleState(weightsBtn, { pressed: weightsVisible });
   if (weightsVisible) {
     syncWeightControls();
   }
@@ -806,6 +804,16 @@ function updateStatus() {
   statusOptim(secondary);
 }
 
+function setToggleState(btn, { enabled, pressed } = {}) {
+  if (!btn) return;
+  if (typeof enabled === "boolean") {
+    btn.disabled = !enabled;
+  }
+  if (typeof pressed === "boolean") {
+    btn.classList.toggle("active", pressed);
+  }
+}
+
 function handleLoadError(contextLabel, err, fileName = "") {
   console.error(err);
   const msg = err?.message || err || "Unknown error";
@@ -875,18 +883,12 @@ function clearScenario(keepError = false, opts = {}) {
   if (viewChaseBtn) viewChaseBtn.disabled = true;
 
   state.secondCloud.visible = false;
-  if (secondCloudToggle) {
-    secondCloudToggle.disabled = true;
-    secondCloudToggle.setAttribute("aria-pressed", "false");
-  }
+  setToggleState(secondCloudToggle, { enabled: false, pressed: false });
 
   state.front.available = false;
   state.front.attempted = false;
   setFrontImageVisible(false);
-  if (frontImgToggle) {
-    frontImgToggle.disabled = true;
-    frontImgToggle.setAttribute("aria-pressed", "false");
-  }
+  setToggleState(frontImgToggle, { enabled: false, pressed: false });
   state.front.data = null;
   state.meta.lastLoadError = keepError ? prevError : "";
 
@@ -952,7 +954,7 @@ function applyFrontImageLayoutState({ visible, fullViewport } = {}) {
 
   // Visibility and aria
   frontImagePanel.classList.toggle("hidden", !nextVisible);
-  frontImgToggle.setAttribute("aria-pressed", nextVisible ? "true" : "false");
+  setToggleState(frontImgToggle, { pressed: nextVisible });
 
   if (wantsFull) {
     if (!state.front.layoutBeforeFull) {
@@ -993,14 +995,14 @@ function applyFrontImageData(data) {
   if (!frontImageEl || !frontImagePanel || !frontImgToggle) return;
   if (!data || !data.dataUrl) {
     frontImageEl.removeAttribute("src");
-    frontImgToggle.disabled = true;
+    setToggleState(frontImgToggle, { enabled: false, pressed: false });
     state.front.available = false;
     applyFrontImageLayoutState({ visible: false, fullViewport: false });
     updateStatus();
     return;
   }
   state.front.available = true;
-  frontImgToggle.disabled = false;
+  setToggleState(frontImgToggle, { enabled: true });
   updateStatus();
   frontImageEl.onload = () => {
     const w = frontImageEl.naturalWidth || 1;
@@ -1024,14 +1026,10 @@ function setFrontImageFullViewport(on) {
 // Initialize front image panel state
 state.front.layout = clampFrontImageLayout(state.front.layout);
 if (frontImgToggle) {
-  frontImgToggle.disabled = true;
-  frontImgToggle.setAttribute("aria-pressed", "false");
+  setToggleState(frontImgToggle, { enabled: false, pressed: false });
 }
 applyFrontImageLayoutState({ visible: false, fullViewport: false });
-if (secondCloudToggle) {
-  secondCloudToggle.disabled = true;
-  secondCloudToggle.setAttribute("aria-pressed", "false");
-}
+setToggleState(secondCloudToggle, { enabled: false, pressed: false });
 
 function defaultFrontImageWidth() {
   const w = Math.max(220, window.innerWidth * 0.3);
@@ -1530,10 +1528,7 @@ function setSecondaryPointCloud(rawData, name, path) {
     state.names.pcd2Path = null;
     state.secondCloud.visible = false;
     state.secondCloud.available = false;
-    if (secondCloudToggle) {
-      secondCloudToggle.disabled = true;
-      secondCloudToggle.setAttribute("aria-pressed", "false");
-    }
+    setToggleState(secondCloudToggle, { enabled: false, pressed: false });
     updateStatus();
     return;
   }
@@ -1543,10 +1538,7 @@ function setSecondaryPointCloud(rawData, name, path) {
   state.names.pcd2Path = path || null;
   state.secondCloud.visible = true;
   state.secondCloud.available = true;
-  if (secondCloudToggle) {
-    secondCloudToggle.disabled = false;
-    secondCloudToggle.setAttribute("aria-pressed", "true");
-  }
+  setToggleState(secondCloudToggle, { enabled: true, pressed: true });
   updateStatus();
 }
 
@@ -1554,9 +1546,7 @@ function setSecondCloudVisible(v) {
   if (!rawSecondary) return;
   const next = !!v && !!rawSecondary;
   state.secondCloud.visible = next;
-  if (secondCloudToggle) {
-    secondCloudToggle.setAttribute("aria-pressed", next ? "true" : "false");
-  }
+  setToggleState(secondCloudToggle, { enabled: !secondCloudToggle?.disabled, pressed: next });
   if (cloudSecondary) {
     cloudSecondary.visible = next;
   } else if (next) {
@@ -1718,9 +1708,7 @@ let samplesVisible = true;
 function setSamplesVisible(v) {
   const next = !!v;
   samplesVisible = next;
-  if (samplesBtn) {
-    samplesBtn.setAttribute("aria-pressed", next ? "true" : "false");
-  }
+  setToggleState(samplesBtn, { pressed: next });
   spline?.setShowSamples?.(next);
 }
 

@@ -168,7 +168,7 @@ button:disabled,
   cursor: not-allowed;
 }
 input[type="range"] { cursor: ew-resize; height: 4px; }
-.toggle-btn[aria-pressed="true"]{
+.toggle-btn.active{
   background: #1d3b55;
   border-color: rgba(102, 204, 255, 0.4);
 }
