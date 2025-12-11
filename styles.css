@@ -162,6 +162,11 @@ select, button {
   font-size: 14px; line-height: 1.2; height: 34px;
   display: inline-flex; align-items: center; gap: 6px;
 }
+button:disabled,
+.toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 input[type="range"] { cursor: ew-resize; height: 4px; }
 .toggle-btn[aria-pressed="true"]{
   background: #1d3b55;

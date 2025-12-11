@@ -752,6 +752,8 @@ let currentZipName = null;
 let currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
 let frontImageFullViewport = false;
 let frontImageLayoutBeforeFull = null;
+let frontImageAvailable = false;
+let frontImageAttempted = false;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -782,7 +784,15 @@ function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || "";
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
   const label = currentZipName || currentPCDName || "no dataset";
-  status(`Loaded ${label}`);
+  const frontNote = getFrontImageNote();
+  const line = frontNote ? `Loaded ${label}  |  ${frontNote}` : `Loaded ${label}`;
+  status(line);
+  statusOptim(frontNote || "");
+}
+
+function getFrontImageNote() {
+  if (!frontImageAttempted) return "";
+  return frontImageAvailable ? "" : "Front image missing in zip.";
 }
 
 function cssVar(name) {
@@ -834,16 +844,22 @@ function setFrontImageVisible(visible) {
 }
 
 function applyFrontImageData(data) {
+  frontImageAttempted = true;
   frontImageData = data;
   if (!frontImageEl || !frontImagePanel || !frontImgToggle) return;
   if (!data || !data.dataUrl) {
     frontImageEl.removeAttribute("src");
     frontImagePanel.classList.add("hidden");
     frontImgToggle.disabled = true;
+    frontImgToggle.setAttribute("aria-pressed", "false");
+    frontImageAvailable = false;
     persistFrontImageLayout({ visible: false });
+    updateStatus();
     return;
   }
+  frontImageAvailable = true;
   frontImgToggle.disabled = false;
+  updateStatus();
   frontImageEl.onload = () => {
     const w = frontImageEl.naturalWidth || 1;
     const h = frontImageEl.naturalHeight || 1;
@@ -2117,6 +2133,7 @@ fileInput.addEventListener("change", async (e) => {
       applyPointCloud(dataset.cloud.raw, dataset.cloud.name, dataset.cloud.path);
     }
     applyFrontImageData(dataset.frontImage || null);
+    updateStatus();
   } catch (err) {
     console.error(err);
     status(`Failed to load ${file.name}: ${err.message || err}`);
