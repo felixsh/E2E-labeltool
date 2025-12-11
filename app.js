@@ -70,7 +70,6 @@ const menuBackdrop = document.getElementById("menuBackdrop");
 const toolbarPanel = document.getElementById("toolbarPanel");
 const bodyEl = document.body;
 const headerEl = document.querySelector("header");
-const BASE_HEADER_HEIGHT = 58;
 
 // Spline-side UI
 const curveSel    = document.getElementById("curveType");
@@ -784,14 +783,30 @@ let secondCloudToggleAvailable = false;
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
-function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
-function updateStatus() {
+function buildStatusParts() {
   const label = currentZipName || currentPCDName || "no dataset";
   const notes = [getFrontImageNote(), getSecondCloudNote(), getLoadErrorNote()].filter(Boolean);
   const sep = "\u00a0\u00a0|\u00a0\u00a0"; // keep spacing visible in text render
-  const line = notes.length ? `Loaded ${label}${sep}${notes.join(sep)}` : `Loaded ${label}`;
-  status(line);
-  statusOptim(notes.join(sep));
+  const primary = notes.length ? `Loaded ${label}${sep}${notes.join(sep)}` : `Loaded ${label}`;
+  const secondary = notes.join(sep);
+  return { primary, secondary };
+}
+function updateStatus() {
+  const { primary, secondary } = buildStatusParts();
+  status(primary);
+  statusOptim(secondary);
+}
+
+function handleLoadError(contextLabel, err, fileName = "") {
+  console.error(err);
+  const msg = err?.message || err || "Unknown error";
+  lastLoadErrorNote = /transformation/i.test(String(msg))
+    ? "Required transformation matrix missing or invalid for second point cloud."
+    : String(msg);
+  clearScenario(true, { skipStatus: true });
+  const label = fileName ? `${contextLabel} ${fileName}` : contextLabel;
+  status(`Failed to load ${label}: ${msg}`);
+  statusOptim(getLoadErrorNote());
 }
 
 function getFrontImageNote() {
@@ -808,7 +823,8 @@ function getLoadErrorNote() {
   return lastLoadErrorNote ? `Load error: ${lastLoadErrorNote}` : "";
 }
 
-function clearScenario(keepError = false) {
+function clearScenario(keepError = false, opts = {}) {
+  const { skipStatus = false } = opts || {};
   // Clouds
   if (cloud) {
     scene.remove(cloud);
@@ -888,7 +904,9 @@ function clearScenario(keepError = false) {
   charts?.render?.([]);
 
   updateLegend();
-  updateStatus();
+  if (!skipStatus) {
+    updateStatus();
+  }
   renderOnce();
 }
 
@@ -2238,14 +2256,7 @@ fileInput.addEventListener("change", async (e) => {
     applyFrontImageData(dataset.frontImage || null);
     updateStatus();
   } catch (err) {
-    console.error(err);
-    const msg = err?.message || err || "Unknown error";
-    lastLoadErrorNote = /transformation/i.test(String(msg))
-      ? "Required transformation matrix missing or invalid for second point cloud."
-      : String(msg);
-    status(`Failed to load ${file.name}: ${msg}`);
-    statusOptim(lastLoadErrorNote);
-    clearScenario(true);
+    handleLoadError("file", err, file.name);
   } finally {
     e.target.value = "";
   }
@@ -2288,14 +2299,7 @@ demoBtn?.addEventListener("click", async () => {
     recomputeScenarioName();
     updateStatus();
   } catch (err) {
-    console.error(err);
-    const msg = err?.message || err || "Unknown error";
-    lastLoadErrorNote = /transformation/i.test(String(msg))
-      ? "Required transformation matrix missing or invalid for second point cloud."
-      : String(msg);
-    status(`Failed to load demo: ${msg}`);
-    statusOptim(lastLoadErrorNote);
-    clearScenario(true);
+    handleLoadError("demo", err, DEMO_ZIP);
   } finally {
     demoBtn.disabled = false;
   }
