@@ -163,8 +163,8 @@ function extractScenarioNameFromPath(path) {
 }
 
 function recomputeScenarioName() {
-  currentScenarioName = trajectoryScenarioName || pointCloudScenarioName || null;
-  updateScenarioMetadata(currentScenarioName);
+  state.names.scenario = state.names.trajectoryScenario || state.names.pointCloudScenario || null;
+  updateScenarioMetadata(state.names.scenario);
 }
 
 function sanitizeFileStem(name, fallback = "export") {
@@ -259,10 +259,10 @@ window.addEventListener("resize", () => {
   if (!bodyEl.classList.contains("toolbar-collapsed") && bodyEl.classList.contains("menu-open")) {
     setMobileMenuOpen(false);
   }
-  if (frontImageLayout) {
-    frontImageLayout = clampFrontImageLayout(frontImageLayout);
+  if (state.front.layout) {
+    state.front.layout = clampFrontImageLayout(state.front.layout);
     updateFrontImageStyles();
-    persistFrontImageLayout(frontImageLayout);
+    persistFrontImageLayout(state.front.layout);
   }
 });
 
@@ -315,7 +315,7 @@ function updateScenarioMetadata(name) {
 
 function renderScenarioInfo() {
   if (!scenarioInfoBox) return;
-  const name = currentScenarioName;
+  const name = state.names.scenario;
   const metadata = currentScenarioMetadata;
   if (!name || !metadata) {
     scenarioInfoBox.style.display = "none";
@@ -729,28 +729,10 @@ let raw = null;
 let bounds = null;
 let center = new THREE.Vector3();
 let radius = 10;
-let currentPCDName = ""; // used for export filename
-let currentPCDPath = null;
 let cloudSecondary = null;
 let cloudSecondaryMat = null;
 let rawSecondary = null;
 let cloudSecondaryBoundsCache = null;
-let currentSecondPCDName = "";
-let currentSecondPCDPath = null;
-let currentTrajectoryName = "";
-let currentTrajectoryPath = null;
-let currentScenarioName = null;
-let pointCloudScenarioName = null;
-let trajectoryScenarioName = null;
-let currentZipName = null;
-let currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
-let frontImageFullViewport = false;
-let frontImageLayoutBeforeFull = null;
-let frontImageAvailable = false;
-let frontImageAttempted = false;
-let secondCloudAttempted = false;
-let secondCloudAvailable = false;
-let lastLoadErrorNote = "";
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -768,18 +750,50 @@ let trajectoryFutureSphereRadius = 0;
 let trajectoryFutureSphereMat = null;
 let trajectoryHistoryRaw = [];
 let trajectoryRawPoints = [];
-let frontImageData = null;
-let frontImageLayout = getFrontImageLayout();
-let frontImageAspect = 16/9;
-let frontImageDragging = false;
-let transformationInfo = null;
-let secondCloudVisible = true;
-let secondCloudToggleAvailable = false;
+
+function createInitialState() {
+  return {
+    names: {
+      pcd: "",
+      pcdPath: null,
+      pcd2: "",
+      pcd2Path: null,
+      trajectory: "",
+      trajectoryPath: null,
+      scenario: null,
+      pointCloudScenario: null,
+      trajectoryScenario: null,
+      zip: null
+    },
+    files: { zip: null, trajectory: null, pointclouds: [], frontImage: null },
+    front: {
+      data: null,
+      layout: getFrontImageLayout(),
+      aspect: 16 / 9,
+      layoutBeforeFull: null,
+      available: false,
+      attempted: false,
+      fullViewport: false,
+      dragging: false
+    },
+    secondCloud: {
+      visible: false,
+      attempted: false,
+      available: false
+    },
+    meta: {
+      transformation: null,
+      lastLoadError: ""
+    }
+  };
+}
+
+let state = createInitialState();
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
 function buildStatusParts() {
-  const label = currentZipName || currentPCDName || "no dataset";
+  const label = state.names.zip || state.names.pcd || "no dataset";
   const notes = [getFrontImageNote(), getSecondCloudNote(), getLoadErrorNote()].filter(Boolean);
   const sep = "\u00a0\u00a0|\u00a0\u00a0"; // keep spacing visible in text render
   const primary = notes.length ? `Loaded ${label}${sep}${notes.join(sep)}` : `Loaded ${label}`;
@@ -795,7 +809,7 @@ function updateStatus() {
 function handleLoadError(contextLabel, err, fileName = "") {
   console.error(err);
   const msg = err?.message || err || "Unknown error";
-  lastLoadErrorNote = /transformation/i.test(String(msg))
+  state.meta.lastLoadError = /transformation/i.test(String(msg))
     ? "Required transformation matrix missing or invalid for second point cloud."
     : String(msg);
   clearScenario(true, { skipStatus: true });
@@ -805,21 +819,22 @@ function handleLoadError(contextLabel, err, fileName = "") {
 }
 
 function getFrontImageNote() {
-  if (!frontImageAttempted) return "";
-  return frontImageAvailable ? "" : "Front image missing in zip.";
+  if (!state.front.attempted) return "";
+  return state.front.available ? "" : "Front image missing in zip.";
 }
 
 function getSecondCloudNote() {
-  if (!secondCloudAttempted) return "";
-  return secondCloudAvailable ? "" : "Second point cloud missing in zip.";
+  if (!state.secondCloud.attempted) return "";
+  return state.secondCloud.available ? "" : "Second point cloud missing in zip.";
 }
 
 function getLoadErrorNote() {
-  return lastLoadErrorNote ? `Load error: ${lastLoadErrorNote}` : "";
+  return state.meta.lastLoadError ? `Load error: ${state.meta.lastLoadError}` : "";
 }
 
 function clearScenario(keepError = false, opts = {}) {
   const { skipStatus = false } = opts || {};
+  const prevError = keepError ? state.meta.lastLoadError : "";
   // Clouds
   if (cloud) {
     scene.remove(cloud);
@@ -837,10 +852,6 @@ function clearScenario(keepError = false, opts = {}) {
   rawSecondary = null;
   cloudBoundsCache = null;
   cloudSecondaryBoundsCache = null;
-  currentPCDName = "";
-  currentPCDPath = null;
-  currentSecondPCDName = "";
-  currentSecondPCDPath = null;
   bounds = null;
   center.set(0, 0, 0);
   radius = 10;
@@ -854,11 +865,8 @@ function clearScenario(keepError = false, opts = {}) {
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
   currentScenarioMetadata = null;
-  currentScenarioName = null;
-  currentTrajectoryName = "";
-  currentTrajectoryPath = null;
-  trajectoryScenarioName = null;
-  pointCloudScenarioName = null;
+
+  state = createInitialState();
   renderScenarioInfo();
 
   // Toggles/buttons
@@ -866,28 +874,21 @@ function clearScenario(keepError = false, opts = {}) {
   viewIsoBtn.disabled = true;
   if (viewChaseBtn) viewChaseBtn.disabled = true;
 
-  secondCloudVisible = false;
-  secondCloudAttempted = false;
-  secondCloudAvailable = false;
+  state.secondCloud.visible = false;
   if (secondCloudToggle) {
     secondCloudToggle.disabled = true;
     secondCloudToggle.setAttribute("aria-pressed", "false");
   }
 
-  frontImageAvailable = false;
-  frontImageAttempted = false;
+  state.front.available = false;
+  state.front.attempted = false;
   setFrontImageVisible(false);
   if (frontImgToggle) {
     frontImgToggle.disabled = true;
     frontImgToggle.setAttribute("aria-pressed", "false");
   }
-  frontImageData = null;
-
-  currentZipName = null;
-  currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
-  if (!keepError) {
-    lastLoadErrorNote = "";
-  }
+  state.front.data = null;
+  state.meta.lastLoadError = keepError ? prevError : "";
 
   // Spline/control state
   spline?.dispose?.();
@@ -925,7 +926,7 @@ function cssColor(name, fallback = "#ffffff") {
 
 function updateFrontImageStyles() {
   if (!frontImagePanel) return;
-  const layout = clampFrontImageLayout(frontImageLayout);
+  const layout = clampFrontImageLayout(state.front.layout);
   if (!layout) return;
   frontImagePanel.style.width = `${layout.width}px`;
   frontImagePanel.style.height = `${layout.height}px`;
@@ -935,29 +936,29 @@ function updateFrontImageStyles() {
 }
 
 function persistFrontImageLayout(extra = {}) {
-  const layout = clampFrontImageLayout({ ...frontImageLayout, ...extra });
+  const layout = clampFrontImageLayout({ ...state.front.layout, ...extra });
   if (!layout) return;
-  frontImageLayout = layout;
+  state.front.layout = layout;
   setFrontImageLayout(layout);
 }
 
 function applyFrontImageLayoutState({ visible, fullViewport } = {}) {
   if (!frontImagePanel || !frontImgToggle) return;
-  const nextVisible = typeof visible === "boolean" ? visible : !!frontImageLayout?.visible;
-  const wantsFull = nextVisible && (typeof fullViewport === "boolean" ? fullViewport : frontImageFullViewport);
-  const baseLayout = clampFrontImageLayout({ ...frontImageLayout, visible: nextVisible });
+  const nextVisible = typeof visible === "boolean" ? visible : !!state.front.layout?.visible;
+  const wantsFull = nextVisible && (typeof fullViewport === "boolean" ? fullViewport : state.front.fullViewport);
+  const baseLayout = clampFrontImageLayout({ ...state.front.layout, visible: nextVisible });
   if (!baseLayout) return;
-  frontImageLayout = baseLayout;
+  state.front.layout = baseLayout;
 
   // Visibility and aria
   frontImagePanel.classList.toggle("hidden", !nextVisible);
   frontImgToggle.setAttribute("aria-pressed", nextVisible ? "true" : "false");
 
   if (wantsFull) {
-    if (!frontImageLayoutBeforeFull) {
-      frontImageLayoutBeforeFull = baseLayout;
+    if (!state.front.layoutBeforeFull) {
+      state.front.layoutBeforeFull = baseLayout;
     }
-    frontImageFullViewport = true;
+    state.front.fullViewport = true;
     frontImagePanel.classList.add("fullscreen-like");
     frontImagePanel.style.left = "0px";
     frontImagePanel.style.top = "0px";
@@ -972,11 +973,11 @@ function applyFrontImageLayoutState({ visible, fullViewport } = {}) {
     document.body.classList.remove("front-image-full");
     frontImagePanel.style.right = "";
     frontImagePanel.style.bottom = "";
-    frontImageFullViewport = false;
-    frontImageLayout = clampFrontImageLayout(frontImageLayoutBeforeFull || baseLayout);
-    frontImageLayoutBeforeFull = null;
+    state.front.fullViewport = false;
+    state.front.layout = clampFrontImageLayout(state.front.layoutBeforeFull || baseLayout);
+    state.front.layoutBeforeFull = null;
     updateFrontImageStyles();
-    persistFrontImageLayout(frontImageLayout);
+    persistFrontImageLayout(state.front.layout);
   }
 
   renderOnce();
@@ -987,32 +988,32 @@ function setFrontImageVisible(visible) {
 }
 
 function applyFrontImageData(data) {
-  frontImageAttempted = true;
-  frontImageData = data;
+  state.front.attempted = true;
+  state.front.data = data;
   if (!frontImageEl || !frontImagePanel || !frontImgToggle) return;
   if (!data || !data.dataUrl) {
     frontImageEl.removeAttribute("src");
     frontImgToggle.disabled = true;
-    frontImageAvailable = false;
+    state.front.available = false;
     applyFrontImageLayoutState({ visible: false, fullViewport: false });
     updateStatus();
     return;
   }
-  frontImageAvailable = true;
+  state.front.available = true;
   frontImgToggle.disabled = false;
   updateStatus();
   frontImageEl.onload = () => {
     const w = frontImageEl.naturalWidth || 1;
     const h = frontImageEl.naturalHeight || 1;
-    frontImageAspect = w / h;
-    frontImageLayout = clampFrontImageLayout({ ...frontImageLayout, visible: true });
+    state.front.aspect = w / h;
+    state.front.layout = clampFrontImageLayout({ ...state.front.layout, visible: true });
     applyFrontImageLayoutState({ visible: true, fullViewport: false });
   };
   frontImageEl.src = data.dataUrl;
 }
 
 function toggleFrontImageVisibility() {
-  const next = !(frontImageLayout?.visible);
+  const next = !(state.front.layout?.visible);
   setFrontImageVisible(next);
 }
 
@@ -1021,7 +1022,7 @@ function setFrontImageFullViewport(on) {
 }
 
 // Initialize front image panel state
-frontImageLayout = clampFrontImageLayout(frontImageLayout);
+state.front.layout = clampFrontImageLayout(state.front.layout);
 if (frontImgToggle) {
   frontImgToggle.disabled = true;
   frontImgToggle.setAttribute("aria-pressed", "false");
@@ -1042,8 +1043,8 @@ function clampFrontImageLayout(layout) {
   const out = { ...layout };
   if (!Number.isFinite(out.width) || out.width <= 0) out.width = defaultFrontImageWidth();
   out.width = Math.min(Math.max(180, out.width), Math.max(240, window.innerWidth * 0.98));
-  if (Number.isFinite(frontImageAspect) && frontImageAspect > 0) {
-    out.height = out.width / frontImageAspect;
+  if (Number.isFinite(state.front.aspect) && state.front.aspect > 0) {
+    out.height = out.width / state.front.aspect;
   } else if (!Number.isFinite(out.height) || out.height <= 0) {
     out.height = out.width * 0.75;
   }
@@ -1182,7 +1183,7 @@ function buildCloud() {
 
 function buildSecondCloud() {
   if (cloudSecondary) { scene.remove(cloudSecondary); cloudSecondary.geometry.dispose(); cloudSecondary.material.dispose(); cloudSecondary = cloudSecondaryMat = null; }
-  if (!rawSecondary || !secondCloudVisible) return;
+  if (!rawSecondary || !state.secondCloud.visible) return;
 
   const hasI = rawSecondary.xyzIdx.i >= 0;
   const dim = hasI ? 4 : 3;
@@ -1506,29 +1507,29 @@ function applyPointCloud(rawData, name, path) {
 
   renderOnce();
 
-  currentPCDName = name;
-  currentPCDPath = path || null;
-  pointCloudScenarioName = null;
+  state.names.pcd = name;
+  state.names.pcdPath = path || null;
+  state.names.pointCloudScenario = null;
   recomputeScenarioName();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
 
 function setSecondaryPointCloud(rawData, name, path) {
-  secondCloudAttempted = true;
+  state.secondCloud.attempted = true;
   if (cloudSecondary) {
     scene.remove(cloudSecondary);
     cloudSecondary.geometry.dispose();
     cloudSecondary.material.dispose();
     cloudSecondary = cloudSecondaryMat = null;
   }
-  if (!rawData || !transformationInfo) {
+  if (!rawData || !state.meta.transformation) {
     rawSecondary = null;
     cloudSecondaryBoundsCache = null;
-    currentSecondPCDName = "";
-    currentSecondPCDPath = null;
-    secondCloudVisible = false;
-    secondCloudAvailable = false;
+    state.names.pcd2 = "";
+    state.names.pcd2Path = null;
+    state.secondCloud.visible = false;
+    state.secondCloud.available = false;
     if (secondCloudToggle) {
       secondCloudToggle.disabled = true;
       secondCloudToggle.setAttribute("aria-pressed", "false");
@@ -1536,12 +1537,12 @@ function setSecondaryPointCloud(rawData, name, path) {
     updateStatus();
     return;
   }
-  rawSecondary = transformPointCloud(rawData, transformationInfo.rotation3x3, transformationInfo.translation);
+  rawSecondary = transformPointCloud(rawData, state.meta.transformation.rotation3x3, state.meta.transformation.translation);
   cloudSecondaryBoundsCache = computeBounds(rawSecondary.points, rawSecondary.xyzIdx);
-  currentSecondPCDName = name || "";
-  currentSecondPCDPath = path || null;
-  secondCloudVisible = true;
-   secondCloudAvailable = true;
+  state.names.pcd2 = name || "";
+  state.names.pcd2Path = path || null;
+  state.secondCloud.visible = true;
+  state.secondCloud.available = true;
   if (secondCloudToggle) {
     secondCloudToggle.disabled = false;
     secondCloudToggle.setAttribute("aria-pressed", "true");
@@ -1552,7 +1553,7 @@ function setSecondaryPointCloud(rawData, name, path) {
 function setSecondCloudVisible(v) {
   if (!rawSecondary) return;
   const next = !!v && !!rawSecondary;
-  secondCloudVisible = next;
+  state.secondCloud.visible = next;
   if (secondCloudToggle) {
     secondCloudToggle.setAttribute("aria-pressed", next ? "true" : "false");
   }
@@ -1618,10 +1619,10 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
   }
 
   renderOnce();
-  currentTrajectoryName = sourceName || "trajectory";
-  currentTrajectoryPath = sourcePath || null;
-  const scenarioFromName = extractScenarioNameFromPath(currentTrajectoryName);
-  trajectoryScenarioName = scenarioFromName || null;
+  state.names.trajectory = sourceName || "trajectory";
+  state.names.trajectoryPath = sourcePath || null;
+  const scenarioFromName = extractScenarioNameFromPath(state.names.trajectory);
+  state.names.trajectoryScenario = scenarioFromName || null;
   recomputeScenarioName();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
@@ -1878,7 +1879,7 @@ function collectExportSnapshot() {
   const curveType = spline?.getCurveType ? spline.getCurveType() : null;
   const deltaT = spline?.getDeltaT ? spline.getDeltaT() : null;
   const alpha = spline?.getAlpha ? spline.getAlpha() : null;
-  const scenarioName = currentScenarioName || null;
+  const scenarioName = state.names.scenario || null;
   const currentMetadata = currentScenarioMetadata || null;
   const instruction = currentMetadata?.instruction ?? "";
   const specialNote = currentMetadata?.specialNote ?? "";
@@ -1893,10 +1894,10 @@ function collectExportSnapshot() {
     sample_points:  samplePtsFull,
     trajectory_raw: trajectoryRaw,
     files: {
-      zip: currentZipName || null,
-      trajectory: currentZipFiles?.trajectory || null,
-      pointclouds: Array.isArray(currentZipFiles?.pointclouds) ? currentZipFiles.pointclouds.slice() : [],
-      front_image: currentZipFiles?.frontImage || null
+      zip: state.files?.zip || null,
+      trajectory: state.files?.trajectory || null,
+      pointclouds: Array.isArray(state.files?.pointclouds) ? state.files.pointclouds.slice() : [],
+      front_image: state.files?.frontImage || null
     }
   };
 
@@ -1907,11 +1908,11 @@ function collectExportSnapshot() {
     payload.alpha = alpha;
   }
 
-  if (transformationInfo) {
+  if (state.meta.transformation) {
     payload.transformation = {
-      index: transformationInfo.index ?? null,
-      rotation: transformationInfo.rotation3x3,
-      translation: transformationInfo.translation
+      index: state.meta.transformation.index ?? null,
+      rotation: state.meta.transformation.rotation3x3,
+      translation: state.meta.transformation.translation
     };
   }
 
@@ -2084,9 +2085,9 @@ ptSizeInput?.addEventListener("input", () => {
 if (ptSizeInput) ptSizeInput.value = basePtSize.toFixed(2);
 if (ptSizeVal) ptSizeVal.textContent = `${basePtSize.toFixed(2)} m`;
 
-viewTopBtn.addEventListener("click", () => { if (!is2D) setTopView3D(); renderOnce(); });
-viewIsoBtn.addEventListener("click", () => { if (!is2D) setIsoView3D(); renderOnce(); });
-viewChaseBtn?.addEventListener("click", () => { if (!is2D) setChaseView3D(); renderOnce(); });
+viewTopBtn.addEventListener("click", () => { if (is2D) enter3D(); setTopView3D(); renderOnce(); });
+viewIsoBtn.addEventListener("click", () => { if (is2D) enter3D(); setIsoView3D(); renderOnce(); });
+viewChaseBtn?.addEventListener("click", () => { if (is2D) enter3D(); setChaseView3D(); renderOnce(); });
 modeBadge?.addEventListener("click", (evt) => {
   evt.preventDefault();
   evt.stopPropagation();
@@ -2103,7 +2104,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
-  if (k === "a") { e.preventDefault(); if (!secondCloudToggle?.disabled && rawSecondary) setSecondCloudVisible(!secondCloudVisible); return; }
+  if (k === "a") { e.preventDefault(); if (!secondCloudToggle?.disabled && rawSecondary) setSecondCloudVisible(!state.secondCloud.visible); return; }
   if (k === "f") { e.preventDefault(); if (!frontImgToggle?.disabled) toggleFrontImageVisibility(); return; }
   if (k === "1") { e.preventDefault(); if (is2D) enter3D(); setTopView3D(); renderOnce(); return; }
   if (k === "2") { e.preventDefault(); if (is2D) enter3D(); setIsoView3D(); renderOnce(); return; }
@@ -2112,7 +2113,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "arrowdown") { e.preventDefault(); spline?.nudgeSelected?.(0, -(e.shiftKey ? 0.2 : 0.01)); renderOnce(); return; }
   if (k === "arrowleft") { e.preventDefault(); spline?.nudgeSelected?.(-(e.shiftKey ? 0.2 : 0.01), 0); renderOnce(); return; }
   if (k === "arrowright") { e.preventDefault(); spline?.nudgeSelected?.(e.shiftKey ? 0.2 : 0.01, 0); renderOnce(); return; }
-  if (k === "escape" && frontImageFullViewport) { e.preventDefault(); setFrontImageFullViewport(false); return; }
+  if (k === "escape" && state.front.fullViewport) { e.preventDefault(); setFrontImageFullViewport(false); return; }
   if (k === "delete" || k === "backspace") { if (!spline) return; e.preventDefault(); spline.deleteSelectedCtrl?.(); return; }
   if (k === "o") { e.preventDefault(); runOptimization(); return; }
   if (k === "l") {
@@ -2133,7 +2134,7 @@ frontImgToggle?.addEventListener("click", () => {
 
 secondCloudToggle?.addEventListener("click", () => {
   if (secondCloudToggle.disabled) return;
-  setSecondCloudVisible(!secondCloudVisible);
+  setSecondCloudVisible(!state.secondCloud.visible);
 });
 
 if (frontImagePanel) {
@@ -2146,17 +2147,17 @@ if (frontImagePanel) {
     const dy = evt.clientY - dragStart.y;
     const nextX = panelStart.x + dx;
     const nextY = panelStart.y + dy;
-    frontImageLayout = { ...frontImageLayout, x: nextX, y: nextY };
-    frontImageLayout = clampFrontImageLayout(frontImageLayout);
+    state.front.layout = { ...state.front.layout, x: nextX, y: nextY };
+    state.front.layout = clampFrontImageLayout(state.front.layout);
     updateFrontImageStyles();
   };
   const onUp = () => {
     if (!dragging) return;
     dragging = false;
-    frontImageDragging = false;
+    state.front.dragging = false;
     document.removeEventListener("pointermove", onMove);
     document.removeEventListener("pointerup", onUp);
-    persistFrontImageLayout(frontImageLayout);
+    persistFrontImageLayout(state.front.layout);
   };
   frontImagePanel.addEventListener("pointerdown", (evt) => {
     if (evt.button !== 0) return;
@@ -2169,7 +2170,7 @@ if (frontImagePanel) {
     }
     evt.preventDefault();
     dragging = true;
-    frontImageDragging = true;
+    state.front.dragging = true;
     dragStart = { x: evt.clientX, y: evt.clientY };
     panelStart = { x: rect.left, y: rect.top };
     document.addEventListener("pointermove", onMove);
@@ -2180,14 +2181,14 @@ if (frontImagePanel) {
 if (frontImagePanel && typeof ResizeObserver === "function") {
   let resizeRaf = null;
   const observer = new ResizeObserver((entries) => {
-    if (frontImageDragging) return;
-    if (frontImageFullViewport) return;
+    if (state.front.dragging) return;
+    if (state.front.fullViewport) return;
     for (const entry of entries) {
       if (entry.target !== frontImagePanel) continue;
       const width = entry.contentRect?.width;
       if (!Number.isFinite(width)) continue;
-      const nextH = Number.isFinite(frontImageAspect) && frontImageAspect > 0
-        ? width / frontImageAspect
+      const nextH = Number.isFinite(state.front.aspect) && state.front.aspect > 0
+        ? width / state.front.aspect
         : entry.contentRect?.height;
       if (Number.isFinite(nextH)) {
         const currentH = frontImagePanel.getBoundingClientRect().height;
@@ -2195,14 +2196,14 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
           frontImagePanel.style.height = `${nextH}px`;
         }
       }
-      frontImageLayout = clampFrontImageLayout({
-        ...frontImageLayout,
+      state.front.layout = clampFrontImageLayout({
+        ...state.front.layout,
         width,
         height: Number.isFinite(nextH) ? nextH : frontImagePanel.getBoundingClientRect().height
       });
       if (!resizeRaf) {
         resizeRaf = requestAnimationFrame(() => {
-          persistFrontImageLayout(frontImageLayout);
+          persistFrontImageLayout(state.front.layout);
           resizeRaf = null;
         });
       }
@@ -2213,7 +2214,7 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
 
 frontImageEl?.addEventListener("dblclick", (evt) => {
   evt.preventDefault();
-  setFrontImageFullViewport(!frontImageFullViewport);
+  setFrontImageFullViewport(!state.front.fullViewport);
 });
 
 // ---------- File/open ----------
@@ -2222,10 +2223,10 @@ fileInput.addEventListener("change", async (e) => {
   if (!file) return;
   try {
     const dataset = await loadDatasetFromZip(file, { preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
-    currentZipName = file?.name || null;
-    lastLoadErrorNote = "";
-    currentZipFiles = {
-      zip: currentZipName,
+    state.names.zip = file?.name || null;
+    state.meta.lastLoadError = "";
+    state.files = {
+      zip: state.names.zip,
       trajectory: dataset.trajectory?.name || null,
       pointclouds: [
         dataset.cloud?.name || null,
@@ -2233,7 +2234,7 @@ fileInput.addEventListener("change", async (e) => {
       ].filter(Boolean),
       frontImage: dataset.frontImage?.name || null
     };
-    transformationInfo = dataset.transformation || null;
+    state.meta.transformation = dataset.transformation || null;
     setSecondaryPointCloud(
       dataset.secondaryCloud?.raw,
       dataset.secondaryCloud?.name,
@@ -2266,10 +2267,10 @@ demoBtn?.addEventListener("click", async () => {
   demoBtn.disabled = true;
   try {
     const result = await loadDemoDataset({ zipUrl: DEMO_ZIP, preferFirstCloud: USE_FIRST_PCD, transformIndex: TRANSFORM_INDEX });
-    currentZipName = DEMO_ZIP;
-    lastLoadErrorNote = "";
-    currentZipFiles = {
-      zip: currentZipName,
+    state.names.zip = DEMO_ZIP;
+    state.meta.lastLoadError = "";
+    state.files = {
+      zip: state.names.zip,
       trajectory: result.trajectory?.name || null,
       pointclouds: [
         result.cloud?.name || null,
@@ -2277,7 +2278,7 @@ demoBtn?.addEventListener("click", async () => {
       ].filter(Boolean),
       frontImage: result.frontImage?.name || null
     };
-    transformationInfo = result.transformation || null;
+    state.meta.transformation = result.transformation || null;
     setSecondaryPointCloud(
       result.secondaryCloud?.raw,
       result.secondaryCloud?.name,
@@ -2290,8 +2291,8 @@ demoBtn?.addEventListener("click", async () => {
       applyTrajectoryPoints(result.trajectory.points, result.trajectory.name, result.trajectory.path);
     }
     applyFrontImageData(result.frontImage || null);
-    pointCloudScenarioName = "demo";
-    trajectoryScenarioName = "demo";
+    state.names.pointCloudScenario = "demo";
+    state.names.trajectoryScenario = "demo";
     recomputeScenarioName();
     updateStatus();
   } catch (err) {
