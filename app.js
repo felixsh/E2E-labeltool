@@ -803,6 +803,83 @@ function getSecondCloudNote() {
   return secondCloudAvailable ? "" : "Second point cloud missing in zip.";
 }
 
+function clearScenario() {
+  // Clouds
+  if (cloud) {
+    scene.remove(cloud);
+    cloud.geometry?.dispose?.();
+    cloud.material?.dispose?.();
+    cloud = cloudMat = null;
+  }
+  if (cloudSecondary) {
+    scene.remove(cloudSecondary);
+    cloudSecondary.geometry?.dispose?.();
+    cloudSecondary.material?.dispose?.();
+    cloudSecondary = cloudSecondaryMat = null;
+  }
+  raw = null;
+  rawSecondary = null;
+  cloudBoundsCache = null;
+  cloudSecondaryBoundsCache = null;
+  currentPCDName = "";
+  currentPCDPath = null;
+  currentSecondPCDName = "";
+  currentSecondPCDPath = null;
+  bounds = null;
+  center.set(0, 0, 0);
+  radius = 10;
+
+  // Trajectory
+  disposeTrajectoryLine();
+  clearTrajectorySpheres();
+  trajectoryPastPoints = null;
+  trajectoryFuturePoints = null;
+  trajectoryPoints = null;
+  trajectoryHistoryRaw = [];
+  trajectoryRawPoints = [];
+  currentScenarioMetadata = null;
+  currentScenarioName = null;
+  currentTrajectoryName = "";
+  currentTrajectoryPath = null;
+  trajectoryScenarioName = null;
+  pointCloudScenarioName = null;
+
+  // Toggles/buttons
+  viewTopBtn.disabled = true;
+  viewIsoBtn.disabled = true;
+  if (viewChaseBtn) viewChaseBtn.disabled = true;
+
+  secondCloudVisible = false;
+  secondCloudAttempted = false;
+  secondCloudAvailable = false;
+  if (secondCloudToggle) {
+    secondCloudToggle.disabled = true;
+    secondCloudToggle.setAttribute("aria-pressed", "false");
+  }
+
+  frontImageAvailable = false;
+  frontImageAttempted = false;
+  setFrontImageVisible(false);
+  if (frontImgToggle) {
+    frontImgToggle.disabled = true;
+    frontImgToggle.setAttribute("aria-pressed", "false");
+  }
+  frontImageData = null;
+
+  currentZipName = null;
+  currentZipFiles = { zip: null, trajectory: null, pointclouds: [], frontImage: null };
+
+  // Spline/control state
+  spline?.dispose?.();
+  spline = null;
+  trajectoryHistoryRaw = [];
+  trajectoryRawPoints = [];
+
+  updateLegend();
+  updateStatus();
+  renderOnce();
+}
+
 function cssVar(name) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name);
   return v ? v.trim() : "";
@@ -2150,6 +2227,7 @@ fileInput.addEventListener("change", async (e) => {
   } catch (err) {
     console.error(err);
     status(`Failed to load ${file.name}: ${err.message || err}`);
+    clearScenario();
   } finally {
     e.target.value = "";
   }
@@ -2193,6 +2271,7 @@ demoBtn?.addEventListener("click", async () => {
   } catch (err) {
     console.error(err);
     status(`Failed to load demo: ${err.message || err}`);
+    clearScenario();
   } finally {
     demoBtn.disabled = false;
   }
