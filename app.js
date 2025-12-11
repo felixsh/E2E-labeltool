@@ -754,6 +754,8 @@ let frontImageFullViewport = false;
 let frontImageLayoutBeforeFull = null;
 let frontImageAvailable = false;
 let frontImageAttempted = false;
+let secondCloudAttempted = false;
+let secondCloudAvailable = false;
 
 let trajectoryPoints = null;
 let trajectoryLine = null;
@@ -784,15 +786,20 @@ function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || "";
 function formatK(n){ return n >= 1000 ? Math.round(n/1000) + "k" : String(n); }
 function updateStatus() {
   const label = currentZipName || currentPCDName || "no dataset";
-  const frontNote = getFrontImageNote();
-  const line = frontNote ? `Loaded ${label}  |  ${frontNote}` : `Loaded ${label}`;
+  const notes = [getFrontImageNote(), getSecondCloudNote()].filter(Boolean);
+  const line = notes.length ? `Loaded ${label}  |  ${notes.join("  |  ")}` : `Loaded ${label}`;
   status(line);
-  statusOptim(frontNote || "");
+  statusOptim(notes.join("  |  "));
 }
 
 function getFrontImageNote() {
   if (!frontImageAttempted) return "";
   return frontImageAvailable ? "" : "Front image missing in zip.";
+}
+
+function getSecondCloudNote() {
+  if (!secondCloudAttempted) return "";
+  return secondCloudAvailable ? "" : "Second point cloud missing in zip.";
 }
 
 function cssVar(name) {
@@ -1404,6 +1411,7 @@ function applyPointCloud(rawData, name, path) {
 }
 
 function setSecondaryPointCloud(rawData, name, path) {
+  secondCloudAttempted = true;
   if (cloudSecondary) {
     scene.remove(cloudSecondary);
     cloudSecondary.geometry.dispose();
@@ -1416,10 +1424,12 @@ function setSecondaryPointCloud(rawData, name, path) {
     currentSecondPCDName = "";
     currentSecondPCDPath = null;
     secondCloudVisible = false;
+    secondCloudAvailable = false;
     if (secondCloudToggle) {
       secondCloudToggle.disabled = true;
       secondCloudToggle.setAttribute("aria-pressed", "false");
     }
+    updateStatus();
     return;
   }
   rawSecondary = transformPointCloud(rawData, transformationInfo.rotation3x3, transformationInfo.translation);
@@ -1427,10 +1437,12 @@ function setSecondaryPointCloud(rawData, name, path) {
   currentSecondPCDName = name || "";
   currentSecondPCDPath = path || null;
   secondCloudVisible = true;
+   secondCloudAvailable = true;
   if (secondCloudToggle) {
     secondCloudToggle.disabled = false;
     secondCloudToggle.setAttribute("aria-pressed", "true");
   }
+  updateStatus();
 }
 
 function setSecondCloudVisible(v) {
