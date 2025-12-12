@@ -32,6 +32,7 @@ export function makeSplineSystem({
   // ===== Visual params (from styles.css) =====
   const CTRL_RADIUS    = cssNumber("--ctrl-size", 0.12);
   const SAMPLE_RADIUS  = cssNumber("--sample-size", 0.10);
+  const SAMPLE_PICK_RADIUS = SAMPLE_RADIUS * 1.35; // tighter hit area without shrinking visuals
   const TUBE_RADIUS    = cssNumber("--spline-width", 0.06);
 
   const CTRL_COLOR        = cssColor("--ctrl-color", "#66ccff");
@@ -547,7 +548,10 @@ export function makeSplineSystem({
     const samples = getSamples();
     const ctrlHit = pickNearestWithDist(points, p, CTRL_RADIUS * 3.0);
     const sampleVecs = samples.map(s => new THREE.Vector3(s.x, s.y, 0));
-    const sampleHit = showSamples ? pickNearestWithDist(sampleVecs, p, SAMPLE_RADIUS * 2.0) : { idx: -1, dist2: Infinity };
+    let sampleHit = showSamples ? pickNearestWithDist(sampleVecs, p, SAMPLE_PICK_RADIUS) : { idx: -1, dist2: Infinity };
+    if (sampleHit.idx >= 0 && samples[sampleHit.idx]?.fixed) {
+      sampleHit = { idx: -1, dist2: Infinity }; // ignore fixed samples for picking
+    }
     const hasHit = (sampleHit.idx >= 0) || (ctrlHit.idx >= 0);
     setCursor(hasHit ? "pointer" : null);
   };
@@ -558,7 +562,10 @@ export function makeSplineSystem({
     const samples = getSamples();
     const ctrlHit = pickNearestWithDist(points, p, CTRL_RADIUS * 3.0);
     const sampleVecs = samples.map(s => new THREE.Vector3(s.x, s.y, 0));
-    const sampleHit = showSamples ? pickNearestWithDist(sampleVecs, p, SAMPLE_RADIUS * 2.0) : { idx: -1, dist2: Infinity };
+    let sampleHit = showSamples ? pickNearestWithDist(sampleVecs, p, SAMPLE_PICK_RADIUS) : { idx: -1, dist2: Infinity };
+    if (sampleHit.idx >= 0 && samples[sampleHit.idx]?.fixed) {
+      sampleHit = { idx: -1, dist2: Infinity }; // do not capture non-draggable samples
+    }
 
     if (sampleHit.idx >= 0 || ctrlHit.idx >= 0) {
       const pickSample = sampleHit.idx >= 0 && sampleHit.dist2 <= ctrlHit.dist2;
