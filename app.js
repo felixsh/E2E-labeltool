@@ -2149,6 +2149,7 @@ if (frontImagePanel) {
   };
   frontImagePanel.addEventListener("pointerdown", (evt) => {
     if (evt.button !== 0) return;
+    if (state.front.fullViewport) return; // do not allow dragging while fullscreen
     const rect = frontImagePanel.getBoundingClientRect();
     const resizeZone = 22;
     const nearRight = (rect.right - evt.clientX) <= resizeZone;
