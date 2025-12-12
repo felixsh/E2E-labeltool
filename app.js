@@ -2176,6 +2176,7 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
   const observer = new ResizeObserver((entries) => {
     if (state.front.dragging) return;
     if (state.front.fullViewport) return;
+    if (!state.front.layout?.visible || frontImagePanel.classList.contains("hidden")) return;
     for (const entry of entries) {
       if (entry.target !== frontImagePanel) continue;
       const width = entry.contentRect?.width;
