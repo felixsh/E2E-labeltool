@@ -515,6 +515,10 @@ function makeControls(cam) {
   const c = new OrbitControls(cam, renderer.domElement);
   c.minDistance = 1;
   c.maxDistance = 2000;
+  // Gentle orbiting to make left-drag rotation easier to control
+  c.enableDamping = true;
+  c.dampingFactor = 0.1;
+  c.rotateSpeed = 0.65;
   return c;
 }
 
