@@ -46,6 +46,7 @@ Then visit <http://localhost:8000/index.html> in a WebGL-capable browser.
 | `W` | Toggle optimizer weights panel |
 | `F` | Toggle front image panel |
 | `A` | Toggle second point cloud |
+| `R` | Toggle metric rectangles overlay |
 | `1` / `2` / `3` | Top / Iso / 3rd-person views |
 | Arrow keys | Nudge selected control/sample (hold Shift for larger step) |
 | `L` | Open the Load dialog |
@@ -55,6 +56,8 @@ Then visit <http://localhost:8000/index.html> in a WebGL-capable browser.
 | Right drag | Pan |
 
 Current point cloud / trajectory names are shown in the footer.
+
+Metric rectangles: the Rects button (or `R`) shows velocity-scaled rectangles from the past trajectory toward the ground truth and toward the current samples in the z=0 plane. Colors, opacity, and line width are controlled via CSS variables in `styles.css`.
 
 ## Config
 

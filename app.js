@@ -9,6 +9,7 @@ import {
 import { makeCharts } from "./src/charts.js";
 import { makeSplineSystem } from "./src/splineCore.js";
 import { createExporter } from "./src/exporter.js";
+import { orientedCornersFromTrajectories } from "./src/metricRect.js";
 import {
   clampAlpha,
   clampPointSize,
@@ -108,6 +109,7 @@ const exportWarnCloseBtn = document.getElementById("exportWarnClose");
 const frontImagePanel = document.getElementById("frontImagePanel");
 const frontImageEl = document.getElementById("frontImageEl");
 const frontImgToggle = document.getElementById("frontImgToggle");
+const rectToggle = document.getElementById("rectanglesToggle");
 const secondCloudToggle = document.getElementById("secondCloudToggle");
 
 const initialColorMode =
@@ -752,6 +754,13 @@ let trajectoryFutureSphereRadius = 0;
 let trajectoryFutureSphereMat = null;
 let trajectoryHistoryRaw = [];
 let trajectoryRawPoints = [];
+let lastSamplesCache = [];
+
+const rectangleState = {
+  visible: true,
+  gt: { mesh: null, outline: null, available: false },
+  samples: { mesh: null, outline: null, available: false }
+};
 
 function createInitialState() {
   return {
@@ -791,6 +800,7 @@ function createInitialState() {
 }
 
 let state = createInitialState();
+setToggleState(rectToggle, { enabled: false, pressed: rectangleState.visible });
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
@@ -876,6 +886,8 @@ function clearScenario(keepError = false, opts = {}) {
   trajectoryPoints = null;
   trajectoryHistoryRaw = [];
   trajectoryRawPoints = [];
+  lastSamplesCache = [];
+  clearRectangles();
   currentScenarioMetadata = null;
 
   state = createInitialState();
@@ -1476,6 +1488,178 @@ function rebuildTrajectoryObject(force2D = is2D) {
   }
 }
 
+function disposeRectangleEntry(entry) {
+  if (!entry) return;
+  if (entry.mesh) {
+    scene.remove(entry.mesh);
+    entry.mesh.geometry?.dispose?.();
+    entry.mesh.material?.dispose?.();
+    entry.mesh = null;
+  }
+  if (entry.outline) {
+    scene.remove(entry.outline);
+    entry.outline.geometry?.dispose?.();
+    entry.outline.material?.dispose?.();
+    entry.outline = null;
+  }
+  entry.available = false;
+}
+
+function clearRectangles() {
+  disposeRectangleEntry(rectangleState.gt);
+  disposeRectangleEntry(rectangleState.samples);
+  rectangleState.visible = true;
+  applyRectangleVisibility(false);
+}
+
+function getRectangleStyles() {
+  const lineWidth = Math.max(1e-3, cssNumber("--rect-line-width", 2));
+  const gtOpacity = clampAlpha(cssNumber("--rect-gt-opacity", 0.24)) ?? 0.24;
+  const sampleOpacity = clampAlpha(cssNumber("--rect-sample-opacity", 0.18)) ?? 0.18;
+  return {
+    gt: {
+      fillColor: cssColor("--rect-gt-color", "#4dff88"),
+      outlineColor: cssColor("--rect-gt-color", "#4dff88"),
+      opacity: gtOpacity,
+      lineWidth
+    },
+    samples: {
+      fillColor: cssColor("--rect-sample-color", "#66ccff"),
+      outlineColor: cssColor("--rect-sample-color", "#66ccff"),
+      opacity: sampleOpacity,
+      lineWidth
+    }
+  };
+}
+
+function setRectangleShape(kind, corners) {
+  const entry = rectangleState[kind];
+  if (!entry) return false;
+
+  if (!Array.isArray(corners) || corners.length < 4) {
+    disposeRectangleEntry(entry);
+    return false;
+  }
+
+  const styles = getRectangleStyles()[kind];
+  if (!styles) {
+    disposeRectangleEntry(entry);
+    return false;
+  }
+
+  const shape = new THREE.Shape();
+  corners.forEach(([x, y], idx) => {
+    if (idx === 0) {
+      shape.moveTo(x, y);
+    } else {
+      shape.lineTo(x, y);
+    }
+  });
+  shape.closePath();
+
+  const geometry = new THREE.ShapeGeometry(shape);
+
+  if (!entry.mesh) {
+    const material = new THREE.MeshBasicMaterial({
+      color: styles.fillColor.clone(),
+      transparent: true,
+      opacity: styles.opacity,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false
+    });
+    entry.mesh = new THREE.Mesh(geometry, material);
+    entry.mesh.renderOrder = 2;
+    scene.add(entry.mesh);
+  } else {
+    entry.mesh.geometry?.dispose?.();
+    entry.mesh.geometry = geometry;
+    entry.mesh.material.color.copy(styles.fillColor);
+    entry.mesh.material.opacity = styles.opacity;
+  }
+
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints(
+    corners.map(([x, y]) => new THREE.Vector3(x, y, 0))
+  );
+
+  if (!entry.outline) {
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: styles.outlineColor.clone(),
+      linewidth: styles.lineWidth,
+      transparent: true,
+      opacity: Math.min(1, styles.opacity + 0.2),
+      depthTest: false,
+      depthWrite: false
+    });
+    entry.outline = new THREE.LineLoop(lineGeometry, lineMaterial);
+    entry.outline.renderOrder = 3;
+    scene.add(entry.outline);
+  } else {
+    entry.outline.geometry?.dispose?.();
+    entry.outline.geometry = lineGeometry;
+    entry.outline.material.color.copy(styles.outlineColor);
+    entry.outline.material.opacity = Math.min(1, styles.opacity + 0.2);
+    entry.outline.material.linewidth = styles.lineWidth;
+  }
+
+  entry.available = true;
+  return true;
+}
+
+function applyRectangleVisibility(hasData = (rectangleState.gt.available || rectangleState.samples.available)) {
+  const active = rectangleState.visible && hasData;
+  setToggleState(rectToggle, { enabled: !!hasData, pressed: active });
+
+  const entries = [rectangleState.gt, rectangleState.samples];
+  entries.forEach((entry) => {
+    const visible = active && entry?.available;
+    if (entry?.mesh) entry.mesh.visible = visible;
+    if (entry?.outline) entry.outline.visible = visible;
+  });
+}
+
+function updateRectangles() {
+  const pastPairs = trajectoryHistoryRaw.length ? trajectoryHistoryRaw : trajectoryPastPoints;
+  const gtFuturePairs = trajectoryFuturePoints;
+  const samplePairs = (lastSamplesCache || []).filter((s) => {
+    const idx = s?.idx;
+    return !Number.isFinite(idx) || idx >= 0;
+  });
+
+  const gtCorners = pastPairs.length && gtFuturePairs.length
+    ? orientedCornersFromTrajectories(pastPairs, gtFuturePairs)
+    : null;
+  const sampleCorners = pastPairs.length && samplePairs.length
+    ? orientedCornersFromTrajectories(pastPairs, samplePairs)
+    : null;
+
+  let gtAvailable = false;
+  if (gtCorners) {
+    gtAvailable = setRectangleShape("gt", gtCorners);
+  } else {
+    disposeRectangleEntry(rectangleState.gt);
+  }
+
+  let sampleAvailable = false;
+  if (sampleCorners) {
+    sampleAvailable = setRectangleShape("samples", sampleCorners);
+  } else {
+    disposeRectangleEntry(rectangleState.samples);
+  }
+
+  const anyAvailable = gtAvailable || sampleAvailable;
+  applyRectangleVisibility(anyAvailable);
+  if (anyAvailable && rectangleState.visible) {
+    renderOnce();
+  }
+}
+
+function setRectanglesVisible(next) {
+  rectangleState.visible = !!next;
+  applyRectangleVisibility();
+  renderOnce();
+}
+
 function applyPointCloud(rawData, name, path) {
   raw = rawData;
   cloudBoundsCache = computeBounds(raw.points, raw.xyzIdx);
@@ -1612,6 +1796,7 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
     rebuildTrajectoryObject(false);
   }
 
+  updateRectangles();
   renderOnce();
   state.names.trajectory = sourceName || "trajectory";
   state.names.trajectoryPath = sourcePath || null;
@@ -1734,7 +1919,14 @@ function initializeSpline(force = false) {
     defaultDt: +CFG.defaultDt > 0 ? +CFG.defaultDt : 0.20,
     optimizer: CFG.optimizer || {},
     requestRender: () => renderOnce(),
-    onSamplesChanged: (samples) => charts.render(samples),
+    onSamplesChanged: (samples) => {
+      const data = (Array.isArray(samples) && samples.length)
+        ? samples
+        : (spline?.getSamples?.() || samples);
+      lastSamplesCache = Array.isArray(data) ? data : [];
+      charts.render(samples);
+      updateRectangles();
+    },
     getCamera: () => camera,
     is2D: () => is2D,
     canvasEl: renderer.domElement,
@@ -2096,6 +2288,7 @@ window.addEventListener("keydown", (e) => {
   if (k === "y") { if (!spline) return; e.preventDefault(); spline.redoLastAction?.(); return; }
   if (k === "s") { e.preventDefault(); setSamplesVisible(!samplesVisible); return; }
   if (k === "w") { e.preventDefault(); toggleWeightsPanel(); return; }
+  if (k === "r") { e.preventDefault(); if (!rectToggle?.disabled) setRectanglesVisible(!rectangleState.visible); return; }
   if (k === "a") { e.preventDefault(); if (!secondCloudToggle?.disabled && rawSecondary) setSecondCloudVisible(!state.secondCloud.visible); return; }
   if (k === "f") { e.preventDefault(); if (!frontImgToggle?.disabled) toggleFrontImageVisibility(); return; }
   if (k === "1") { e.preventDefault(); if (is2D) enter3D(); setTopView3D(); renderOnce(); return; }
@@ -2122,6 +2315,11 @@ window.addEventListener("keydown", (e) => {
 frontImgToggle?.addEventListener("click", () => {
   if (frontImgToggle.disabled) return;
   toggleFrontImageVisibility();
+});
+
+rectToggle?.addEventListener("click", () => {
+  if (rectToggle.disabled) return;
+  setRectanglesVisible(!rectangleState.visible);
 });
 
 secondCloudToggle?.addEventListener("click", () => {

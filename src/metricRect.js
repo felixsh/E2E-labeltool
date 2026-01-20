@@ -102,11 +102,12 @@ export function orientedCornersFromTrajectories(
   const centerX = Number.isFinite(rawCenterX) ? rawCenterX : 0;
   const centerY = Number.isFinite(rawCenterY) ? rawCenterY : 0;
 
+  // CCW corners in local frame: +x is lon, +y is lat
   const corners = [
     [lon, lat],
-    [lon, -lat],
     [-lon, lat],
-    [-lon, -lat]
+    [-lon, -lat],
+    [lon, -lat]
   ];
 
   // Transpose of rotationMatrix: [[c, -s], [s, c]]
