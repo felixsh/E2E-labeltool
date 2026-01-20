@@ -26,6 +26,14 @@ window.CONFIG = {
   defaultDt: 0.20,                // Simulation timestep for velocity/accel (seconds)
   initCtrl: [[0,0],[4,0]],        // Control points in world meters on z=0
 
+  // Similarity rectangle / miss-rate thresholds
+  similarityThresholds: {
+    threshLat: 1.8,
+    threshLon: 3.6,
+    vHigh: 11.0,
+    vLow: 1.4
+  },
+
   // Comfort / max thresholds used by charts (m/s² and m/s³)
   kinematicLimits: {
     acceleration: { comfort: 3, max: 9 },
