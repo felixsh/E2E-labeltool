@@ -266,7 +266,16 @@ window.addEventListener("resize", () => {
     updateFrontImageStyles();
     persistFrontImageLayout(state.front.layout);
   }
+  updateRendererSize();
+  renderOnce();
 });
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", () => {
+    updateRendererSize();
+    renderOnce();
+  });
+}
 
 if (toolbarPanel && typeof ResizeObserver === "function") {
   const toolbarObserver = new ResizeObserver(() => {
@@ -469,13 +478,84 @@ function hookWeightControl(kind) {
 ["wJerk", "wVel", "wAcc"].forEach(hookWeightControl);
 weightsBtn?.addEventListener("click", toggleWeightsPanel);
 
-// ---------- THREE setup ----------
+// ---------- THREE setup / shared state ----------
+let is2D = false;
+let camera = null;
+let controls = null;
+const DEFAULT_ORTHO_ZOOM = 15;
+const MIN_ORTHO_ZOOM = 0.1;
+const MAX_ORTHO_ZOOM = 500;
+const WHEEL_ZOOM_FACTOR = 0.0004;
+
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(container.clientWidth, container.clientHeight);
+function getEffectivePixelRatio() {
+  const zoom = window.visualViewport?.scale || 1;
+  const dpr = window.devicePixelRatio || 1;
+  return Math.min(2, Math.max(0.5, dpr / zoom));
+}
+function updateRendererSize() {
+  renderer.setPixelRatio(getEffectivePixelRatio());
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  if (camera) {
+    if (camera.isPerspectiveCamera) {
+      camera.aspect = container.clientWidth / Math.max(1e-6, container.clientHeight);
+    } else if (camera.isOrthographicCamera) {
+      const w = container.clientWidth, h = container.clientHeight;
+      const aspect = Math.max(1e-6, w / h);
+      const worldHalfH = (radius || 10) * 1.2;
+      const worldHalfW = worldHalfH * aspect;
+      camera.left = -worldHalfW;
+      camera.right = worldHalfW;
+      camera.top = worldHalfH;
+      camera.bottom = -worldHalfH;
+    }
+    camera.updateProjectionMatrix();
+  }
+}
+updateRendererSize();
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.domElement.classList.add("threejs");
 container.appendChild(renderer.domElement);
+renderer.domElement.addEventListener("wheel", (evt) => {
+  if (evt.ctrlKey || evt.metaKey) {
+    evt.preventDefault();
+  }
+}, { passive: false });
+
+function handleWheelZoom(evt) {
+  if (!controls || !camera) return;
+  const mode = evt.deltaMode;
+  let delta = evt.deltaY;
+  if (mode === 1) delta *= 40; // DOM_DELTA_LINE
+  else if (mode === 2) delta *= 800; // DOM_DELTA_PAGE
+
+  const factor = Math.exp(delta * WHEEL_ZOOM_FACTOR);
+
+  if (camera.isOrthographicCamera) {
+    const nextZoom = Math.min(MAX_ORTHO_ZOOM, Math.max(MIN_ORTHO_ZOOM, camera.zoom / factor));
+    if (nextZoom !== camera.zoom) {
+      camera.zoom = nextZoom;
+      camera.updateProjectionMatrix();
+      syncPointSize();
+      renderOnce();
+    }
+  } else if (camera.isPerspectiveCamera) {
+    const target = controls.target.clone();
+    const dir = camera.position.clone().sub(target);
+    const dist = dir.length();
+    const minD = controls.minDistance || 0.1;
+    const maxD = controls.maxDistance || 1e6;
+    const nextDist = Math.min(maxD, Math.max(minD, dist * factor));
+    dir.setLength(nextDist);
+    camera.position.copy(target.add(dir));
+    camera.updateProjectionMatrix();
+    controls.update();
+    renderOnce();
+  }
+}
+renderer.domElement.addEventListener("wheel", (evt) => {
+  handleWheelZoom(evt);
+}, { passive: false });
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0d13);
@@ -489,11 +569,6 @@ const axes = new THREE.AxesHelper(5);
 scene.add(axes);
 
 // ---------- Cameras & controls glue (pcd_viewer-style 2D) ----------
-let is2D = false;
-let camera = null;
-let controls = null;
-const DEFAULT_ORTHO_ZOOM = 15;
-
 const perspCam = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 5000);
 perspCam.position.set(30, 30, 30);
 
@@ -517,6 +592,9 @@ function makeControls(cam) {
   const c = new OrbitControls(cam, renderer.domElement);
   c.minDistance = 1;
   c.maxDistance = 2000;
+  c.minZoom = MIN_ORTHO_ZOOM;
+  c.maxZoom = MAX_ORTHO_ZOOM;
+  c.zoomSpeed = 0.1;
   // Gentle orbiting to make left-drag rotation easier to control
   c.enableDamping = true;
   c.dampingFactor = 0.1;
@@ -608,6 +686,7 @@ syncProxyDisabledState();
 camera = perspCam;
 controls = makeControls(camera);
 controls.addEventListener("change", () => { snapshot3D(); renderOnce(); });
+controls.enableZoom = false; // custom wheel handler below
 
 // KITTI-friendly ISO (rear-right-up, Z-up)
 function setIsoView3D() {
@@ -647,6 +726,7 @@ function enter2D(state = lastState2D) {
 
   controls.enableRotate = false;
   controls.enableDamping = false;
+  controls.enableZoom = false; // custom wheel handler below
   controls.mouseButtons = {
     LEFT: THREE.MOUSE.NONE,
     MIDDLE: THREE.MOUSE.DOLLY,
