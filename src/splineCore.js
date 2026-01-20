@@ -127,10 +127,6 @@ export function makeSplineSystem({
   const smplMat    = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR });
   const smplMatSel = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR_SEL });
 
-  ctrlMat.depthTest = ctrlMatSel.depthTest = false;
-  ctrlMat.depthWrite = ctrlMatSel.depthWrite = false;
-  smplMat.depthTest = smplMatSel.depthTest = false;
-  smplMat.depthWrite = smplMatSel.depthWrite = false;
 
   // ===== d3 curve path context -> dense polyline =====
   function samplingPathContext({ curveSubdivisions = 18 } = {}) {
@@ -294,11 +290,9 @@ export function makeSplineSystem({
       geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
       geo.setIndex(new THREE.Uint32BufferAttribute(indices, 1));
       geo.computeVertexNormals(); // mostly flat, fine
-  
+
       curveObject = new THREE.Mesh(geo, material);
       curveObject.renderOrder = 5;
-      curveObject.material.depthTest  = false;
-      curveObject.material.depthWrite = false;
       curveObject.material.side = THREE.DoubleSide;
       scene.add(curveObject);
       return;
@@ -349,12 +343,11 @@ export function makeSplineSystem({
     while (sampleLabels.length < count) {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: getLabelTexture(String(sampleLabels.length)),
-        depthTest: false,
-        transparent: true
+        transparent: true,
+        depthTest: false
       }));
       sprite.renderOrder = 30;           // topmost
       sprite.material.depthTest  = false;
-      sprite.material.depthWrite = false;
       sprite.scale.set(0.32, 0.32, 1);
       scene.add(sprite);
       sampleLabels.push(sprite);
@@ -373,9 +366,6 @@ export function makeSplineSystem({
       const m = new THREE.Mesh(ctrlGeom, ctrlMat);
       // controls above spline, below samples
       m.renderOrder = 10;
-      // draw above via depth (no z-fighting/occlusion issues)
-      m.material.depthTest  = false;
-      m.material.depthWrite = false;
       m.userData.kind = "ctrl"; m.userData.i = ctrlSpheres.length;
       scene.add(m); ctrlSpheres.push(m);
     }
@@ -412,8 +402,6 @@ export function makeSplineSystem({
       const m = new THREE.Mesh(smplGeom, smplMat);
       // samples above everything else
       m.renderOrder = 20;
-      m.material.depthTest  = false;
-      m.material.depthWrite = false;
       m.userData.kind = "sample"; m.userData.i = sampleSpheres.length;
       scene.add(m); sampleSpheres.push(m);
     }

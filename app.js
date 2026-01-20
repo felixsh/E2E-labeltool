@@ -482,7 +482,7 @@ scene.background = new THREE.Color(0x0b0d13);
 
 // Grid & axes (X/Y plane, Z up)
 const grid = new THREE.GridHelper(100, 20, 0x334, 0x223);
-grid.renderOrder = -100;
+grid.renderOrder = -100; // lowest
 grid.rotation.x = Math.PI / 2;
 scene.add(grid);
 const axes = new THREE.AxesHelper(5);
@@ -1262,7 +1262,7 @@ function buildSecondCloud() {
   });
 
   cloudSecondary = new THREE.Points(geo, cloudSecondaryMat);
-  cloudSecondary.renderOrder = -9;
+  cloudSecondary.renderOrder = -20;
   scene.add(cloudSecondary);
   syncPointSize();
 }
@@ -1355,7 +1355,7 @@ function ensureTrajectorySphereResources(radius, color) {
   }
 
   if (!trajectorySphereMat) {
-    trajectorySphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), depthTest: false, depthWrite: false });
+    trajectorySphereMat = new THREE.MeshBasicMaterial({ color: color.clone() });
   } else {
     trajectorySphereMat.color.copy(color);
   }
@@ -1371,11 +1371,9 @@ function ensureFutureTrajectorySphereResources(radius, color) {
   }
 
   if (!trajectoryFutureSphereMat) {
-    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), depthTest: false, depthWrite: false, transparent: false, opacity: 1 });
+    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), transparent: false, opacity: 1 });
   } else {
     trajectoryFutureSphereMat.color.copy(color);
-    trajectoryFutureSphereMat.depthTest = false;
-    trajectoryFutureSphereMat.depthWrite = false;
     trajectoryFutureSphereMat.transparent = false;
     trajectoryFutureSphereMat.opacity = 1;
   }
@@ -1414,7 +1412,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 
     while (trajectorySpheres.length < trajectoryPastPoints.length) {
       const mesh = new THREE.Mesh(trajectorySphereGeom, trajectorySphereMat);
-      mesh.renderOrder = force2D ? 2402 : 8;
+      mesh.renderOrder = 8;
       scene.add(mesh);
       trajectorySpheres.push(mesh);
     }
@@ -1430,7 +1428,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
       mesh.visible = true;
       mesh.geometry = trajectorySphereGeom;
       mesh.material = trajectorySphereMat;
-      mesh.renderOrder = force2D ? 2402 : 8;
+      mesh.renderOrder = 8;
     }
 
     if (trajectoryPastPoints.length >= 2) {
@@ -1440,10 +1438,8 @@ function rebuildTrajectoryObject(force2D = is2D) {
       const radialSegments = 16;
       const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
       const material = new THREE.MeshBasicMaterial({ color: trajColor.clone(), transparent: true, opacity: 0.96 });
-      material.depthTest = false;
-      material.depthWrite = false;
       trajectoryLine = new THREE.Mesh(tubeGeometry, material);
-      trajectoryLine.renderOrder = force2D ? 2400 : 6;
+      trajectoryLine.renderOrder = 8;
       scene.add(trajectoryLine);
     }
   }
@@ -1453,7 +1449,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 
     while (trajectoryFutureSpheres.length < trajectoryFuturePoints.length) {
       const mesh = new THREE.Mesh(trajectoryFutureSphereGeom, trajectoryFutureSphereMat);
-      mesh.renderOrder = force2D ? -50 : -50;
+      mesh.renderOrder = 4;
       scene.add(mesh);
       trajectoryFutureSpheres.push(mesh);
     }
@@ -1469,7 +1465,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
       mesh.visible = true;
       mesh.geometry = trajectoryFutureSphereGeom;
       mesh.material = trajectoryFutureSphereMat;
-      mesh.renderOrder = force2D ? -50 : -50;
+      mesh.renderOrder = 4;
     }
 
     if (trajectoryFuturePoints.length >= 2) {
@@ -1479,10 +1475,8 @@ function rebuildTrajectoryObject(force2D = is2D) {
       const radialSegments = 16;
       const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
       const material = new THREE.MeshBasicMaterial({ color: gtColor.clone(), transparent: false, opacity: 1 });
-      material.depthTest = false;
-      material.depthWrite = false;
       trajectoryFutureLine = new THREE.Mesh(tubeGeometry, material);
-      trajectoryFutureLine.renderOrder = force2D ? -60 : -60;
+      trajectoryFutureLine.renderOrder = 3;
       scene.add(trajectoryFutureLine);
     }
   }
@@ -1564,12 +1558,10 @@ function setRectangleShape(kind, corners) {
       color: styles.fillColor.clone(),
       transparent: true,
       opacity: styles.opacity,
-      side: THREE.DoubleSide,
-      depthTest: false,
-      depthWrite: false
+      side: THREE.DoubleSide
     });
     entry.mesh = new THREE.Mesh(geometry, material);
-    entry.mesh.renderOrder = 2;
+    entry.mesh.renderOrder = 1;
     scene.add(entry.mesh);
   } else {
     entry.mesh.geometry?.dispose?.();
@@ -1587,12 +1579,10 @@ function setRectangleShape(kind, corners) {
       color: styles.outlineColor.clone(),
       linewidth: styles.lineWidth,
       transparent: true,
-      opacity: Math.min(1, styles.opacity + 0.2),
-      depthTest: false,
-      depthWrite: false
+      opacity: Math.min(1, styles.opacity + 0.2)
     });
     entry.outline = new THREE.LineLoop(lineGeometry, lineMaterial);
-    entry.outline.renderOrder = 3;
+    entry.outline.renderOrder = 2;
     scene.add(entry.outline);
   } else {
     entry.outline.geometry?.dispose?.();
