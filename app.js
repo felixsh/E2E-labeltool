@@ -2453,21 +2453,30 @@ if (frontImagePanel && typeof ResizeObserver === "function") {
     if (!state.front.layout?.visible || frontImagePanel.classList.contains("hidden")) return;
     for (const entry of entries) {
       if (entry.target !== frontImagePanel) continue;
-      const width = entry.contentRect?.width;
-      if (!Number.isFinite(width)) continue;
+      const measuredW = entry.contentRect?.width;
+      const measuredH = entry.contentRect?.height;
+      const prevW = state.front.layout?.width;
+      const prevH = state.front.layout?.height;
+      const tol = 5; // px
+
+      if (!Number.isFinite(measuredW)) continue;
+      const widthChanged = !Number.isFinite(prevW) || Math.abs(measuredW - prevW) > tol;
+      const heightChanged = Number.isFinite(measuredH) && (!Number.isFinite(prevH) || Math.abs(measuredH - prevH) > tol);
+
+      if (!widthChanged && !heightChanged) continue;
+
+      const nextW = measuredW;
       const nextH = Number.isFinite(state.front.aspect) && state.front.aspect > 0
-        ? width / state.front.aspect
-        : entry.contentRect?.height;
-      if (Number.isFinite(nextH)) {
-        const currentH = frontImagePanel.getBoundingClientRect().height;
-        if (Math.abs(nextH - currentH) > 0.5) {
-          frontImagePanel.style.height = `${nextH}px`;
-        }
-      }
+        ? nextW / state.front.aspect
+        : (heightChanged ? measuredH : prevH);
+
+      if (Number.isFinite(nextW)) frontImagePanel.style.width = `${nextW}px`;
+      if (Number.isFinite(nextH)) frontImagePanel.style.height = `${nextH}px`;
+
       state.front.layout = clampFrontImageLayout({
         ...state.front.layout,
-        width,
-        height: Number.isFinite(nextH) ? nextH : frontImagePanel.getBoundingClientRect().height
+        width: nextW,
+        height: nextH
       });
       if (!resizeRaf) {
         resizeRaf = requestAnimationFrame(() => {
