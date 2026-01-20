@@ -1880,6 +1880,7 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
 
   const pastPairs = pointPairs.slice(0, Math.max(0, closestIdx) + 1);
   const futurePairs = pointPairs.slice(Math.max(0, closestIdx) + 1);
+  futurePairs.unshift([0, 0]); // ensure ground-truth trajectory starts at origin
 
   trajectoryPastPoints = pastPairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
   trajectoryFuturePoints = futurePairs.map(([x, y]) => new THREE.Vector3(x, y, 0));
