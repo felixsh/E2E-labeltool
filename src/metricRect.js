@@ -96,6 +96,11 @@ export function orientedCornersFromTrajectories(
   const { vX, vY } = velocityFromSamples(pastSamples, deltaT);
   const { lon, lat } = scaleThresholds(vX, vY, thresholdOverrides);
   const { rotationMatrix } = rotationFromSamples(futureSamples);
+  const [rawCenterX = 0, rawCenterY = 0] = Array.isArray(futureSamples) && futureSamples.length
+    ? futureSamples[futureSamples.length - 1]
+    : [];
+  const centerX = Number.isFinite(rawCenterX) ? rawCenterX : 0;
+  const centerY = Number.isFinite(rawCenterY) ? rawCenterY : 0;
 
   const corners = [
     [lon, lat],
@@ -111,8 +116,8 @@ export function orientedCornersFromTrajectories(
     const m10 = rotationMatrix[1][0];
     const m11 = rotationMatrix[1][1];
     return [
-      x * m00 + y * m10,
-      x * m01 + y * m11
+      centerX + x * m00 + y * m10,
+      centerY + x * m01 + y * m11
     ];
   });
 
