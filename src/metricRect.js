@@ -73,10 +73,10 @@ export function rotationFromSamples(samples) {
 export function scaleThresholds(
   vX,
   vY,
-  overrides = {}
+  thresholds = {}
 ) {
-  const { threshLat, threshLon, vHigh, vLow } = overrides && Object.keys(overrides).length
-    ? { ...BASE_THRESHOLDS, ...overrides }
+  const { threshLat, threshLon, vHigh, vLow } = thresholds && Object.keys(thresholds).length
+    ? { ...BASE_THRESHOLDS, ...thresholds }
     : BASE_THRESHOLDS;
   const scaleX = normalizedScale(Math.abs(vX), vLow, vHigh);
   const scaleY = normalizedScale(Math.abs(vY), vLow, vHigh);
@@ -96,11 +96,11 @@ export function orientedCornersFromTrajectories(
   futureSamples,
   {
     deltaT = DEFAULT_DT,
-    thresholdOverrides = {}
+    thresholds = {}
   } = {}
 ) {
   const { vX, vY } = velocityFromSamples(pastSamples, deltaT);
-  const { lon, lat } = scaleThresholds(vX, vY, thresholdOverrides);
+  const { lon, lat } = scaleThresholds(vX, vY, thresholds);
   const { rotationMatrix } = rotationFromSamples(futureSamples);
 
   const lastFuture = Array.isArray(futureSamples) && futureSamples.length
