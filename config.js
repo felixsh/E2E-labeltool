@@ -10,8 +10,8 @@ window.CONFIG = {
   transformationIndex: 0,
 
   // Second point cloud display options
-  secondCloudSolidColor: false,      // if true, render second cloud in a uniform color
-  secondCloudColorHex: "#8ec5ff",    // used when solid color is enabled
+  primarySolidColor: "#9fb3ff",      // used for solid/solid-dual primary cloud
+  secondarySolidColor: "#ffb46b",    // used for solid-dual secondary cloud
   
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom

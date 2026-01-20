@@ -29,8 +29,8 @@ let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
 let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
 const USE_FIRST_PCD = !!CFG.useFirstPointCloud;
 const TRANSFORM_INDEX = Number.isInteger(CFG.transformationIndex) ? CFG.transformationIndex : 0;
-const SECOND_SOLID_COLOR = !!CFG.secondCloudSolidColor;
-const SECOND_SOLID_HEX = typeof CFG.secondCloudColorHex === "string" ? CFG.secondCloudColorHex : "#8ec5ff";
+const PRIMARY_SOLID_HEX = typeof CFG.primarySolidColor === "string" ? CFG.primarySolidColor : "#9fb3ff";
+const SECONDARY_SOLID_HEX = typeof CFG.secondarySolidColor === "string" ? CFG.secondarySolidColor : "#ffb46b";
 
 const preferences = loadPreferences();
 
@@ -1252,6 +1252,8 @@ function buildCloud() {
       const r = Math.sqrt(x*x + y*y + z*z);
       const t = Math.min(1, r / (radius || 1));
       c = rampColor(viridisStops, t);
+    } else if (colorMode === "solid-dual") {
+      c = new THREE.Color(PRIMARY_SOLID_HEX); // primary solid
     } else {
       c = new THREE.Color(0x9fb3ff);
     }
@@ -1297,15 +1299,15 @@ function buildSecondCloud() {
     else if (imax <= 255) { imin = 0; imax=255; }
   }
 
-  const solidColor = SECOND_SOLID_COLOR ? new THREE.Color(SECOND_SOLID_HEX) : null;
-
   for (let p=0, k=0; p<total; p++, k+=dim) {
     const x = rawSecondary.points[k+0], y = rawSecondary.points[k+1], z = rawSecondary.points[k+2];
     pos[p*3+0] = x; pos[p*3+1] = y; pos[p*3+2] = z;
 
     let c;
-    if (solidColor) {
-      c = solidColor;
+    if (colorMode === "solid") {
+      c = new THREE.Color(PRIMARY_SOLID_HEX);
+    } else if (colorMode === "solid-dual") {
+      c = new THREE.Color(SECONDARY_SOLID_HEX);
     } else if (colorMode === "height") {
       const zMinFixed = -3, zMaxFixed = 3;
       const u = Math.min(1, Math.max(0, (z - zMinFixed) / (zMaxFixed - zMinFixed)));
@@ -1323,6 +1325,7 @@ function buildSecondCloud() {
       const t = Math.min(1, r / (radius || 1));
       c = rampColor(viridisStops, t);
     } else {
+      // solid and solid-dual default primary color
       c = new THREE.Color(0x9fb3ff);
     }
     col[p*3+0] = c.r; col[p*3+1] = c.g; col[p*3+2] = c.b;
@@ -1930,10 +1933,13 @@ function updateLegend() {
   } else if (colorMode === "distance") {
     legendTitle.textContent = "Range (m)";
     min = 0; max = radius*2 || 1; stops = viridisStops; flip = true;
+  } else if (colorMode === "solid-dual") {
+    legendTitle.textContent = "Solid Dual";
+    min = "—"; max = "—"; stops = null;
   } else {
     legendTitle.textContent = "Color"; min="—"; max="—";
   }
-  if (colorMode !== "height") {
+  if (colorMode !== "height" && stops) {
     for (let i = 0; i <= steps; i++) {
       const pos = i / steps;
       const gradientPos = pos;

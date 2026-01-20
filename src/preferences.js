@@ -4,7 +4,7 @@ const POINT_SIZE_MAX = 0.5;
 const LAST_MANEUVER_FIELD = "lastManeuverType";
 const LEGACY_LAST_MANOUVER_FIELD = "lastManouverType";
 const FRONT_IMAGE_LAYOUT_FIELD = "frontImageLayout";
-const validColorModes = new Set(["height", "intensity", "distance", "solid"]);
+const validColorModes = new Set(["height", "intensity", "distance", "solid", "solid-dual"]);
 const validCurveTypes = new Set(["basis", "natural", "catmullrom"]);
 
 const STORAGE_AVAILABLE = (() => {
