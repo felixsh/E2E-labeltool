@@ -111,6 +111,7 @@ const frontImageEl = document.getElementById("frontImageEl");
 const frontImgToggle = document.getElementById("frontImgToggle");
 const rectToggle = document.getElementById("rectanglesToggle");
 const secondCloudToggle = document.getElementById("secondCloudToggle");
+let state = null;
 
 const initialColorMode =
   (typeof CFG.colorMode === "string" && validColorModes.has(CFG.colorMode))
@@ -256,6 +257,7 @@ window.addEventListener("keydown", (evt) => {
 }, true);
 
 window.addEventListener("resize", () => {
+  if (!state) return;
   updateToolbarOffset();
   evaluateToolbarCollapse();
   if (!bodyEl.classList.contains("toolbar-collapsed") && bodyEl.classList.contains("menu-open")) {
@@ -478,6 +480,60 @@ function hookWeightControl(kind) {
 ["wJerk", "wVel", "wAcc"].forEach(hookWeightControl);
 weightsBtn?.addEventListener("click", toggleWeightsPanel);
 
+// Forward declarations for scene state used in depth toggling
+let cloud = null;
+let cloudMat = null;
+let raw = null;
+let bounds = null;
+let center = new THREE.Vector3();
+let radius = 10;
+let cloudSecondary = null;
+let cloudSecondaryMat = null;
+let rawSecondary = null;
+let cloudSecondaryBoundsCache = null;
+
+let trajectoryPoints = null;
+let trajectoryLine = null;
+let cloudBoundsCache = null;
+const trajectorySpheres = [];
+let trajectorySphereGeom = null;
+let trajectorySphereRadius = 0;
+let trajectorySphereMat = null;
+let trajectoryPastPoints = null;
+let trajectoryFuturePoints = null;
+let trajectoryFutureLine = null;
+const trajectoryFutureSpheres = [];
+let trajectoryFutureSphereGeom = null;
+let trajectoryFutureSphereRadius = 0;
+let trajectoryFutureSphereMat = null;
+let trajectoryHistoryRaw = [];
+let trajectoryRawPoints = [];
+let lastSamplesCache = [];
+let spline = null;
+const rectangleState = {
+  visible: true,
+  gt: { mesh: null, outline: null, available: false },
+  samples: { mesh: null, outline: null, available: false }
+};
+
+// Overlay depth mode (2D disables depth test)
+let overlayDepthTest = true;
+function updateOverlayDepth(is2d) {
+  overlayDepthTest = !is2d;
+  const flag = overlayDepthTest;
+  if (trajectorySphereMat) trajectorySphereMat.depthTest = flag;
+  if (trajectoryFutureSphereMat) trajectoryFutureSphereMat.depthTest = flag;
+  if (trajectoryLine?.material) trajectoryLine.material.depthTest = flag;
+  if (trajectoryFutureLine?.material) trajectoryFutureLine.material.depthTest = flag;
+  if (rectangleState?.gt?.mesh?.material) rectangleState.gt.mesh.material.depthTest = flag;
+  if (rectangleState?.gt?.outline?.material) rectangleState.gt.outline.material.depthTest = flag;
+  if (rectangleState?.samples?.mesh?.material) rectangleState.samples.mesh.material.depthTest = flag;
+  if (rectangleState?.samples?.outline?.material) rectangleState.samples.outline.material.depthTest = flag;
+  if (spline && typeof spline.setDepthTest === "function") {
+    spline.setDepthTest(flag);
+  }
+}
+
 // ---------- THREE setup / shared state ----------
 let is2D = false;
 let camera = null;
@@ -685,8 +741,9 @@ syncProxyDisabledState();
 // Initialize 3D camera + controls
 camera = perspCam;
 controls = makeControls(camera);
-controls.addEventListener("change", () => { snapshot3D(); renderOnce(); });
-controls.enableZoom = false; // custom wheel handler below
+  controls.addEventListener("change", () => { snapshot3D(); renderOnce(); });
+  controls.enableZoom = false; // custom wheel handler below
+  updateOverlayDepth(false);
 
 // KITTI-friendly ISO (rear-right-up, Z-up)
 function setIsoView3D() {
@@ -763,6 +820,7 @@ function enter2D(state = lastState2D) {
   // spline appears as 2D line in 2D mode
   spline?.rebuildCurveObject(true);
   rebuildTrajectoryObject(true);
+  updateOverlayDepth(true);
   renderOnce();
 }
 
@@ -800,47 +858,12 @@ function enter3D(state = lastState3D) {
   // spline appears as tube in 3D mode
   spline?.rebuildCurveObject(false);
   rebuildTrajectoryObject(false);
+  updateOverlayDepth(false);
   renderOnce();
 }
 
 // Spacebar toggles modes
 function toggle2D3D() { if (is2D) enter3D(); else enter2D(); }
-
-// ---------- State for PCD ----------
-let cloud = null;
-let cloudMat = null;
-let raw = null;
-let bounds = null;
-let center = new THREE.Vector3();
-let radius = 10;
-let cloudSecondary = null;
-let cloudSecondaryMat = null;
-let rawSecondary = null;
-let cloudSecondaryBoundsCache = null;
-
-let trajectoryPoints = null;
-let trajectoryLine = null;
-let cloudBoundsCache = null;
-const trajectorySpheres = [];
-let trajectorySphereGeom = null;
-let trajectorySphereRadius = 0;
-let trajectorySphereMat = null;
-let trajectoryPastPoints = null;
-let trajectoryFuturePoints = null;
-let trajectoryFutureLine = null;
-const trajectoryFutureSpheres = [];
-let trajectoryFutureSphereGeom = null;
-let trajectoryFutureSphereRadius = 0;
-let trajectoryFutureSphereMat = null;
-let trajectoryHistoryRaw = [];
-let trajectoryRawPoints = [];
-let lastSamplesCache = [];
-
-const rectangleState = {
-  visible: true,
-  gt: { mesh: null, outline: null, available: false },
-  samples: { mesh: null, outline: null, available: false }
-};
 
 function createInitialState() {
   return {
@@ -879,7 +902,7 @@ function createInitialState() {
   };
 }
 
-let state = createInitialState();
+state = createInitialState();
 setToggleState(rectToggle, { enabled: false, pressed: false });
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
@@ -1438,9 +1461,15 @@ function ensureTrajectorySphereResources(radius, color) {
   }
 
   if (!trajectorySphereMat) {
-    trajectorySphereMat = new THREE.MeshBasicMaterial({ color: color.clone() });
+    trajectorySphereMat = new THREE.MeshBasicMaterial({
+      color: color.clone(),
+      transparent: true,
+      opacity: 1
+    });
   } else {
     trajectorySphereMat.color.copy(color);
+    trajectorySphereMat.transparent = true;
+    trajectorySphereMat.opacity = 1;
   }
 }
 
@@ -1454,10 +1483,14 @@ function ensureFutureTrajectorySphereResources(radius, color) {
   }
 
   if (!trajectoryFutureSphereMat) {
-    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({ color: color.clone(), transparent: false, opacity: 1 });
+    trajectoryFutureSphereMat = new THREE.MeshBasicMaterial({
+      color: color.clone(),
+      transparent: true,
+      opacity: 1
+    });
   } else {
     trajectoryFutureSphereMat.color.copy(color);
-    trajectoryFutureSphereMat.transparent = false;
+    trajectoryFutureSphereMat.transparent = true;
     trajectoryFutureSphereMat.opacity = 1;
   }
 }
@@ -1495,7 +1528,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
 
     while (trajectorySpheres.length < trajectoryPastPoints.length) {
       const mesh = new THREE.Mesh(trajectorySphereGeom, trajectorySphereMat);
-      mesh.renderOrder = 8;
+      mesh.renderOrder = 7;
       scene.add(mesh);
       trajectorySpheres.push(mesh);
     }
@@ -1511,28 +1544,32 @@ function rebuildTrajectoryObject(force2D = is2D) {
       mesh.visible = true;
       mesh.geometry = trajectorySphereGeom;
       mesh.material = trajectorySphereMat;
-      mesh.renderOrder = 8;
+      mesh.renderOrder = 7;
     }
 
     if (trajectoryPastPoints.length >= 2) {
       const pathPoints = trajectoryPastPoints.map(p => new THREE.Vector3(p.x, p.y, 0));
       const curve = new THREE.CatmullRomCurve3(pathPoints, false, "catmullrom", 0.1);
-      const tubularSegments = Math.max(32, trajectoryPastPoints.length * 8);
-      const radialSegments = 16;
-      const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
-      const material = new THREE.MeshBasicMaterial({ color: trajColor.clone(), transparent: true, opacity: 0.96 });
-      trajectoryLine = new THREE.Mesh(tubeGeometry, material);
-      trajectoryLine.renderOrder = 8;
-      scene.add(trajectoryLine);
-    }
+    const tubularSegments = Math.max(32, trajectoryPastPoints.length * 8);
+    const radialSegments = 16;
+    const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
+    const material = new THREE.MeshBasicMaterial({
+      color: trajColor.clone(),
+      transparent: true,
+      opacity: 1
+    });
+    trajectoryLine = new THREE.Mesh(tubeGeometry, material);
+    trajectoryLine.renderOrder = 6;
+    scene.add(trajectoryLine);
   }
+}
   if (hasFuture) {
     const gtColor = cssColor("--trajectory-groundtruth-color", "#4dff88");
     ensureFutureTrajectorySphereResources(pointRadius, gtColor);
 
     while (trajectoryFutureSpheres.length < trajectoryFuturePoints.length) {
       const mesh = new THREE.Mesh(trajectoryFutureSphereGeom, trajectoryFutureSphereMat);
-      mesh.renderOrder = 4;
+      mesh.renderOrder = 7;
       scene.add(mesh);
       trajectoryFutureSpheres.push(mesh);
     }
@@ -1548,7 +1585,7 @@ function rebuildTrajectoryObject(force2D = is2D) {
       mesh.visible = true;
       mesh.geometry = trajectoryFutureSphereGeom;
       mesh.material = trajectoryFutureSphereMat;
-      mesh.renderOrder = 4;
+      mesh.renderOrder = 7;
     }
 
     if (trajectoryFuturePoints.length >= 2) {
@@ -1557,9 +1594,13 @@ function rebuildTrajectoryObject(force2D = is2D) {
       const tubularSegments = Math.max(32, trajectoryFuturePoints.length * 8);
       const radialSegments = 16;
       const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, tubeRadius, radialSegments, false);
-      const material = new THREE.MeshBasicMaterial({ color: gtColor.clone(), transparent: false, opacity: 1 });
+      const material = new THREE.MeshBasicMaterial({
+        color: gtColor.clone(),
+        transparent: true,
+        opacity: 1
+      });
       trajectoryFutureLine = new THREE.Mesh(tubeGeometry, material);
-      trajectoryFutureLine.renderOrder = 3;
+      trajectoryFutureLine.renderOrder = 6;
       scene.add(trajectoryFutureLine);
     }
   }
@@ -1641,7 +1682,8 @@ function setRectangleShape(kind, corners) {
       color: styles.fillColor.clone(),
       transparent: true,
       opacity: styles.opacity,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      depthWrite: false
     });
     entry.mesh = new THREE.Mesh(geometry, material);
     entry.mesh.renderOrder = 1;
@@ -1662,7 +1704,8 @@ function setRectangleShape(kind, corners) {
       color: styles.outlineColor.clone(),
       linewidth: styles.lineWidth,
       transparent: true,
-      opacity: Math.min(1, styles.opacity + 0.2)
+      opacity: Math.min(1, styles.opacity + 0.2),
+      depthWrite: false
     });
     entry.outline = new THREE.LineLoop(lineGeometry, lineMaterial);
     entry.outline.renderOrder = 2;
@@ -1966,9 +2009,6 @@ const charts = makeCharts({
   limits: CFG.kinematicLimits || {}
 });
 
-// ---------- Spline system ----------
-let spline = null;
-
 let samplesVisible = true;
 function setSamplesVisible(v) {
   const next = !!v;
@@ -2012,6 +2052,7 @@ function initializeSpline(force = false) {
   spline.setTrajectoryHistory?.(trajectoryHistoryRaw);
   setSamplesVisible(samplesVisible);
   applyWeightsToSpline();
+  updateOverlayDepth(is2D);
 }
 
 setSamplesVisible(samplesVisible);

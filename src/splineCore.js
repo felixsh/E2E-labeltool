@@ -122,10 +122,10 @@ export function makeSplineSystem({
   const smplGeom = new THREE.SphereGeometry(SAMPLE_RADIUS, 20, 16);
 
   // Materials
-  const ctrlMat    = new THREE.MeshBasicMaterial({ color: CTRL_COLOR });
-  const ctrlMatSel = new THREE.MeshBasicMaterial({ color: CTRL_COLOR_SEL });
-  const smplMat    = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR });
-  const smplMatSel = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR_SEL });
+  const ctrlMat    = new THREE.MeshBasicMaterial({ color: CTRL_COLOR, transparent: true, opacity: 1 });
+  const ctrlMatSel = new THREE.MeshBasicMaterial({ color: CTRL_COLOR_SEL, transparent: true, opacity: 1 });
+  const smplMat    = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR, transparent: true, opacity: 1 });
+  const smplMatSel = new THREE.MeshBasicMaterial({ color: SAMPLE_COLOR_SEL, transparent: true, opacity: 1 });
 
 
   // ===== d3 curve path context -> dense polyline =====
@@ -238,7 +238,7 @@ export function makeSplineSystem({
     if (densePts.length < 2) return;
   
     // Common color (from CSS var)
-    const material = new THREE.MeshBasicMaterial({ color: SPLINE_COLOR });
+    const material = new THREE.MeshBasicMaterial({ color: SPLINE_COLOR, transparent: true, opacity: 1 });
   
     if (force2D) {
       // ---- 2D: build a flat ribbon in XY with world thickness = 2*TUBE_RADIUS ----
@@ -292,7 +292,7 @@ export function makeSplineSystem({
       geo.computeVertexNormals(); // mostly flat, fine
 
       curveObject = new THREE.Mesh(geo, material);
-      curveObject.renderOrder = 5;
+      curveObject.renderOrder = 8;
       curveObject.material.side = THREE.DoubleSide;
       scene.add(curveObject);
       return;
@@ -778,6 +778,20 @@ export function makeSplineSystem({
     smplMatSel.dispose?.();
   }
 
+  function setDepthTest(enable) {
+    const flag = !!enable;
+    ctrlMat.depthTest = ctrlMatSel.depthTest = flag;
+    smplMat.depthTest = smplMatSel.depthTest = flag;
+    sampleLabels.forEach((sprite) => {
+      if (sprite?.material) {
+        sprite.material.depthTest = false; // labels always on top
+      }
+    });
+    if (curveObject?.material) {
+      curveObject.material.depthTest = flag;
+    }
+  }
+
   return {
     setCurveType: (t) => { curveType = t; rebuildEverything(); },
     setAlpha: (a) => { alpha = a; if (curveType === "catmullrom") rebuildEverything(); },
@@ -792,6 +806,7 @@ export function makeSplineSystem({
     getSamplesOptimized: () => samplesOptimized,
     markSamplesOptimized: (flag) => { samplesOptimized = !!flag; },
     setTrajectoryHistory,
+    setDepthTest,
     optimizeTs,
     onCloudLoaded: () => {},
     rebuildCurveObject: (force2d) => rebuildCurveObject(force2d ?? is2D()),
