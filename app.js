@@ -800,7 +800,7 @@ function createInitialState() {
 }
 
 let state = createInitialState();
-setToggleState(rectToggle, { enabled: false, pressed: rectangleState.visible });
+setToggleState(rectToggle, { enabled: false, pressed: false });
 
 function status(msg){ if (statusEl) statusEl.textContent = msg; }
 function statusOptim(msg){ if (statusExtra) statusExtra.textContent = msg || ""; }
