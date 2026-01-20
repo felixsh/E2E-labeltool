@@ -15,6 +15,12 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
 
+function toXY(p) {
+  if (!p) return [undefined, undefined];
+  if (Array.isArray(p)) return [p[0], p[1]];
+  return [p.x, p.y];
+}
+
 function normalizedScale(value, vLow, vHigh) {
   const range = Math.max(Number.EPSILON, vHigh - vLow);
   const normalized = clamp01((value - vLow) / range);
@@ -24,8 +30,8 @@ function normalizedScale(value, vLow, vHigh) {
 export function velocityFromSamples(samples, deltaT = DEFAULT_DT) {
   if (!Array.isArray(samples) || samples.length < 2) return { vX: 0, vY: 0 };
 
-  const [prevX, prevY] = Array.isArray(samples[samples.length - 2]) ? samples[samples.length - 2] : [];
-  const [lastX, lastY] = Array.isArray(samples[samples.length - 1]) ? samples[samples.length - 1] : [];
+  const [prevX, prevY] = toXY(samples[samples.length - 2]);
+  const [lastX, lastY] = toXY(samples[samples.length - 1]);
 
   if (![prevX, prevY, lastX, lastY].every(Number.isFinite)) return { vX: 0, vY: 0 };
 
@@ -39,8 +45,8 @@ export function rotationFromSamples(samples) {
   const fallback = { angle: 0, rotationMatrix: [[1, 0], [0, 1]] };
   if (!Array.isArray(samples) || samples.length < 2) return fallback;
 
-  const [prevX, prevY] = Array.isArray(samples[samples.length - 2]) ? samples[samples.length - 2] : [];
-  const [lastX, lastY] = Array.isArray(samples[samples.length - 1]) ? samples[samples.length - 1] : [];
+  const [prevX, prevY] = toXY(samples[samples.length - 2]);
+  const [lastX, lastY] = toXY(samples[samples.length - 1]);
 
   if (![prevX, prevY, lastX, lastY].every(Number.isFinite)) return fallback;
 
@@ -96,9 +102,11 @@ export function orientedCornersFromTrajectories(
   const { vX, vY } = velocityFromSamples(pastSamples, deltaT);
   const { lon, lat } = scaleThresholds(vX, vY, thresholdOverrides);
   const { rotationMatrix } = rotationFromSamples(futureSamples);
-  const [rawCenterX = 0, rawCenterY = 0] = Array.isArray(futureSamples) && futureSamples.length
+
+  const lastFuture = Array.isArray(futureSamples) && futureSamples.length
     ? futureSamples[futureSamples.length - 1]
-    : [];
+    : null;
+  const [rawCenterX = 0, rawCenterY = 0] = toXY(lastFuture) || [];
   const centerX = Number.isFinite(rawCenterX) ? rawCenterX : 0;
   const centerY = Number.isFinite(rawCenterY) ? rawCenterY : 0;
 

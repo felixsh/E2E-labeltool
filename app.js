@@ -1619,18 +1619,18 @@ function applyRectangleVisibility(hasData = (rectangleState.gt.available || rect
 }
 
 function updateRectangles() {
-  const pastPairs = trajectoryHistoryRaw.length ? trajectoryHistoryRaw : trajectoryPastPoints;
-  const gtFuturePairs = trajectoryFuturePoints;
-  const samplePairs = (lastSamplesCache || []).filter((s) => {
+  const pastSeq = (trajectoryHistoryRaw.length ? trajectoryHistoryRaw : trajectoryPastPoints) || [];
+  const gtFutureSeq = trajectoryFuturePoints || [];
+  const sampleSeq = (lastSamplesCache || []).filter((s) => {
     const idx = s?.idx;
     return !Number.isFinite(idx) || idx >= 0;
   });
 
-  const gtCorners = pastPairs.length && gtFuturePairs.length
-    ? orientedCornersFromTrajectories(pastPairs, gtFuturePairs)
+  const gtCorners = pastSeq.length && gtFutureSeq.length
+    ? orientedCornersFromTrajectories(pastSeq, gtFutureSeq)
     : null;
-  const sampleCorners = pastPairs.length && samplePairs.length
-    ? orientedCornersFromTrajectories(pastPairs, samplePairs)
+  const sampleCorners = pastSeq.length && sampleSeq.length
+    ? orientedCornersFromTrajectories(pastSeq, sampleSeq)
     : null;
 
   let gtAvailable = false;
