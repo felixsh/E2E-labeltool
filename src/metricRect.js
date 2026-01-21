@@ -87,6 +87,23 @@ export function scaleThresholds(
   };
 }
 
+// Log thresholds once to avoid noisy console output.
+let SCALE_THRESH_LOGGED = false;
+function scaleThresholdsLogged(vX, vY, thresholds = {}) {
+  const merged = thresholds && Object.keys(thresholds).length
+    ? { ...BASE_THRESHOLDS, ...thresholds }
+    : BASE_THRESHOLDS;
+  const value = scaleThresholds(vX, vY, merged);
+  if (!SCALE_THRESH_LOGGED) {
+    console.debug(
+      "[metricRect] thresholds",
+      { lon: value.lon, lat: value.lat, vX, vY, thresholds: merged }
+    );
+    SCALE_THRESH_LOGGED = true;
+  }
+  return value;
+}
+
 /**
  * Build oriented rectangle corners using past motion for scale and future motion for heading.
  * Returns four 2D corner points rotated by the future heading.
@@ -100,7 +117,7 @@ export function orientedCornersFromTrajectories(
   } = {}
 ) {
   const { vX, vY } = velocityFromSamples(pastSamples, deltaT);
-  const { lon, lat } = scaleThresholds(vX, vY, thresholds);
+  const { lon, lat } = scaleThresholdsLogged(vX, vY, thresholds);
   const { rotationMatrix } = rotationFromSamples(futureSamples);
 
   const lastFuture = Array.isArray(futureSamples) && futureSamples.length
