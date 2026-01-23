@@ -7,7 +7,7 @@ window.CONFIG = {
   useFirstPointCloud: false,
 
   // Transformation matrix selection (row index in transformation_matrices.npy)
-  transformationIndex: 0,
+  transformationIndex: 45,
 
   // Second point cloud display options
   primarySolidColor: "#9fb3ff",      // used for solid/solid-dual primary cloud

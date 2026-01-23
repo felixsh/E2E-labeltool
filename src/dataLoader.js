@@ -34,6 +34,51 @@ function normalizeEntryName(entryName = "") {
   return entryName.split("/").filter(Boolean).join("/").trim();
 }
 
+function baseName(entryName = "") {
+  const normalized = normalizeEntryName(entryName);
+  const parts = normalized.split("/").filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : normalized;
+}
+
+function matchesBase(entryName = "", regex) {
+  return regex.test(baseName(entryName));
+}
+
+const RE_TRAJECTORY = /^trajectory.*\.npy$/i;
+const RE_TRANSFORM = /^transformation_matrices.*\.npy$/i;
+const RE_FRONT_IMG = /^front_img_now.*\.(jpg|jpeg)$/i;
+const RE_PCD_OR_BIN = /\.(bin|pcd)$/i;
+const RE_PRIMARY_PCD = /^pc_now.*\.(bin|pcd)$/i;
+const RE_SECONDARY_PCD = /^pc_end.*\.(bin|pcd)$/i;
+
+function sortEntriesByName(entries = []) {
+  return entries.slice().sort((a, b) => normalizeEntryName(a.name).localeCompare(normalizeEntryName(b.name)));
+}
+
+function isTrajectoryName(entryName = "") {
+  return matchesBase(entryName, RE_TRAJECTORY);
+}
+
+function isTransformName(entryName = "") {
+  return matchesBase(entryName, RE_TRANSFORM);
+}
+
+function isFrontImageName(entryName = "") {
+  return matchesBase(entryName, RE_FRONT_IMG);
+}
+
+function isPointCloudName(entryName = "") {
+  return matchesBase(entryName, RE_PCD_OR_BIN);
+}
+
+function isPrimaryCloudName(entryName = "") {
+  return isPointCloudName(entryName) && matchesBase(entryName, RE_PRIMARY_PCD);
+}
+
+function isSecondaryCloudName(entryName = "") {
+  return isPointCloudName(entryName) && matchesBase(entryName, RE_SECONDARY_PCD);
+}
+
 function makeZipPath(zipName, entryName) {
   const cleanZip = zipName || "dataset.zip";
   const cleanEntry = normalizeEntryName(entryName) || "file";
@@ -41,23 +86,41 @@ function makeZipPath(zipName, entryName) {
 }
 
 function selectTrajectoryEntry(entries) {
-  return entries.find((entry) => {
-    const lower = normalizeEntryName(entry.name).toLowerCase();
-    return lower.endsWith(".npy") && lower.includes("trajectory");
-  }) || null;
+  const matches = entries.filter((entry) => isTrajectoryName(entry.name));
+  if (!matches.length) return null;
+  return sortEntriesByName(matches)[0];
 }
 
 function selectPointCloudEntries(entries, preferFirstCloud = false) {
-  const candidates = entries.filter((entry) => {
-    const lower = normalizeEntryName(entry.name).toLowerCase();
-    return lower.endsWith(".bin") || lower.endsWith(".pcd");
-  });
-  if (!candidates.length) return null;
-  const sorted = candidates.slice().sort((a, b) => normalizeEntryName(a.name).localeCompare(normalizeEntryName(b.name)));
-  const primary = preferFirstCloud ? sorted[0] : sorted[sorted.length - 1];
-  const secondary = sorted.length >= 2
-    ? (preferFirstCloud ? sorted[sorted.length - 1] : sorted[0])
-    : null;
+  const pick = (list = []) => {
+    if (!list.length) return null;
+    const sorted = sortEntriesByName(list);
+    return preferFirstCloud ? sorted[0] : sorted[sorted.length - 1];
+  };
+
+  const primaryCandidates = entries.filter((entry) => isPrimaryCloudName(entry.name));
+  const secondaryCandidates = entries.filter((entry) => isSecondaryCloudName(entry.name));
+  const allPointClouds = entries.filter((entry) => isPointCloudName(entry.name));
+
+  let primary = pick(primaryCandidates);
+  let secondary = pick(secondaryCandidates);
+
+  if (!primary && allPointClouds.length) {
+    // Fallback to any point cloud files if the expected names are missing.
+    primary = pick(allPointClouds);
+    const sortedAll = sortEntriesByName(allPointClouds);
+    secondary = sortedAll.length >= 2
+      ? (preferFirstCloud ? sortedAll[sortedAll.length - 1] : sortedAll[0])
+      : null;
+  } else if (primary && !secondary && allPointClouds.length >= 2) {
+    const sortedAll = sortEntriesByName(allPointClouds);
+    const others = sortedAll.filter((entry) => entry !== primary);
+    secondary = others.length
+      ? (preferFirstCloud ? others[others.length - 1] : others[0])
+      : null;
+  }
+
+  if (!primary) return null;
   if (!secondary) {
     console.warn("Only one point cloud found in zip; secondary cloud will be empty.");
   }
@@ -65,9 +128,8 @@ function selectPointCloudEntries(entries, preferFirstCloud = false) {
 }
 
 function ensureAncillaryFiles(entries) {
-  const lowerNames = entries.map((e) => normalizeEntryName(e.name).toLowerCase());
-  const hasTransform = lowerNames.some((name) => name.endsWith("transformation_matrices.npy"));
-  const hasImage = lowerNames.some((name) => (name.endsWith(".jpg") || name.endsWith(".jpeg")) && name.includes("front"));
+  const hasTransform = entries.some((e) => isTransformName(e.name));
+  const hasImage = entries.some((e) => isFrontImageName(e.name));
   if (!hasImage) {
     console.warn('Front-facing .jpg image (filename including "front") not found; continuing without front image.');
   }
@@ -75,14 +137,14 @@ function ensureAncillaryFiles(entries) {
 }
 
 function selectTransformEntry(entries) {
-  return entries.find((entry) => normalizeEntryName(entry.name).toLowerCase().endsWith("transformation_matrices.npy")) || null;
+  const matches = entries.filter((entry) => isTransformName(entry.name));
+  if (!matches.length) return null;
+  return sortEntriesByName(matches)[0];
 }
 
 async function loadFrontImage(entries, zip, zipName) {
-  const entry = entries.find((e) => {
-    const lower = normalizeEntryName(e.name).toLowerCase();
-    return (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) && lower.includes("front");
-  });
+  const matches = entries.filter((e) => isFrontImageName(e.name));
+  const entry = matches.length ? sortEntriesByName(matches)[0] : null;
   if (!entry) return null;
   const blob = await entry.async("blob");
   const dataUrl = await new Promise((resolve, reject) => {
