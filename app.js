@@ -2174,7 +2174,11 @@ function collectExportSnapshot() {
   // Nx2 in meters
   const controlPts = spline?.getControlPoints ? spline.getControlPoints() : [];
   const samplesArr = spline?.getSamples ? spline.getSamples() : [];
-  const samplePtsFull = samplesArr.filter(s => !s.fixed).map(s => [s.t ?? 0, s.x, s.y]);
+  // Export only parametric samples (future path) but keep the final one;
+  // exclude history points which have no tsIndex.
+  const samplePtsFull = samplesArr
+    .filter(s => s.tsIndex != null)
+    .map(s => [s.t ?? 0, s.x, s.y]);
   const trajectoryRaw = trajectoryRawPoints.slice();
   const weights    = spline?.getOptimizerWeights ? spline.getOptimizerWeights() : {};
   const samplesOptimized = spline?.getSamplesOptimized ? spline.getSamplesOptimized() : false;
