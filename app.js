@@ -1789,7 +1789,6 @@ function applyPointCloud(rawData, name, path) {
   bounds = mergeBounds(mergeBounds(cloudBounds, cloudSecondaryBoundsCache), trajBounds);
 
   updateCenterAndRadius();
-  updateLegend();
   buildCloud();
   buildSecondCloud();
 
@@ -1813,6 +1812,7 @@ function applyPointCloud(rawData, name, path) {
   state.names.pcdPath = path || null;
   state.names.pointCloudScenario = null;
   recomputeScenarioName();
+  updateLegend();
   updateStatus();
   spline?.markSamplesOptimized?.(false);
 }
@@ -1833,6 +1833,7 @@ function setSecondaryPointCloud(rawData, name, path) {
     state.secondCloud.visible = false;
     state.secondCloud.available = false;
     setToggleState(secondCloudToggle, { enabled: false, pressed: false });
+    updateLegend();
     updateStatus();
     return;
   }
@@ -1843,6 +1844,7 @@ function setSecondaryPointCloud(rawData, name, path) {
   state.secondCloud.visible = true;
   state.secondCloud.available = true;
   setToggleState(secondCloudToggle, { enabled: true, pressed: true });
+  updateLegend();
   updateStatus();
 }
 
@@ -1856,6 +1858,7 @@ function setSecondCloudVisible(v) {
   } else if (next) {
     buildSecondCloud();
   }
+  updateLegend();
   renderOnce();
 }
 
@@ -1927,6 +1930,49 @@ function applyTrajectoryPoints(pointPairs, sourceName, sourcePath) {
 // ---------- Legend ----------
 function updateLegend() {
   if (!legendCanvas) return;
+  const legendTicks = legendMin?.parentElement;
+  const isSolidMode = colorMode === "solid" || colorMode === "solid-dual";
+  const swatchMarkup = (hex, label) =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,0.35);background:${hex};"></span>${label}</span>`;
+  if (isSolidMode) {
+    legendTitle.textContent = "";
+    legendTitle.style.display = "none";
+    legendCanvas.style.display = "none";
+    legendMin.style.display = "";
+    legendMax.style.color = "";
+    legendMin.style.color = "";
+
+    legendMax.innerHTML = swatchMarkup(PRIMARY_SOLID_HEX, "current");
+
+    const hasSecondary = !!state?.secondCloud?.available && !!rawSecondary;
+    if (colorMode === "solid-dual") {
+      legendMin.innerHTML = swatchMarkup(SECONDARY_SOLID_HEX, "future");
+    } else if (hasSecondary) {
+      legendMin.innerHTML = swatchMarkup(PRIMARY_SOLID_HEX, "future");
+    } else {
+      legendMin.innerHTML = "";
+      legendMin.style.display = "none";
+    }
+
+    if (legendTicks) {
+      legendTicks.style.height = "auto";
+      legendTicks.style.justifyContent = "flex-start";
+      legendTicks.style.gap = "4px";
+    }
+    return;
+  }
+
+  legendCanvas.style.display = "";
+  legendTitle.style.display = "";
+  legendMin.style.display = "";
+  legendMax.style.color = "";
+  legendMin.style.color = "";
+  if (legendTicks) {
+    legendTicks.style.height = "";
+    legendTicks.style.justifyContent = "";
+    legendTicks.style.gap = "";
+  }
+
   const collapseActive = bodyEl.classList.contains("toolbar-collapsed");
   const deviceRatio = window.devicePixelRatio || 1;
   const clientW = Math.max(16, Math.round(legendCanvas.clientWidth || (collapseActive ? 220 : 16)));
@@ -1977,11 +2023,10 @@ function updateLegend() {
   } else if (colorMode === "distance") {
     legendTitle.textContent = "Range (m)";
     min = 0; max = radius*2 || 1; stops = viridisStops; flip = true;
-  } else if (colorMode === "solid-dual") {
-    legendTitle.textContent = "Solid Dual";
-    min = "—"; max = "—"; stops = null;
   } else {
-    legendTitle.textContent = "Color"; min="—"; max="—";
+    legendTitle.textContent = "Color";
+    min = "—";
+    max = "—";
   }
   if (colorMode !== "height" && stops) {
     for (let i = 0; i <= steps; i++) {
