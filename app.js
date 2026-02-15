@@ -2007,16 +2007,15 @@ function updateLegend() {
   if (colorMode === "height") {
     legendTitle.textContent = "Height (m)";
     const zMinFixed = -3, zMaxFixed = 3;
-    let min = zMinFixed, max = zMaxFixed;
-    const stops = turboStops;
+    min = zMinFixed;
+    max = zMaxFixed;
+    stops = turboStops;
     for (let i = 0; i <= steps; i++) {
       const pos = i / steps;
       const u = isHorizontal ? (1 - pos) : (1 - pos);
       const t = 0.50 + 0.50 * u;
       addColorStop(pos, toCss(rampColor(stops, t)));
     }
-    legendMin.textContent = min.toFixed(2);
-    legendMax.textContent = max.toFixed(2);
   } else   if (colorMode === "intensity") {
     legendTitle.textContent = "Intensity";
     min = 0; max = 1; stops = viridisStops; flip = true;
