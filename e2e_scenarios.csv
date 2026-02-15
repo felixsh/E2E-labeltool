@@ -23,7 +23,7 @@ e2e_2025-07-01-08-01-16_0_0,drive straight on,65,0 specifically selected,nan,cha
 e2e_2025-07-01-08-01-16_0_1,overtake grey car in front,325,3 overtake or lane change,True,nan,test
 e2e_2025-07-01-08-02-31_1_0,overtake truck driving on the right,30,3 overtake or lane change,nan,nan,test
 e2e_2025-07-01-08-02-31_1_1,overtake truck driving on the right,120,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-08-02-31_1_2,overtake truck driving on the right,250,3 overtake or lane change,nan,frame drop in future part,test
+e2e_2025-07-01-08-02-31_1_2,overtake truck driving on the right,250,3 overtake or lane change,nan,"frame drop in future part, prob delete as many frame drops in future and already a lot of scenarios from this one minute",backup
 e2e_2025-07-01-08-02-31_1_3,overtake truck driving on the right,330,3 overtake or lane change,nan,nan,test
 e2e_2025-07-01-08-02-31_1_4,overtake truck,364,3 overtake or lane change,True,frame drop in future part,test
 e2e_2025-07-01-08-02-31_1_5,overtake truck,414,3 overtake or lane change,True,nan,test
@@ -47,19 +47,19 @@ e2e_2025-07-01-08-22-22_1_3,drive straight on,485,2 construction zone,True,nan,t
 e2e_2025-07-01-08-23-36_2_0,use left lane,96,2 construction zone,True,nan,test
 e2e_2025-07-01-08-23-36_2_1,overtake car on the left,194,2 construction zone,True,nan,test
 e2e_2025-07-01-08-23-36_2_2,overtake car on the left,493,2 construction zone,True,nan,test
-e2e_2025-07-01-08-24-51_3_0,drive straight on,180,2 construction zone,True,nan,test
-e2e_2025-07-01-08-24-51_3_1,drive straight on,275,2 construction zone,True,nan,test
-e2e_2025-07-01-08-24-51_3_2,drive straight on,380,2 construction zone,True,nan,test
-e2e_2025-07-01-08-24-51_3_3,drive straight on,470,2 construction zone,True,nan,test
-e2e_2025-07-01-08-26-07_4_0,drive straight on,5,2 construction zone,True,nan,test
-e2e_2025-07-01-08-26-07_4_1,drive straight on,65,2 construction zone,True,nan,test
-e2e_2025-07-01-08-26-07_4_2,drive straight on,110,2 construction zone,nan,nan,test
-e2e_2025-07-01-08-26-07_4_3,use rightmost lane,263,2 construction zone,True,nan,test
-e2e_2025-07-01-08-26-07_4_4,drive straight on,425,2 construction zone,True,nan,test
-e2e_2025-07-01-08-26-07_4_5,drive straight on,462,2 construction zone,True,nan,test
-e2e_2025-07-01-08-27-23_5_0,drive straight on,65,2 construction zone,True,nan,test
-e2e_2025-07-01-08-27-23_5_1,drive straight on,230,2 construction zone,True,nan,test
-e2e_2025-07-01-08-27-23_5_2,drive straight on,450,2 construction zone,True,nan,test
+e2e_2025-07-01-08-24-51_3_0,drive straight on,180,2 construction zone,True,nan,train
+e2e_2025-07-01-08-24-51_3_1,drive straight on,275,2 construction zone,True,nan,train
+e2e_2025-07-01-08-24-51_3_2,drive straight on,380,2 construction zone,True,nan,train
+e2e_2025-07-01-08-24-51_3_3,drive straight on,470,2 construction zone,True,nan,train
+e2e_2025-07-01-08-26-07_4_0,drive straight on,5,2 construction zone,True,nan,train
+e2e_2025-07-01-08-26-07_4_1,drive straight on,65,2 construction zone,True,nan,train
+e2e_2025-07-01-08-26-07_4_2,drive straight on,110,2 construction zone,nan,nan,train
+e2e_2025-07-01-08-26-07_4_3,use rightmost lane,263,2 construction zone,True,nan,train
+e2e_2025-07-01-08-26-07_4_4,drive straight on,425,2 construction zone,True,nan,train
+e2e_2025-07-01-08-26-07_4_5,drive straight on,462,2 construction zone,True,nan,train
+e2e_2025-07-01-08-27-23_5_0,drive straight on,65,2 construction zone,True,nan,train
+e2e_2025-07-01-08-27-23_5_1,drive straight on,230,2 construction zone,True,nan,train
+e2e_2025-07-01-08-27-23_5_2,drive straight on,450,2 construction zone,True,nan,train
 e2e_2025-07-01-08-28-40_6_0,use left lane,81,2 construction zone,True,frame drop in future part,test
 e2e_2025-07-01-08-28-40_6_1,overtake truck driving on the right,235,2 construction zone,True,frame drop in future part,test
 e2e_2025-07-01-08-28-40_6_2,drive straight on,380,2 construction zone,nan,nan,test
@@ -223,7 +223,7 @@ e2e_2025-07-01-16-50-07_8_0,turn right,0,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-50-07_8_1,drive straight on,343,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-51-33_9_0,drive straight on,14,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-51-33_9_1,u-turn,167,1 heavy rain,nan,nan,train
-e2e_2025-07-01-16-51-33_9_2,drive straight on,371,1 heavy rain,nan,Frame drop in future part,train
+e2e_2025-07-01-16-51-33_9_2,turn right,371,1 heavy rain,nan,Frame drop in future part,train
 e2e_2025-07-01-16-55-02_1_0,turn right,5,1 heavy rain,nan,Frame drop in future part,train
 e2e_2025-07-01-16-55-02_1_1,u-turn,318,1 heavy rain,nan,nan,train
 e2e_2025-07-01-16-55-02_1_2,turn right,424,1 heavy rain,nan,nan,train
@@ -248,8 +248,8 @@ e2e_2025-07-01-17-14-41_4_0,drive straight on,150,4 intersection,nan,non signali
 e2e_2025-07-01-17-14-41_4_1,drive straight on,237,0 specifically selected,True,wait in front of the traffic light to not block the pedestrian crossing,train
 e2e_2025-07-01-17-14-41_4_2,turn right,415,4 intersection,True,nan,train
 e2e_2025-07-01-17-31-43_0_0,drive straight on,10,4 intersection,nan,nan,train
-e2e_2025-07-01-17-38-32_0_0,drive straight on,3,0 specifically selected,nan,turn slightly to the left since there is an accident in front,val
-e2e_2025-07-01-17-38-32_0_1,drive straight on,195,4 intersection,True,nan,val
+e2e_2025-07-01-17-38-32_0_0,drive straight on,3,0 specifically selected,nan,turn slightly to the left since there is an accident in front,train
+e2e_2025-07-01-17-38-32_0_1,drive straight on,195,4 intersection,True,nan,train
 e2e_2025-07-01-17-41-35_0_0,drive straight on,5,4 intersection,True,nan,val
 e2e_2025-07-01-17-41-35_0_1,use left lane,77,3 overtake or lane change,nan,nan,val
 e2e_2025-07-01-17-41-35_0_2,turn left,146,4 intersection,nan,nan,val
@@ -309,8 +309,8 @@ e2e_2025-07-01-19-16-17_2_0,drive straight on,440,0 specifically selected,nan,we
 e2e_2025-07-01-19-17-32_3_0,overtake truck driving on the right,3,3 overtake or lane change,nan,nan,val
 e2e_2025-07-01-19-17-32_3_1,drive straight on,201,4 intersection,nan,nan,val
 e2e_2025-07-01-19-17-32_3_2,drive straight on,292,4 intersection,nan,nan,val
-e2e_2025-07-01-19-18-48_4_0,drive straight on,34,4 intersection,True,nan,val
-e2e_2025-07-01-19-18-48_4_1,turn right,405,4 intersection,True,nan,val
+e2e_2025-07-01-19-18-48_4_0,drive straight on,34,4 intersection,True,nan,backup
+e2e_2025-07-01-19-18-48_4_1,turn left,405,4 intersection,True,nan,backup
 e2e_2025-07-01-19-23-09_0_0,use right lane,20,3 overtake or lane change,nan,nan,val
 e2e_2025-07-01-19-23-09_0_1,turn right,122,4 intersection,True,nan,val
 e2e_2025-07-01-19-23-09_0_2,use left lane,437,3 overtake or lane change,True,nan,val
@@ -323,10 +323,10 @@ e2e_2025-07-01-19-25-37_2_1,use right lane,182,3 overtake or lane change,nan,nan
 e2e_2025-07-01-19-26-52_3_0,overtake truck in front,49,3 overtake or lane change,True,nan,val
 e2e_2025-07-01-19-26-52_3_1,overtake truck driving on the right,167,3 overtake or lane change,nan,nan,val
 e2e_2025-07-01-19-26-52_3_2,use right lane,238,3 overtake or lane change,nan,nan,val
-e2e_2025-07-01-19-26-52_3_3,drive straight on,300,4 intersection,nan,nan,val
+e2e_2025-07-01-19-26-52_3_3,drive straight on,300,4 intersection,nan,nan,train
 e2e_2025-07-01-19-26-52_3_4,overtake trucks driving on the right,508,3 overtake or lane change,nan,nan,val
-e2e_2025-07-01-19-28-06_4_0,overtake truck in front,195,3 overtake or lane change,nan,nan,val
-e2e_2025-07-01-19-28-06_4_1,use right lane,295,3 overtake or lane change,nan,nan,val
+e2e_2025-07-01-19-28-06_4_0,overtake truck in front,195,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-28-06_4_1,use right lane,295,3 overtake or lane change,nan,nan,train
 e2e_2025-07-01-19-29-20_5_0,overtake truck in front,285,0 specifically selected,True,not possible since there is traffic on the left lane,train
 e2e_2025-07-01-19-29-20_5_1,overtake truck in front,375,3 overtake or lane change,True,nan,train
 e2e_2025-07-01-19-29-20_5_2,use right lane,508,3 overtake or lane change,nan,nan,train
@@ -339,18 +339,18 @@ e2e_2025-07-01-19-31-48_7_1,overtake trucks driving on the right,230,3 overtake 
 e2e_2025-07-01-19-31-48_7_2,use middle lane,312,3 overtake or lane change,nan,nan,train
 e2e_2025-07-01-19-31-48_7_3,overtake truck driving on the right,408,3 overtake or lane change,nan,nan,train
 e2e_2025-07-01-19-31-48_7_4,use right lane,477,3 overtake or lane change,nan,nan,train
-e2e_2025-07-01-19-33-02_8_0,overtake truck in front,118,0 specifically selected,nan,not possible since there is traffic on the left lane,test
-e2e_2025-07-01-19-33-02_8_1,overtake truck in front,170,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-33-02_8_2,overtake truck driving on the right,270,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-33-02_8_3,use right lane,345,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-34-20_9_0,use middle lane,238,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-34-20_9_1,use left lane,316,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-34-20_9_2,overtake truck driving on the right,400,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-34-20_9_3,use middle lane,443,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-35-43_10_0,overtake truck driving on the right,35,3 overtake or lane change,nan,Frame drop in future part,test
-e2e_2025-07-01-19-35-43_10_1,use right lane,150,3 overtake or lane change,nan,nan,test
-e2e_2025-07-01-19-35-43_10_2,drive straight on ,500,4 intersection,nan,nan,test
-e2e_2025-07-01-19-37-06_11_0,use right lane,360,3 overtake or lane change,nan,nan,test
+e2e_2025-07-01-19-33-02_8_0,overtake truck in front,118,0 specifically selected,nan,not possible since there is traffic on the left lane,train
+e2e_2025-07-01-19-33-02_8_1,overtake truck in front,170,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-33-02_8_2,overtake truck driving on the right,270,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-33-02_8_3,use right lane,345,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-34-20_9_0,use middle lane,238,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-34-20_9_1,use left lane,316,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-34-20_9_2,overtake truck driving on the right,400,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-34-20_9_3,use middle lane,443,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-35-43_10_0,overtake truck driving on the right,35,3 overtake or lane change,nan,Frame drop in future part,train
+e2e_2025-07-01-19-35-43_10_1,use right lane,150,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-19-35-43_10_2,drive straight on ,500,4 intersection,nan,nan,train
+e2e_2025-07-01-19-37-06_11_0,use right lane,360,3 overtake or lane change,nan,nan,train
 e2e_2025-07-01-19-38-28_12_0,use right lane,70,3 overtake or lane change,nan,nan,test
 e2e_2025-07-01-19-38-28_12_1,turn right,156,4 intersection,nan,nan,test
 e2e_2025-07-01-19-38-28_12_2,turn left,360,4 intersection,nan,nan,test
@@ -420,18 +420,18 @@ e2e_2025-07-01-20-10-09_8_4,drive straight on ,410,0 specifically selected,nan,s
 e2e_2025-07-01-20-11-48_9_0,drive straight on ,153,4 intersection,nan,nan,france
 e2e_2025-07-01-20-11-48_9_1,drive straight on ,378,4 intersection,nan,frame drop in future part,france
 e2e_2025-07-01-20-11-48_9_2,drive straight on ,508,4 intersection,nan,nan,france
-e2e_2025-07-01-20-16-51_0_0,turn right,10,4 intersection,nan,"again in Germany, frame drop in future part",test
-e2e_2025-07-01-20-16-51_0_1,drive straight on ,93,4 intersection,nan,nan,test
-e2e_2025-07-01-20-16-51_0_2,drive straight on ,226,4 intersection,nan,nan,test
-e2e_2025-07-01-20-18-06_1_0,drive straight on ,154,4 intersection,nan,nan,test
-e2e_2025-07-01-20-18-06_1_1,drive straight on ,241,4 intersection,nan,nan,test
-e2e_2025-07-01-20-18-06_1_2,drive straight on ,406,4 intersection,nan,nan,test
-e2e_2025-07-01-20-18-06_1_3,drive straight on ,470,4 intersection,nan,nan,test
-e2e_2025-07-01-20-19-21_2_0,turn left,8,4 intersection,nan,nan,test
-e2e_2025-07-01-20-19-21_2_1,drive straight on ,107,4 intersection,nan,nan,test
-e2e_2025-07-01-20-19-21_2_2,drive straight on ,360,4 intersection,nan,nan,test
-e2e_2025-07-01-20-19-21_2_3,turn right,435,4 intersection,nan,nan,test
-e2e_2025-07-01-20-20-37_3_0,drive straight on ,320,4 intersection,nan,nan,test
+e2e_2025-07-01-20-16-51_0_0,turn right,10,4 intersection,nan,"again in Germany, frame drop in future part",train
+e2e_2025-07-01-20-16-51_0_1,drive straight on ,93,4 intersection,nan,nan,train
+e2e_2025-07-01-20-16-51_0_2,drive straight on ,226,4 intersection,nan,nan,train
+e2e_2025-07-01-20-18-06_1_0,drive straight on ,154,4 intersection,nan,nan,train
+e2e_2025-07-01-20-18-06_1_1,drive straight on ,241,4 intersection,nan,nan,train
+e2e_2025-07-01-20-18-06_1_2,drive straight on ,406,4 intersection,nan,nan,train
+e2e_2025-07-01-20-18-06_1_3,drive straight on ,470,4 intersection,nan,nan,train
+e2e_2025-07-01-20-19-21_2_0,turn left,8,4 intersection,nan,nan,train
+e2e_2025-07-01-20-19-21_2_1,drive straight on ,107,4 intersection,nan,nan,train
+e2e_2025-07-01-20-19-21_2_2,drive straight on ,360,4 intersection,nan,nan,train
+e2e_2025-07-01-20-19-21_2_3,turn right,435,4 intersection,nan,nan,train
+e2e_2025-07-01-20-20-37_3_0,drive straight on ,320,4 intersection,nan,nan,train
 e2e_2025-07-01-20-21-51_4_0,use right lane,163,3 overtake or lane change,nan,frame drop in future,test
 e2e_2025-07-01-20-21-51_4_1,use left lane,430,0 specifically selected,nan,driving onto a highway,test
 e2e_2025-07-01-20-23-07_5_0,use right lane,280,3 overtake or lane change,nan,nan,test
@@ -458,31 +458,31 @@ e2e_2025-07-01-20-39-49_3_1,drive straight on,315,4 intersection,nan,nan,test
 e2e_2025-07-01-20-41-04_4_0,use left lane,35,3 overtake or lane change,nan,nan,test
 e2e_2025-07-01-20-41-04_4_1,turn right,151,0 specifically selected,nan,wait for motorcycle approaching from the front left,test
 e2e_2025-07-01-20-41-04_4_2,turn right,207,0 specifically selected,nan,wait for car approaching from the front left,test
-e2e_2025-07-04-16-59-04_0_0,turn right,397,4 intersection,nan,nan,test
-e2e_2025-07-04-16-59-04_0_1,turn right,479,4 intersection,nan,nan,test
+e2e_2025-07-04-16-59-04_0_0,turn right,397,4 intersection,nan,nan,train
+e2e_2025-07-04-16-59-04_0_1,turn right,479,4 intersection,nan,nan,train
 e2e_2025-07-04-17-09-50_0_0,use left lane,45,3 overtake or lane change,nan,frame drop in future part,test
 e2e_2025-07-04-17-09-50_0_1,nan,283,0 specifically selected,True,merging onto a highway,test
-e2e_2025-07-04-17-11-07_1_0,overtake car in front,147,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-11-07_1_1,overtake car driving on the right,347,3 overtake or lane change,nan,frame drops in future part,test
-e2e_2025-07-04-17-11-07_1_2,use right lane,443,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-12-48_0_0,overtake van driving on the right,87,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-12-48_0_1,overtake car driving on the right,163,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-12-48_0_2,overtake truck driving on the right,260,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-12-48_0_3,use right lane,322,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-14-05_1_0,overtake car in front,35,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-14-05_1_1,overtake truck driving on the right,239,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-14-05_1_2,use right lane,310,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-15-21_2_0,use middle lane,60,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-15-21_2_1,overtake truck driving on the right,325,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-15-21_2_2,overtake van driving on the right,427,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-15-21_2_3,use right lane,488,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-16-35_3_0,use middle lane,110,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-16-35_3_1,overtake truck driving on the right,203,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-16-35_3_2,overtake truck driving on the right,276,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-16-35_3_3,use right lane,330,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-17-49_4_0,use middle lane,92,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-17-49_4_1,overtake truck driving on the right,336,3 overtake or lane change,nan,nan,test
-e2e_2025-07-04-17-17-49_4_2,overtake truck driving on the right,508,3 overtake or lane change,nan,nan,test
+e2e_2025-07-04-17-11-07_1_0,overtake car in front,147,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-11-07_1_1,overtake car driving on the right,347,3 overtake or lane change,nan,frame drops in future part,train
+e2e_2025-07-04-17-11-07_1_2,use right lane,443,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-12-48_0_0,overtake van driving on the right,87,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-12-48_0_1,overtake car driving on the right,163,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-12-48_0_2,overtake truck driving on the right,260,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-12-48_0_3,use right lane,322,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-14-05_1_0,overtake car in front,35,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-14-05_1_1,overtake truck driving on the right,239,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-14-05_1_2,use right lane,310,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-15-21_2_0,use middle lane,60,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-15-21_2_1,overtake truck driving on the right,325,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-15-21_2_2,overtake van driving on the right,427,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-15-21_2_3,use right lane,488,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-16-35_3_0,use middle lane,110,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-16-35_3_1,overtake truck driving on the right,203,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-16-35_3_2,overtake truck driving on the right,276,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-16-35_3_3,use right lane,330,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-17-49_4_0,use middle lane,92,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-17-49_4_1,overtake truck driving on the right,336,3 overtake or lane change,nan,nan,train
+e2e_2025-07-04-17-17-49_4_2,overtake truck driving on the right,508,3 overtake or lane change,nan,nan,train
 e2e_2025-07-04-17-19-03_5_0,overtake car driving on the right,36,3 overtake or lane change,nan,nan,test
 e2e_2025-07-04-17-19-03_5_1,overtake car driving on the right,245,3 overtake or lane change,nan,nan,test
 e2e_2025-07-04-17-19-03_5_2,overtake van driving on the right,338,3 overtake or lane change,nan,nan,test
@@ -757,18 +757,18 @@ e2e_2025-07-17-18-43-19_0_0,drive straight on,417,0 specifically selected,nan,le
 e2e_2025-09-03-13-47-16_0_0,drive straight on,147,2 construction zone,nan,nan,val
 e2e_2025-09-03-13-47-16_0_1,drive straight on,210,2 construction zone,nan,nan,val
 e2e_2025-09-03-13-47-16_0_2,drive straight on,288,2 construction zone,nan,nan,val
-e2e_2025-09-03-13-47-16_0_3,drive straight on,467,4 intersection,nan,nan,val
-e2e_2025-09-03-13-50-12_0_0,drive straight on,20,4 intersection,nan,nan,val
-e2e_2025-09-03-13-50-12_0_1,turn right,242,2 construction zone,nan,frame drop in future part,val
+e2e_2025-09-03-13-47-16_0_3,drive straight on,467,4 intersection,nan,nan,train
+e2e_2025-09-03-13-50-12_0_0,drive straight on,20,4 intersection,nan,nan,train
+e2e_2025-09-03-13-50-12_0_1,turn right,242,2 construction zone,nan,frame drop in future part,test
 e2e_2025-09-03-13-50-12_0_2,drive straight on,501,4 intersection,nan,nan,test
 e2e_2025-09-03-13-54-44_0_0,turn left,12,4 intersection,nan,nan,test
 e2e_2025-09-03-13-54-44_0_1,turn right,89,4 intersection,nan,nan,test
 e2e_2025-09-03-13-54-44_0_2,drive straight on,217,4 intersection,nan,nan,test
-e2e_2025-09-03-13-54-44_0_3,use left lane,241,3 overtake or lane change,nan,nan,val
-e2e_2025-09-03-13-54-44_0_4,turn left,340,0 specifically selected,nan,wait and let oncoming traffic pass,val
-e2e_2025-09-03-13-54-44_0_5,turn left,440,4 intersection,nan,nan,val
-e2e_2025-09-03-13-56-18_1_0,drive straight on,222,2 construction zone,nan,nan,val
-e2e_2025-09-03-13-56-18_1_1,drive straight on,380,2 construction zone,nan,nan,val
+e2e_2025-09-03-13-54-44_0_3,use left lane,241,3 overtake or lane change,nan,nan,train
+e2e_2025-09-03-13-54-44_0_4,turn left,340,0 specifically selected,nan,wait and let oncoming traffic pass,train
+e2e_2025-09-03-13-54-44_0_5,turn left,440,4 intersection,nan,nan,train
+e2e_2025-09-03-13-56-18_1_0,drive straight on,222,2 construction zone,nan,nan,train
+e2e_2025-09-03-13-56-18_1_1,drive straight on,380,2 construction zone,nan,nan,train
 e2e_2025-09-03-13-58-02_2_0,drive straight on,360,4 intersection,True,nan,test
 e2e_2025-09-03-14-03-40_0_0,drive straight on,56,0 specifically selected,True,wait for car in front to pass,train
 e2e_2025-09-03-14-03-40_0_1,drive straight on,178,4 intersection,nan,nan,train
@@ -794,7 +794,7 @@ e2e_2025-09-03-14-17-28_0_0,drive straight on,13,4 intersection,nan,nan,train
 e2e_2025-09-03-14-17-28_0_1,drive straight on,106,4 intersection,nan,nan,train
 e2e_2025-09-03-14-17-28_0_2,drive straight on,505,4 intersection,nan,nan,train
 e2e_2025-09-03-14-19-51_0_0,drive straight on,106,0 specifically selected,nan,driving into a tunnel,train
-e2e_2025-09-03-14-21-14_1_0,drive straight on,380,0 specifically selected,nan,driving out of a tunnel,train
+e2e_2025-09-03-14-21-14_1_0,drive straight on,365,0 specifically selected,nan,driving out of a tunnel,train
 e2e_2025-09-03-14-22-54_2_0,drive straight on,141,2 construction zone,nan,nan,train
 e2e_2025-09-03-14-22-54_2_1,drive straight on,227,2 construction zone,nan,nan,train
 e2e_2025-09-03-14-24-43_3_0,turn left,420,2 construction zone,nan,nan,train
@@ -806,22 +806,235 @@ e2e_2025-09-03-14-40-04_1_0,drive straight on,161,2 construction zone,True,frame
 e2e_2025-09-03-14-40-04_1_1,drive straight on,258,2 construction zone,True,nan,train
 e2e_2025-09-03-14-40-04_1_2,drive straight on,386,2 construction zone,True,nan,train
 e2e_2025-09-03-14-44-56_1_0,drive straight on,230,2 construction zone,True,nan,train
-likely-all-cameras/e2e_2025-07-01-07-58-27__0,overtake truck driving on the right,145,3 overtake or lane change,True,nan,train
-likely-all-cameras/e2e_2025-07-01-07-58-27__1,overtake car driving on the right,222,3 overtake or lane change,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-07-58-27__2,overtake car driving on the right,292,3 overtake or lane change,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-07-58-27__3,overtake car driving on the right,421,3 overtake or lane change,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-08-14-28__0,use middle lane,64,3 overtake or lane change,True,frame drop in future part,train
-likely-all-cameras/e2e_2025-07-01-08-34-47__0,use right lane,105,3 overtake or lane change,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-08-34-47__1,use middle lane,265,0 specifically selected,nan,not possible since fast car approaching from behind,train
-likely-all-cameras/e2e_2025-07-01-08-34-47__2,drive straight on,375,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-08-39-41__0,drive straight on,341,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-08-39-41__1,drive straight on,406,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-15-37-50__0,turn right,322,4 intersection,True,nan,train
-likely-all-cameras/e2e_2025-07-01-16-15-05__0,drive straight on,102,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-16-15-05__1,drive straight on,460,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-16-53-40__0,drive straight on,59,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-16-53-40__1,drive straight on,182,4 intersection,nan,nan,train
-likely-all-cameras/e2e_2025-07-01-19-53-23__0,drive straight on,181,4 intersection,nan,France,train
-likely-all-cameras/e2e_2025-07-04-18-04-22__0,drive straight on,5,2 construction zone,nan,nan,train
-likely-all-cameras/e2e_2025-07-04-18-04-22__1,drive straight on,204,2 construction zone,nan,nan,train
-likely-all-cameras/e2e_2025-07-04-18-04-22__2,drive straight on,300,2 construction zone,nan,nan,train
+e2e_2025-07-01-07-58-27_5_0,overtake truck driving on the right,145,3 overtake or lane change,True,nan,train
+e2e_2025-07-01-07-58-27_5_1,overtake car driving on the right,222,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-07-58-27_5_2,overtake car driving on the right,292,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-07-58-27_5_3,overtake car driving on the right,421,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-08-14-28_0_0,use middle lane,64,3 overtake or lane change,True,"frame drop in future part, too many frame drops",backup
+e2e_2025-07-01-08-34-47_0_0,use right lane,105,3 overtake or lane change,nan,nan,train
+e2e_2025-07-01-08-34-47_0_1,use middle lane,265,0 specifically selected,nan,not possible since fast car approaching from behind,train
+e2e_2025-07-01-08-34-47_0_2,drive straight on,375,4 intersection,nan,nan,train
+e2e_2025-07-01-08-39-41_4_0,drive straight on,341,4 intersection,nan,nan,train
+e2e_2025-07-01-08-39-41_4_1,drive straight on,406,4 intersection,nan,nan,train
+e2e_2025-07-01-15-37-50_0_0,turn right,322,4 intersection,True,"dbl check, no turning right, but an ambulance is approaching on the other lane (early in the recording)",backup
+e2e_2025-07-01-16-15-05_6_0,drive straight on,102,4 intersection,nan,nan,train
+e2e_2025-07-01-16-15-05_6_1,drive straight on,460,4 intersection,nan,nan,train
+e2e_2025-07-01-16-53-40_0_0,drive straight on,59,4 intersection,nan,"dbl check time stamps, seem to be before the intersections",train
+e2e_2025-07-01-16-53-40_0_1,drive straight on,182,4 intersection,nan,nan,train
+e2e_2025-07-01-19-53-23_8_0,drive straight on,181,4 intersection,nan,nan,train
+e2e_2025-07-04-18-04-22_8_0,drive straight on,5,2 construction zone,nan,nan,train
+e2e_2025-07-04-18-04-22_8_1,drive straight on,204,2 construction zone,nan,nan,train
+e2e_2025-07-04-18-04-22_8_2,drive straight on,300,2 construction zone,nan,nan,train
+e2e_2025-11-19-17-25-37_0_0,drive straight on,185,0 specifically selected,nan,Gate is opening during the night,train
+e2e_2025-11-19-17-25-37_0_1,turn right,275,5 nightime,nan,nan,train
+e2e_2025-11-19-17-27-29_1_0,drive straight on,302,5 nightime,nan,nan,train
+e2e_2025-11-19-17-32-45_0_0,drive straight on,140,5 nightime,True,contruction on the right,train
+e2e_2025-11-19-17-38-46_3_0,drive straight on,387,5 nightime,nan,traffic light just turns red,train
+e2e_2025-11-19-17-39-45_0_0,use right lane,6,5 nightime,True,nan,train
+e2e_2025-11-19-17-39-45_0_1,turn right,340,5 nightime,nan,nan,train
+e2e_2025-11-19-17-41-51_1_0,use left lane,65,5 nightime,nan,frame drop in future part,train
+e2e_2025-11-19-17-41-51_1_1,use right lane,353,5 nightime,nan,nan,train
+e2e_2025-11-19-17-52-54_0_0,use middle lane,83,5 nightime,True,nan,train
+e2e_2025-11-19-17-52-54_0_1,overtake truck driving on the right,200,5 nightime,nan,nan,train
+e2e_2025-11-19-17-52-54_0_2,use right lane,317,5 nightime,nan,nan,train
+e2e_2025-11-19-17-54-25_1_0,use middle lane,275,5 nightime,nan,nan,test
+e2e_2025-11-19-17-54-25_1_1,overtake truck driving on the right,340,5 nightime,nan,nan,test
+e2e_2025-11-19-17-54-25_1_2,use right lane,465,5 nightime,nan,nan,test
+e2e_2025-11-19-17-56-24_2_0,use middle lane,194,5 nightime,nan,nan,test
+e2e_2025-11-19-17-56-24_2_1,overtake car driving on the right,258,5 nightime,nan,nan,test
+e2e_2025-11-19-17-56-24_2_2,overtake truck driving on the right,398,5 nightime,nan,frame drop in future part,test
+e2e_2025-11-19-17-56-24_2_3,overtake truck driving on the right,478,5 nightime,nan,nan,test
+e2e_2025-11-19-17-59-47_0_0,use left lane,505,5 nightime,nan,nan,test
+e2e_2025-11-19-18-01-38_1_0,use right lane,108,5 nightime,nan,nan,test
+e2e_2025-11-19-18-01-38_1_1,use left lane,290,5 nightime,nan,nan,test
+e2e_2025-11-19-18-01-38_1_2,overtake car driving on the right,385,5 nightime,nan,nan,test
+e2e_2025-11-19-18-01-38_1_3,overtake truck driving on the right,470,5 nightime,nan,nan,test
+e2e_2025-11-19-18-23-12_0_0,drive straight on,356,5 nightime,nan,nan,test
+e2e_2025-11-19-18-23-12_0_1,drive straight on,498,0 specifically selected,nan,"traffic light just turns orange, human-like to drive through",test
+e2e_2025-11-19-18-24-54_1_0,drive straight on,95,5 nightime,nan,nan,test
+e2e_2025-11-19-18-26-46_2_0,drive straight on,300,0 specifically selected,nan,wait before crosswalk,test
+e2e_2025-11-19-18-38-31_1_0,drive straight on,6,5 nightime,nan,nan,test
+e2e_2025-11-19-18-38-31_1_1,turn left,93,5 nightime,nan,nan,test
+e2e_2025-11-19-18-38-31_1_2,turn right,224,5 nightime,nan,frame drop in future part,test
+e2e_2025-11-19-18-42-20_0_0,drive straight on,170,0 specifically selected,nan,very narrow road in old town,test
+e2e_2025-11-19-18-42-20_0_1,drive straight on,345,0 specifically selected,nan,"very narrow road in old town, frame drop in future",test
+e2e_2025-11-19-18-42-20_0_2,drive straight on,450,0 specifically selected,nan,very narrow road in old town,test
+e2e_2025-11-19-18-49-25_0_0,turn right,60,5 nightime,nan,frame drop in future part,test
+e2e_2025-11-19-18-49-25_0_1,nan,231,0 specifically selected,nan,"turning into a ""Fahrradstrasse""",test
+e2e_2025-11-19-18-49-25_0_2,nan,464,0 specifically selected,nan,driving in a Fahrradstrasse,test
+e2e_2025-11-19-18-57-02_1_0,drive straight on,509,0 specifically selected,True,"Construction workers on the road ahead, narrow path to drive between them",test
+e2e_2025-11-19-19-03-12_1_0,u-turn,344,0 specifically selected,nan,nan,test
+e2e_2025-11-19-19-03-12_1_1,use left lane,500,5 nightime,nan,nan,test
+e2e_2025-11-19-19-05-57_0_0,drive straight on,20,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-05-57_0_1,drive straight on,120,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-05-57_0_2,drive straight on,277,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-05-57_0_3,drive straight on,465,0 specifically selected,True,nighttime + construction zone,train
+e2e_2025-11-19-19-08-16_1_0,drive straight on,190,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-08-16_1_1,use left lane,280,5 nightime,nan,nan,train
+e2e_2025-11-19-19-08-16_1_2,use left lane,425,5 nightime,True,nan,train
+e2e_2025-11-19-19-08-42_0_0,drive straight on,165,0 specifically selected,nan,"nighttime + construction zone, frame drop in future",train
+e2e_2025-11-19-19-08-42_0_1,drive straight on,260,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-08-42_0_2,drive straight on,489,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-10-35_1_0,turn right,25,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-10-35_1_1,drive straight on,214,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-12-53_0_0,drive straight on,164,0 specifically selected,nan,"nighttime + construction zone, opt use follow the road ahead",train
+e2e_2025-11-19-19-14-43_1_0,drive straight on,420,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-14-43_1_1,drive straight on,505,0 specifically selected,nan,nighttime + construction zone,train
+e2e_2025-11-19-19-16-42_2_0,use left lane,40,5 nightime,nan,nan,train
+e2e_2025-11-19-19-16-42_2_1,drive straight on,141,5 nightime,nan,nan,train
+e2e_2025-11-19-19-18-46_0_0,turn right,247,5 nightime,nan,frame drop in future part,train
+e2e_2025-11-19-19-21-09_1_0,drive straight on,97,5 nightime,nan,nan,train
+e2e_2025-11-19-19-21-09_1_1,drive straight on,399,5 nightime,nan,nan,train
+e2e_2025-11-19-19-35-01_0_0,turn right,39,5 nightime,nan,nan,train
+e2e_2025-11-19-19-35-01_0_1,use right lane,430,5 nightime,nan,nan,train
+e2e_2025-11-19-19-36-44_1_0,turn right,241,5 nightime,nan,nan,train
+e2e_2025-11-19-19-36-44_1_1,use left lane,341,5 nightime,nan,frame drop in future part,train
+e2e_2025-11-19-19-36-44_1_2,use right lane,507,5 nightime,nan,nan,train
+e2e_2025-11-19-19-41-17_0_0,turn left,388,5 nightime,nan,nan,train
+e2e_2025-11-19-19-43-04_1_0,drive straight on,52,0 specifically selected,nan,somewhat rainy,train
+e2e_2025-11-19-19-45-00_2_0,drive straight on,385,0 specifically selected,nan,somewhat rainy,train
+e2e_2025-11-19-19-49-30_1_0,turn left,7,0 specifically selected,nan,somewhat rainy and traffic light is just chainging to orange,train
+e2e_2025-11-19-19-57-46_0_0,drive straight on,2,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-19-57-46_0_1,use rightmost lane,367,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-19-59-48_1_0,drive straight on,199,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-19-59-48_1_1,u-turn,421,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-20-02-10_0_0,drive straight on,220,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-04-23_1_0,use legft lane,25,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-04-23_1_1,turn left,188,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-04-23_1_2,drive straight on,364,0 specifically selected,nan,"night, rain, lane blocked",train
+e2e_2025-11-19-20-05-12_0_0,turn right,254,0 specifically selected,nan,"night, rain, unfortunately a bit late due to frame drops in wrong order (odd, odd)",train
+e2e_2025-11-19-20-07-45_1_0,drive straight on,165,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-20-07-59_0_0,turn right,430,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-20-10-47_0_0,turn right,75,0 specifically selected,nan,"night, rain, ""right before left"" ",train
+e2e_2025-11-19-20-10-47_0_1,turn right,284,0 specifically selected,nan,"night, rain, frame drop in future part",train
+e2e_2025-11-19-20-12-54_1_0,turn left,365,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-15-23_0_0,drive straight on,351,0 specifically selected,nan,"night, rain, construction zone, frame drop in future part",train
+e2e_2025-11-19-20-15-23_0_1,drive straight on,494,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-20-36-52_0_0,turn right,3,5 nightime,nan,nan,train
+e2e_2025-11-19-20-36-52_0_1,drive straight on,156,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-36-52_0_2,drive straight on,476,0 specifically selected,nan,"night, rain, construction zone",train
+e2e_2025-11-19-20-43-14_1_0,use right lane,361,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-45-58_0_0,use right lane,75,5 nightime,nan,nan,train
+e2e_2025-11-19-20-45-58_0_1,use left lane,385,5 nightime,nan,nan,train
+e2e_2025-11-19-20-48-11_1_0,use left lane,340,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-51-37_0_0,use left lane,257,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-51-37_0_1,use right lane,403,0 specifically selected,nan,"night, rain, frame drop in future part",train
+e2e_2025-11-19-20-53-22_1_0,use left lane,73,0 specifically selected,nan,"not possible since someone is overtaking us,  frame drop in future part",train
+e2e_2025-11-19-20-55-24_2_0,overtake truck driving on the right,14,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-56-05_0_0,use left lane,99,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-56-05_0_1,use right lane,288,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-56-05_0_2,use left lane,441,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-59-28_0_0,use left lane,112,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-59-28_0_1,overtake car driving on the right,215,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-20-59-28_0_2,overtake truck driving on the right,498,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-01-22_1_0,use left lane,287,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-03-28_2_0,overtake truck driving on the right,70,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-03-28_2_1,use right lane,434,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-05-36_0_0,use left lane,305,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-05-36_0_1,overtake car driving on the right,414,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-07-59_1_0,use left lane,341,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-07-59_1_1,use left lane,447,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-11-22_0_0,use left lane,326,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-11-22_0_1,use right lane,475,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-13-21_1_0,use left lane,280,0 specifically selected,nan,"not possible, since someone is overtaking us",train
+e2e_2025-11-19-21-14-25_0_0,use left lane,121,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-14-25_0_1,overtake car driving on the right,501,0 specifically selected,nan,"night, rain",train
+e2e_2025-11-19-21-16-24_1_0,use right lane,238,0 specifically selected,nan,"night, rain",train
+e2e_2026-01-08-14-56-37_0_0,drive straight on,117,0 specifically selected,True,"truck in front is changing to our lane, so we have to move out of our lane as well",train
+e2e_2026-01-08-14-58-31_1_0,overtake van driving on the right,2,3 overtake or lane change,nan,nan,train
+e2e_2026-01-08-14-58-31_1_1,use right lane,195,3 overtake or lane change,nan,nan,train
+e2e_2026-01-08-14-58-31_1_2,overtake car driving on the right,292,3 overtake or lane change,nan,nan,train
+e2e_2026-01-08-15-06-24_0_0,use right lane,254,3 overtake or lane change,nan,nan,train
+e2e_2026-01-08-15-34-26_0_0,drive straight on,357,0 specifically selected,True,we have to wait until the truck passes by before we drive around the car in front,train
+e2e_2026-01-08-16-07-02_4_0,drive straight on,315,6 snow & wintry mix,nan,nan,val
+e2e_2026-01-08-16-07-02_4_1,drive straight on,489,6 snow & wintry mix,nan,nan,val
+e2e_2026-01-08-16-09-53_0_0,drive straight on,86,6 snow & wintry mix,nan,nan,val
+e2e_2026-01-08-16-09-53_0_1,drive straight on,221,6 snow & wintry mix,nan,nan,val
+e2e_2026-01-08-16-09-53_0_2,drive straight on,418,6 snow & wintry mix,nan,nan,val
+e2e_2026-01-08-16-09-53_0_3,drive straight on,503,6 snow & wintry mix,nan,nan,val
+e2e_2026-01-08-16-12-02_1_0,drive straight on,12,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-12-02_1_1,drive straight on,107,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-12-02_1_2,drive straight on,180,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-12-02_1_3,drive straight on,300,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-12-02_1_4,drive straight on,416,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-12-02_1_5,drive straight on,508,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-16-27_3_0,drive straight on,127,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-16-27_3_1,drive straight on,260,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-16-27_3_2,drive straight on,400,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-16-27_3_3,drive straight on,508,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-18-29_4_0,drive straight on,105,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-18-29_4_1,drive straight on,200,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-22-26_0_0,use left lane,225,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-22-26_0_1,drive straight on,400,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-24-40_1_0,drive straight on,5,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-24-40_1_1,drive straight on,188,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-24-40_1_2,drive straight on,345,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-24-40_1_3,drive straight on,460,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-31-14_0_0,drive straight on,6,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-31-14_0_1,drive straight on,100,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-31-14_0_2,drive straight on,239,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-31-14_0_3,drive straight on,348,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-31-14_0_4,drive straight on,452,6 snow & wintry mix,nan,nan,test
+e2e_2026-01-08-16-33-09_1_0,drive straight on,43,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-33-09_1_1,drive straight on,169,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-33-09_1_2,drive straight on,285,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-33-09_1_3,drive straight on,405,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-33-09_1_4,drive straight on,501,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-37-35_0_0,drive straight on,190,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-37-35_0_1,drive straight on,373,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-39-28_1_0,drive straight on,98,6 snow & wintry mix,nan,frame drops in at odd odd idxs,train
+e2e_2026-01-08-16-39-28_1_1,drive straight on,271,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-39-28_1_2,stay in the roundabout,382,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-39-28_1_3,stay in the roundabout,501,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-43-22_0_0,drive straight on,135,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-47-34_0_0,drive straight on,200,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-47-34_0_1,drive straight on,483,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-54-32_0_0,drive straight on,40,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-54-32_0_1,drive straight on,127,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-16-54-32_0_2,turn left,200,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-00-59_0_0,drive straight on,22,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-00-59_0_1,turn left,271,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-00-59_0_2,drive straight on,411,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-02-53_1_0,drive straight on,133,6 snow & wintry mix,nan,frame drop in future part,train
+e2e_2026-01-08-17-02-53_1_1,drive straight on,254,6 snow & wintry mix,nan,frame drop in future part,train
+e2e_2026-01-08-17-02-53_1_2,drive straight on,492,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-07-08_0_0,drive straight on,2,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-07-08_0_1,drive straight on,83,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-07-08_0_2,drive straight on,178,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-07-08_0_3,drive straight on,499,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-12-09_0_0,drive straight on,14,6 snow & wintry mix,nan,could also already count as speciffically selected as its almost nighttime,train
+e2e_2026-01-08-17-12-09_0_1,drive straight on,192,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-12-09_0_2,drive straight on,288,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-12-09_0_3,drive straight on,413,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-14-02_1_0,drive straight on,155,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-14-02_1_1,drive straight on,308,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-14-02_1_2,drive straight on,400,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-14-02_1_3,drive straight on,502,6 snow & wintry mix,nan,nan,train
+e2e_2026-01-08-17-19-16_0_0,drive straight on,48,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-19-16_0_1,drive straight on,201,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-19-16_0_2,drive straight on,343,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-19-16_0_3,drive straight on,458,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-21-15_1_0,drive straight on,118,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-21-15_1_1,drive straight on,269,0 specifically selected,nan,"night, fog, wintry mix, ""blinded/ dazzeled"" by oncoming traffic",test
+e2e_2026-01-08-17-21-15_1_2,drive straight on,395,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-21-15_1_3,drive straight on,487,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-25-31_0_0,drive straight on,3,0 specifically selected,nan,"night, fog, wintry mix",test
+e2e_2026-01-08-17-29-43_0_0,drive straight on,80,0 specifically selected,nan,"night, fog, wintry mix",val
+e2e_2026-01-08-17-29-43_0_1,drive straight on,252,0 specifically selected,nan,"night, fog, wintry mix",val
+e2e_2026-01-08-17-37-39_0_0,drive straight on,378,0 specifically selected,nan,"night, fog, wintry mix",val
+e2e_2026-01-08-17-39-36_1_0,drive straight on,30,0 specifically selected,nan,"night, fog, wintry mix",train
+e2e_2026-01-08-17-43-48_0_0,drive straight on,13,0 specifically selected,nan,"night, fog, wintry mix",train
+e2e_2026-01-08-17-43-48_0_1,drive straight on,234,0 specifically selected,nan,"night, fog, wintry mix, light reflections",train
+e2e_2026-01-08-17-49-29_0_0,drive straight on,35,5 nightime,nan,nan,train
+e2e_2026-01-08-17-51-28_1_0,drive straight on,472,5 nightime,nan,nan,train
+e2e_2026-01-08-17-55-37_0_0,drive straight on,223,0 specifically selected,nan,"night. rain, reflections",train
+e2e_2026-01-08-17-55-37_0_1,drive straight on,406,0 specifically selected,nan,"night. rain, reflections",train
+e2e_2026-01-08-18-00-21_2_0,drive straight on,206,0 specifically selected,nan,"night. rain, reflections",train
+e2e_2026-01-08-18-00-45_0_0,turn left,210,0 specifically selected,nan,"night. rain, reflections",train
+e2e_2026-01-08-18-04-32_2_0,drive straight on,29,0 specifically selected,nan,"night. rain, reflections",train
+e2e_2026-01-08-18-17-56_0_0,use left lane,73,5 nightime,nan,nan,val
+e2e_2026-01-08-18-17-56_0_1,use middle lane,200,5 nightime,nan,nan,val
+e2e_2026-01-08-18-27-14_0_0,use middle lane,281,5 nightime,nan,nan,val
+e2e_2026-01-08-18-27-14_0_1,use right lane,433,5 nightime,nan,nan,val
+e2e_2026-01-08-18-29-13_1_0,use middle lane,98,5 nightime,nan,nan,val
+e2e_2026-01-08-18-35-44_0_0,turn right,300,0 specifically selected,nan,night + rain,val
