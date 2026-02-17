@@ -16,7 +16,7 @@ window.CONFIG = {
   /* Point rendering */
   pointSize: 0.08,                // meters; in 2D multiplied by camera.zoom
   colorMode: "height",            // "height" | "intensity" | "distance" | "solid"
-  maxPoints: 500000,              // hard cap
+  maxPoints: 1000000,              // hard cap
 
   // Curve settings
   defaultCurve: "basis",          // "basis" | "natural" | "catmullrom"

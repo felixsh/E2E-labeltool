@@ -26,7 +26,7 @@ const CFG = window.CONFIG || {};
 const DEMO_ZIP = CFG.demoZip;
 const HISTORY_COUNT = Math.max(1, (CFG.N_PAST | 0) || 1);
 let basePtSize = +CFG.pointSize > 0 ? +CFG.pointSize : 0.08; // meters
-let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 500000;
+let maxPoints  = +CFG.maxPoints > 0 ? +CFG.maxPoints : 1000000;
 const USE_FIRST_PCD = !!CFG.useFirstPointCloud;
 const TRANSFORM_INDEX = Number.isInteger(CFG.transformationIndex) ? CFG.transformationIndex : 0;
 const PRIMARY_SOLID_HEX = typeof CFG.primarySolidColor === "string" ? CFG.primarySolidColor : "#9fb3ff";
@@ -1337,7 +1337,7 @@ function buildSecondCloud() {
       const t = 0.50 + 0.50 * u;
       c = rampColor(turboStops, t);
     } else if (colorMode === "intensity" && hasI) {
-      const v = rawSecondary.points[k+3];
+      const v = raw.points[k+3];
       let t;
       if (imax <= 1.0) t = v;
       else if (imax <= 255) t = v/255;
